@@ -1,4 +1,10 @@
 # Projeto-VR
-Este projeto será um jogo onde você controla um viking sem braços que luta dando cabeçadas nos inimigos. <br>
+Um jogo experimental em Realidade Virtual onde o jogador controla um viking sem braços que luta contra inimigos utilizando apenas cabeçadas.<br>
+O projeto combina Realidade Virtual, Visão Computacional e Inteligência Artificial para criar uma experiência imersiva onde o corpo do jogador é parte direta da mecânica de combate.<br>
+Os inimigos surgem ao longo de diferentes fases, cada uma com níveis crescentes de dificuldade. O jogador deve derrotá-los realizando movimentos reais com a cabeça, detectados por visão computacional.<br>
+A cada nova fase, os inimigos se tornam mais desafiadores, exigindo movimentos mais rápidos e estratégias diferentes.<br>
 <br>
-O jogo será em realidade virtual e usará visão computacional para que o jogo interprete os movimentos do jogador e IA para que os inimigos se adaptem na hora de atacar de com como o jogador se esquiva.
+Tecnologias Utilizadas:<br>
+Realidade Virtual: Responsável pela imersão do jogador no ambiente do jogo.<br>
+Visão Computacional: Responsável por detectar os movimentos da cabeça do jogador.<br>
+Inteligência Artificial: Controla o comportamento dos inimigos durante as fases.<br>
