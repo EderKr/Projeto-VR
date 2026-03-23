@@ -63,3 +63,8 @@ Os resultados são <b>catalogados dentro do jogo</b>, permitindo acompanhar a ev
 <p>
 O objetivo do projeto é explorar a integração entre <b>realidade virtual, visão computacional e inteligência artificial</b> para criar um sistema interativo capaz de unir entretenimento com treinamento de reflexos e análise de desempenho do jogador.
 </p>
+
+
+<p>
+  https://github.com/supermedium/aframe-environment-component
+</p>
