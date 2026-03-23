@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Indefinido</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game-container">
+    <section class="panel">
+      <h1>🪓 Indefinido</h1>
+      <p class="subtitle">
+        Protótipo de combate e treino de reflexos
+      </p>
+
+        <label class="custom-line">
+          <input type="checkbox" id="custom-mode-toggle" />
+          Ativar modo customizado
+        </label>
+
+        <div class="custom-fields" id="custom-fields">
+          <div class="custom-group">
+            <label for="custom-lives">Vidas</label>
+            <input type="number" id="custom-lives" min="1" value="3" />
+            <label class="inline-option">
+              <input type="checkbox" id="infinite-lives" />
+              Infinito
+            </label>
+          </div>
+
+          <div class="custom-group">
+            <label for="custom-headbutts">Ataques necessários</label>
+            <input type="number" id="custom-headbutts" min="1" value="3" />
+            <label class="inline-option">
+              <input type="checkbox" id="infinite-headbutts" />
+              Infinito
+            </label>
+          </div>
+
+          <div class="custom-group">
+            <label for="custom-difficulty">Dificuldade</label>
+            <select id="custom-difficulty">
+              <option value="1">Fácil</option>
+              <option value="2">Normal</option>
+              <option value="3">Difícil</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="hud-item"><strong>Fase:</strong> <span id="phase">1</span></div>
+        <div class="hud-item"><strong>Vidas:</strong> <span id="lives">3</span></div>
+        <div class="hud-item"><strong>Ataques:</strong> <span id="round">0</span></div>
+      </div>
+
+      <div class="arena">
+        <p id="enemy-action" class="enemy-action">Clique em iniciar para começar</p>
+        <p id="player-action" class="player-action">Sua ação: nenhuma</p>
+        <p id="result" class="result neutral">Aguardando...</p>
+        <p id="reaction-time" class="reaction-time">Tempo de reação: --</p>
+      </div>
+
+      <div class="controls">
+        <button id="start-btn">Iniciar Jogo</button>
+        <button id="restart-btn" disabled>Reiniciar</button>
+        <button id="stop-btn" disabled>Parar</button>
+      </div>
+
+      <div class="instructions">
+        <h2>Controles</h2>
+        <ul>
+          <li><strong>↑</strong> Cabeçada</li>
+          <li><strong>←</strong> Esquiva para a esquerda</li>
+          <li><strong>→</strong> Esquiva para a direita</li>
+          <li><strong>↓</strong> Agachar</li>
+        </ul>
+      </div>
+    </section>
+
+    <aside class="stats-panel">
+      <h2>📊 Desempenho Atual</h2>
+      <p><strong>Acertos:</strong> <span id="hits">0</span></p>
+      <p><strong>Erros:</strong> <span id="misses">0</span></p>
+      <p><strong>Precisão:</strong> <span id="accuracy">0%</span></p>
+      <p><strong>Tempo médio:</strong> <span id="avg-reaction">--</span></p>
+
+      <hr />
+
+      <h2>🗂 Histórico</h2>
+      <div id="history" class="history">
+        <p>Nenhum registro salvo ainda.</p>
+      </div>
+    </aside>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
