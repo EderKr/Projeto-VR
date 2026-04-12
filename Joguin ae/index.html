@@ -18,32 +18,129 @@
       background: #000;
     }
 
-    .desktop-tip {
+    .hud {
       position: fixed;
-      right: 12px;
       top: 12px;
-      z-index: 10;
-      max-width: 280px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.65);
-      color: #fff;
-      font-size: 13px;
-      line-height: 1.4;
+      left: 12px;
+      z-index: 20;
+      width: 320px;
+      background: rgba(0, 0, 0, 0.72);
+      color: white;
+      border-radius: 12px;
+      padding: 14px;
+      box-sizing: border-box;
+      backdrop-filter: blur(4px);
     }
 
-    @media (max-width: 768px) {
-      .desktop-tip {
-        font-size: 12px;
-        max-width: 220px;
-      }
+    .hud h1 {
+      font-size: 20px;
+      margin: 0 0 8px 0;
+    }
+
+    .hud p {
+      margin: 6px 0;
+      font-size: 14px;
+    }
+
+    .prompt {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      min-height: 40px;
+    }
+
+    .result {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: bold;
+      text-align: center;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .result.success {
+      background: rgba(0, 160, 0, 0.35);
+    }
+
+    .result.error {
+      background: rgba(180, 0, 0, 0.35);
+    }
+
+    .controls-panel {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      z-index: 20;
+      width: 320px;
+      background: rgba(0, 0, 0, 0.72);
+      color: white;
+      border-radius: 12px;
+      padding: 14px;
+      box-sizing: border-box;
+      backdrop-filter: blur(4px);
+    }
+
+    .controls-panel h2 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+    }
+
+    .controls-panel p {
+      margin: 6px 0;
+      font-size: 14px;
+    }
+
+    .controls-panel button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .controls-panel button:hover {
+      opacity: 0.92;
+    }
+
+    .tip {
+      color: #d9d9d9;
+      font-size: 13px;
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
-  <div class="desktop-tip">
-    Use o cursor central para mirar nos botões do painel.
-    No desktop, as setas do teclado também funcionam.
+  <div class="hud">
+    <h1>🪓 Indefinido VR</h1>
+    <p><strong>Fase:</strong> <span id="phase">1</span></p>
+    <p><strong>Vidas:</strong> <span id="lives">3</span></p>
+    <p><strong>Ataques no inimigo:</strong> <span id="hitsOnEnemy">0/3</span></p>
+    <p><strong>Acertos:</strong> <span id="hits">0</span></p>
+    <p><strong>Erros:</strong> <span id="misses">0</span></p>
+    <p><strong>Tempo médio:</strong> <span id="avgReaction">--</span></p>
+
+    <div class="prompt" id="prompt">APERTE INICIAR</div>
+    <div class="result" id="result">Aguardando...</div>
+  </div>
+
+  <div class="controls-panel">
+    <h2>Teste</h2>
+    <p>Teclado: ↑ ataque, ← → esquiva, ↓ agachar</p>
+    <p class="tip">
+      Para usar movimento da cabeça, fique em posição neutra e clique em
+      <strong>Calibrar Cabeça</strong>. Em VR, isso funciona melhor com headset.
+    </p>
+    <button id="startBtn">Iniciar Jogo</button>
+    <button id="calibrateBtn">Calibrar Cabeça</button>
+    <button id="resetBtn">Reiniciar</button>
   </div>
 
   <a-scene
@@ -53,10 +150,7 @@
     background="color: #1a1a1a"
   >
     <a-assets>
-      <audio
-        id="battleSound"
-        src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3">
-      </audio>
+      <audio id="battleSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3"></audio>
     </a-assets>
 
     <a-entity
@@ -67,245 +161,41 @@
         lighting: dusk;">
     </a-entity>
 
+    <!-- Rig do jogador -->
     <a-entity id="rig" position="0 0 0">
-      <a-entity
-        id="playerCamera"
+      <a-entity id="playerCamera"
         camera
         position="0 1.6 0"
         look-controls
         wasd-controls="acceleration: 18"
-        head-input
-      >
-        <a-cursor
-          id="gazeCursor"
-          color="white"
-          fuse="true"
-          fuse-timeout="1200"
-          raycaster="objects: .clickable">
-        </a-cursor>
-
-        <!-- HUD da esquerda acompanha a câmera -->
-        <a-entity id="cameraHudRoot" position="-0.52 0.24 -1.1" scale="0.28 0.28 0.28">
-          <a-plane
-            width="2.15"
-            height="2.55"
-            color="#111111"
-            opacity="0.84"
-            material="shader: flat; depthTest: false"
-            radius="0.08">
-          </a-plane>
-
-          <a-plane
-            id="hudTitle"
-            position="0 0.98 0.02"
-            width="1.8"
-            height="0.18"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Indefinido VR; align: left; fontSize: 70; color: #FFFFFF; padding: 28;">
-          </a-plane>
-
-          <a-plane
-            id="hudPhase"
-            position="0 0.72 0.02"
-            width="1.8"
-            height="0.15"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Fase: 1; align: left; fontSize: 58; color: #FFFFFF; padding: 24;">
-          </a-plane>
-
-          <a-plane
-            id="hudLives"
-            position="0 0.50 0.02"
-            width="1.8"
-            height="0.15"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Vidas: 3; align: left; fontSize: 58; color: #FFFFFF; padding: 24;">
-          </a-plane>
-
-          <a-plane
-            id="hudEnemyHits"
-            position="0 0.28 0.02"
-            width="1.8"
-            height="0.15"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Ataques no inimigo: 0/3; align: left; fontSize: 54; color: #FFFFFF; padding: 24;">
-          </a-plane>
-
-          <a-plane
-            id="hudHits"
-            position="0 0.06 0.02"
-            width="1.8"
-            height="0.15"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Acertos: 0; align: left; fontSize: 58; color: #FFFFFF; padding: 24;">
-          </a-plane>
-
-          <a-plane
-            id="hudMisses"
-            position="0 -0.16 0.02"
-            width="1.8"
-            height="0.15"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Erros: 0; align: left; fontSize: 58; color: #FFFFFF; padding: 24;">
-          </a-plane>
-
-          <a-plane
-            id="hudAvgReaction"
-            position="0 -0.38 0.02"
-            width="1.8"
-            height="0.15"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Tempo médio: --; align: left; fontSize: 52; color: #FFFFFF; padding: 24;">
-          </a-plane>
-
-          <a-plane
-            id="hudPromptBg"
-            position="0 -0.76 0.01"
-            width="1.78"
-            height="0.26"
-            color="#252525"
-            opacity="0.96"
-            material="shader: flat; depthTest: false"
-            radius="0.06">
-          </a-plane>
-
-          <a-plane
-            id="hudPrompt"
-            position="0 -0.76 0.02"
-            width="1.68"
-            height="0.18"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: APERTE INICIAR; align: center; fontSize: 72; color: #FFFFFF; padding: 10;">
-          </a-plane>
-
-          <a-plane
-            id="hudResultBg"
-            position="0 -1.08 0.01"
-            width="1.78"
-            height="0.34"
-            color="#2B2B2B"
-            opacity="0.95"
-            material="shader: flat; depthTest: false"
-            radius="0.06">
-          </a-plane>
-
-          <a-plane
-            id="hudResult"
-            position="0 -1.08 0.02"
-            width="1.68"
-            height="0.24"
-            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Aguardando...; align: center; fontSize: 50; color: #FFFFFF; padding: 18;">
-          </a-plane>
-        </a-entity>
+        head-input>
+        <a-cursor color="white"></a-cursor>
       </a-entity>
     </a-entity>
 
-    <!-- Painel de botões continua no mundo -->
-    <a-entity id="worldHud" position="0 1.9 -2.4">
-      <a-entity id="vrControlsRoot" position="1.1 -0.05 0" scale="0.34 0.34 0.34">
-        <a-plane
-          width="2.7"
-          height="3.2"
-          color="#111111"
-          opacity="0.84"
-          radius="0.08">
-        </a-plane>
-
-        <a-plane
-          position="0 1.22 0.02"
-          width="2.1"
-          height="0.18"
-          material="transparent: true; opacity: 0"
-          canvas-text="value: Teste; align: left; fontSize: 62; color: #FFFFFF; padding: 22;">
-        </a-plane>
-
-        <a-plane
-          position="0 0.86 0.02"
-          width="2.1"
-          height="0.34"
-          material="transparent: true; opacity: 0"
-          canvas-text="value: Teclado: ↑ ataque, ← → esquiva, ↓ agachar; align: left; fontSize: 42; color: #FFFFFF; padding: 22;">
-        </a-plane>
-
-        <a-plane
-          position="0 0.36 0.02"
-          width="2.1"
-          height="0.58"
-          material="transparent: true; opacity: 0"
-          canvas-text="value: Mire nos botões com o cursor central. Calibre a cabeça em posição neutra antes de jogar.; align: left; fontSize: 38; color: #D8D8D8; padding: 22;">
-        </a-plane>
-
-        <a-entity position="0 -0.40 0.02">
-          <a-plane
-            class="clickable"
-            gaze-button="action: start; dwellTime: 1200"
-            width="1.95"
-            height="0.42"
-            color="#2E8B57"
-            radius="0.06">
-          </a-plane>
-          <a-plane
-            position="0 0 0.01"
-            width="1.7"
-            height="0.18"
-            material="transparent: true; opacity: 0"
-            canvas-text="value: Iniciar Jogo; align: center; fontSize: 54; color: #FFFFFF; padding: 10;">
-          </a-plane>
-        </a-entity>
-
-        <a-entity position="0 -1.00 0.02">
-          <a-plane
-            class="clickable"
-            gaze-button="action: calibrate; dwellTime: 1200"
-            width="1.95"
-            height="0.42"
-            color="#2C6CB0"
-            radius="0.06">
-          </a-plane>
-          <a-plane
-            position="0 0 0.01"
-            width="1.7"
-            height="0.18"
-            material="transparent: true; opacity: 0"
-            canvas-text="value: Calibrar Cabeça; align: center; fontSize: 50; color: #FFFFFF; padding: 10;">
-          </a-plane>
-        </a-entity>
-
-        <a-entity position="0 -1.60 0.02">
-          <a-plane
-            class="clickable"
-            gaze-button="action: reset; dwellTime: 1200"
-            width="1.95"
-            height="0.42"
-            color="#8B2E2E"
-            radius="0.06">
-          </a-plane>
-          <a-plane
-            position="0 0 0.01"
-            width="1.7"
-            height="0.18"
-            material="transparent: true; opacity: 0"
-            canvas-text="value: Reiniciar; align: center; fontSize: 54; color: #FFFFFF; padding: 10;">
-          </a-plane>
-        </a-entity>
-      </a-entity>
-    </a-entity>
-
+    <!-- Inimigo -->
     <a-entity id="enemy" position="0 0 -8" enemy-ai sound="src: #battleSound">
+      <!-- Corpo -->
       <a-cylinder position="0 1 0" height="2" radius="0.5" color="#c68642"></a-cylinder>
+
+      <!-- Cabeça -->
       <a-sphere id="enemyHead" position="0 2.3 0" radius="0.5" color="#f1c27d"></a-sphere>
+
+      <!-- Capacete -->
       <a-sphere position="0 2.5 0" radius="0.55" color="gray"></a-sphere>
 
+      <!-- Chifres -->
       <a-cone position="-0.4 3.0 0" rotation="0 0 60" radius-bottom="0.1" height="0.8" color="white"></a-cone>
       <a-cone position="0.4 3.0 0" rotation="0 0 -60" radius-bottom="0.1" height="0.8" color="white"></a-cone>
 
+      <!-- Braço Esquerdo -->
       <a-entity id="leftArm" position="-0.8 1.4 0" rotation="0 0 30">
         <a-cylinder radius="0.15" height="1.2" color="#c68642"></a-cylinder>
         <a-cylinder position="-0.25 -0.6 0" radius="0.05" height="1.2" rotation="0 0 -30" color="#8B4513"></a-cylinder>
         <a-box position="-0.1 -1.2 0" depth="0.15" height="0.6" width="0.5" rotation="0 0 -30" color="silver"></a-box>
       </a-entity>
 
+      <!-- Braço Direito -->
       <a-entity id="rightArm" position="0.8 1.4 0" rotation="0 0 -30">
         <a-cylinder radius="0.15" height="1.2" color="#c68642"></a-cylinder>
         <a-cylinder position="0.25 -0.6 0" radius="0.05" height="1.2" rotation="0 0 30" color="#8B4513"></a-cylinder>
@@ -313,13 +203,540 @@
       </a-entity>
     </a-entity>
 
+    <!-- Arena circular -->
     <a-entity arena-circle></a-entity>
+
+    <!-- chão invisível -->
     <a-plane rotation="-90 0 0" width="200" height="200" visible="false"></a-plane>
 
+    <!-- iluminação -->
     <a-entity light="type: ambient; intensity: 0.7"></a-entity>
     <a-entity light="type: directional; intensity: 0.8" position="1 3 2"></a-entity>
   </a-scene>
 
-  <script src="script.js"></script>
+  <script>
+    const phaseEl = document.getElementById("phase");
+    const livesEl = document.getElementById("lives");
+    const hitsOnEnemyEl = document.getElementById("hitsOnEnemy");
+    const hitsEl = document.getElementById("hits");
+    const missesEl = document.getElementById("misses");
+    const avgReactionEl = document.getElementById("avgReaction");
+    const promptEl = document.getElementById("prompt");
+    const resultEl = document.getElementById("result");
+
+    const startBtn = document.getElementById("startBtn");
+    const calibrateBtn = document.getElementById("calibrateBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const game = {
+      running: false,
+      waitingInput: false,
+      expectedAction: null,
+      promptStartTime: 0,
+      reactionTimeoutId: null,
+      nextRoundTimeoutId: null,
+
+      phase: 1,
+      maxPhases: 3,
+      lives: 3,
+      hits: 0,
+      misses: 0,
+      reactionTimes: [],
+      enemyHits: 0,
+      enemyHitsNeeded: 3
+    };
+
+    function getEnemyHitsNeeded(phase) {
+      if (phase === 1) return 3;
+      if (phase === 2) return 4;
+      return 5;
+    }
+
+    function getReactionWindow(phase) {
+      if (phase === 1) return 2200;
+      if (phase === 2) return 1700;
+      return 1400;
+    }
+
+    function getEnemySpeed(phase) {
+      if (phase === 1) return 0.018;
+      if (phase === 2) return 0.024;
+      return 0.03;
+    }
+
+    function clearTimers() {
+      if (game.reactionTimeoutId) {
+        clearTimeout(game.reactionTimeoutId);
+        game.reactionTimeoutId = null;
+      }
+      if (game.nextRoundTimeoutId) {
+        clearTimeout(game.nextRoundTimeoutId);
+        game.nextRoundTimeoutId = null;
+      }
+    }
+
+    function setPrompt(text) {
+      promptEl.textContent = text;
+    }
+
+    function setResult(text, type = "") {
+      resultEl.textContent = text;
+      resultEl.className = "result";
+      if (type) {
+        resultEl.classList.add(type);
+      }
+    }
+
+    function updateHUD() {
+      phaseEl.textContent = game.phase;
+      livesEl.textContent = game.lives;
+      hitsOnEnemyEl.textContent = `${game.enemyHits}/${game.enemyHitsNeeded}`;
+      hitsEl.textContent = game.hits;
+      missesEl.textContent = game.misses;
+
+      if (game.reactionTimes.length > 0) {
+        const avg = game.reactionTimes.reduce((a, b) => a + b, 0) / game.reactionTimes.length;
+        avgReactionEl.textContent = `${avg.toFixed(3)}s`;
+      } else {
+        avgReactionEl.textContent = "--";
+      }
+    }
+
+    function resetEnemyPosition() {
+      const enemy = document.getElementById("enemy");
+      enemy.setAttribute("position", "0 0 -8");
+    }
+
+    function flashEnemy(color = "#ff4444", duration = 180) {
+      const head = document.getElementById("enemyHead");
+      const oldColor = head.getAttribute("color") || "#f1c27d";
+      head.setAttribute("color", color);
+      setTimeout(() => {
+        head.setAttribute("color", oldColor);
+      }, duration);
+    }
+
+    function getPromptLabel(action) {
+      switch (action) {
+        case "dodgeLeft":
+          return "← DESVIAR";
+        case "dodgeRight":
+          return "→ DESVIAR";
+        case "duck":
+          return "↓ AGACHAR";
+        case "attack":
+          return "↑ ATACAR";
+        default:
+          return "...";
+      }
+    }
+
+    function openPrompt(action) {
+      clearTimers();
+      game.expectedAction = action;
+      game.waitingInput = true;
+      game.promptStartTime = performance.now();
+
+      setPrompt(getPromptLabel(action));
+      setResult("Reaja agora.");
+
+      game.reactionTimeoutId = setTimeout(() => {
+        handleTimeout();
+      }, getReactionWindow(game.phase));
+    }
+
+    function handleTimeout() {
+      if (!game.running || !game.waitingInput) return;
+
+      clearTimers();
+      game.waitingInput = false;
+
+      if (game.expectedAction === "attack") {
+        game.misses++;
+        setResult("Você perdeu a chance de atacar.", "error");
+      } else {
+        game.misses++;
+        game.lives--;
+        flashEnemy("#ff0000");
+        setResult("Tempo esgotado. Você foi atingido.", "error");
+      }
+
+      updateHUD();
+      checkGameStateOrContinue();
+    }
+
+    function receiveAction(action, source = "unknown") {
+      if (!game.running || !game.waitingInput) return;
+
+      clearTimers();
+      game.waitingInput = false;
+
+      const reactionTime = (performance.now() - game.promptStartTime) / 1000;
+
+      if (action === game.expectedAction) {
+        game.hits++;
+        game.reactionTimes.push(reactionTime);
+
+        if (action === "attack") {
+          game.enemyHits++;
+          flashEnemy("#00ff66");
+          setResult(`Cabeçada acertada via ${source}!`, "success");
+        } else {
+          setResult(`Defesa correta via ${source}!`, "success");
+        }
+      } else {
+        game.misses++;
+
+        if (game.expectedAction === "attack") {
+          setResult(`Ação errada via ${source}. Você perdeu a abertura.`, "error");
+        } else {
+          game.lives--;
+          flashEnemy("#ff0000");
+          setResult(`Resposta errada via ${source}. Você foi atingido.`, "error");
+        }
+      }
+
+      updateHUD();
+      checkGameStateOrContinue();
+    }
+
+    function nextPhase() {
+      if (game.phase >= game.maxPhases) {
+        game.running = false;
+        setPrompt("VITÓRIA");
+        setResult("Você derrotou todos os inimigos!", "success");
+        clearTimers();
+        return;
+      }
+
+      game.phase++;
+      game.enemyHits = 0;
+      game.enemyHitsNeeded = getEnemyHitsNeeded(game.phase);
+
+      const enemy = document.getElementById("enemy");
+      enemy.components["enemy-ai"].data.speed = getEnemySpeed(game.phase);
+      resetEnemyPosition();
+
+      setPrompt(`FASE ${game.phase}`);
+      setResult("Novo inimigo entrou na arena.");
+      updateHUD();
+
+      game.nextRoundTimeoutId = setTimeout(() => {
+        if (game.running) {
+          document.getElementById("enemy").components["enemy-ai"].resumeCombat();
+        }
+      }, 1500);
+    }
+
+    function checkGameStateOrContinue() {
+      if (game.lives <= 0) {
+        game.running = false;
+        setPrompt("DERROTA");
+        setResult("Você perdeu todas as vidas.", "error");
+        clearTimers();
+        return;
+      }
+
+      if (game.enemyHits >= game.enemyHitsNeeded) {
+        nextPhase();
+        return;
+      }
+
+      game.nextRoundTimeoutId = setTimeout(() => {
+        if (game.running) {
+          document.getElementById("enemy").components["enemy-ai"].resumeCombat();
+        }
+      }, 900);
+    }
+
+    function startGame() {
+      clearTimers();
+      game.running = true;
+      game.waitingInput = false;
+      game.expectedAction = null;
+      game.phase = 1;
+      game.lives = 3;
+      game.hits = 0;
+      game.misses = 0;
+      game.reactionTimes = [];
+      game.enemyHits = 0;
+      game.enemyHitsNeeded = getEnemyHitsNeeded(1);
+
+      resetEnemyPosition();
+
+      const enemy = document.getElementById("enemy");
+      enemy.components["enemy-ai"].data.speed = getEnemySpeed(1);
+      enemy.components["enemy-ai"].resumeCombat();
+
+      setPrompt("COMEÇOU");
+      setResult("Prepare-se.");
+      updateHUD();
+    }
+
+    function resetGame() {
+      clearTimers();
+      game.running = false;
+      game.waitingInput = false;
+      game.expectedAction = null;
+      game.phase = 1;
+      game.lives = 3;
+      game.hits = 0;
+      game.misses = 0;
+      game.reactionTimes = [];
+      game.enemyHits = 0;
+      game.enemyHitsNeeded = getEnemyHitsNeeded(1);
+
+      resetEnemyPosition();
+
+      setPrompt("APERTE INICIAR");
+      setResult("Aguardando...");
+      updateHUD();
+    }
+
+    function dispatchAction(action, source = "unknown") {
+      receiveAction(action, source);
+    }
+
+    window.dispatchGameAction = dispatchAction;
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        const blockedKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+        if (blockedKeys.includes(event.key)) {
+          event.preventDefault();
+        }
+
+        if (!game.running) return;
+
+        if (event.key === "ArrowUp") dispatchAction("attack", "teclado");
+        if (event.key === "ArrowLeft") dispatchAction("dodgeLeft", "teclado");
+        if (event.key === "ArrowRight") dispatchAction("dodgeRight", "teclado");
+        if (event.key === "ArrowDown") dispatchAction("duck", "teclado");
+      },
+      { passive: false }
+    );
+
+    startBtn.addEventListener("click", startGame);
+    resetBtn.addEventListener("click", resetGame);
+
+    calibrateBtn.addEventListener("click", () => {
+      const cam = document.getElementById("playerCamera");
+      if (cam && cam.components["head-input"]) {
+        cam.components["head-input"].calibrate();
+        setResult("Cabeça calibrada.", "success");
+      }
+    });
+
+    AFRAME.registerComponent("arena-circle", {
+      init: function () {
+        const radius = 12;
+        const count = 48;
+
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2;
+
+          const x = Math.cos(angle) * radius;
+          const z = Math.sin(angle) * radius;
+
+          const wall = document.createElement("a-box");
+          wall.setAttribute("position", `${x} 1 ${z}`);
+          wall.setAttribute("rotation", `0 ${(-angle * 180 / Math.PI) + 90} 0`);
+          wall.setAttribute("width", "2");
+          wall.setAttribute("height", "2");
+          wall.setAttribute("depth", "0.3");
+          wall.setAttribute("color", "#8B4513");
+
+          this.el.appendChild(wall);
+        }
+      }
+    });
+
+    AFRAME.registerComponent("head-input", {
+      schema: {
+        dodgeThreshold: { default: 0.16 },
+        duckThreshold: { default: 0.13 },
+        attackThreshold: { default: 0.16 },
+        cooldownMs: { default: 600 }
+      },
+
+      init: function () {
+        this.rest = new THREE.Vector3();
+        this.current = new THREE.Vector3();
+        this.calibrated = false;
+        this.lastActionTime = 0;
+      },
+
+      calibrate: function () {
+        this.el.object3D.getWorldPosition(this.rest);
+        this.calibrated = true;
+        this.lastActionTime = performance.now();
+      },
+
+      tick: function () {
+        if (!game.running) return;
+        if (!game.waitingInput) return;
+        if (!this.calibrated) return;
+
+        this.el.object3D.getWorldPosition(this.current);
+
+        const dx = this.current.x - this.rest.x;
+        const dy = this.current.y - this.rest.y;
+        const dz = this.rest.z - this.current.z;
+
+        const now = performance.now();
+        if (now - this.lastActionTime < this.data.cooldownMs) return;
+
+        if (dx <= -this.data.dodgeThreshold) {
+          window.dispatchGameAction("dodgeLeft", "cabeça");
+          this.lastActionTime = now;
+        } else if (dx >= this.data.dodgeThreshold) {
+          window.dispatchGameAction("dodgeRight", "cabeça");
+          this.lastActionTime = now;
+        } else if (dy <= -this.data.duckThreshold) {
+          window.dispatchGameAction("duck", "cabeça");
+          this.lastActionTime = now;
+        } else if (dz >= this.data.attackThreshold) {
+          window.dispatchGameAction("attack", "cabeça");
+          this.lastActionTime = now;
+        }
+      }
+    });
+
+    AFRAME.registerComponent("enemy-ai", {
+      schema: {
+        speed: { default: 0.02 },
+        attackDistance: { default: 1.8 }
+      },
+
+      init: function () {
+        this.canAttack = true;
+        this.nextArm = "left";
+      },
+
+      resumeCombat: function () {
+        this.canAttack = true;
+      },
+
+      tick: function () {
+        if (!game.running) return;
+        if (game.waitingInput) return;
+        if (!this.canAttack) return;
+
+        const playerCam = document.getElementById("playerCamera");
+        if (!playerCam) return;
+
+        const playerPos = new THREE.Vector3();
+        playerCam.object3D.getWorldPosition(playerPos);
+
+        const enemyPos = this.el.object3D.position.clone();
+        playerPos.y = enemyPos.y;
+
+        const distance = enemyPos.distanceTo(playerPos);
+
+        if (distance > this.data.attackDistance) {
+          const direction = new THREE.Vector3();
+          direction.subVectors(playerPos, enemyPos).normalize();
+          this.el.object3D.position.add(direction.multiplyScalar(this.data.speed));
+          this.el.object3D.lookAt(playerPos);
+        } else {
+          this.attack();
+        }
+      },
+
+      attack: function () {
+        this.canAttack = false;
+
+        const phase = game.phase;
+        let pattern;
+
+        if (phase === 1) {
+          pattern = Math.random() < 0.33 ? "vulnerable" : (Math.random() < 0.5 ? "left" : "right");
+        } else if (phase === 2) {
+          const choices = ["left", "right", "high", "vulnerable"];
+          pattern = choices[Math.floor(Math.random() * choices.length)];
+        } else {
+          const roll = Math.random();
+          if (roll < 0.28) pattern = "left";
+          else if (roll < 0.56) pattern = "right";
+          else if (roll < 0.82) pattern = "high";
+          else pattern = "vulnerable";
+        }
+
+        if (pattern === "left" || pattern === "right") {
+          this.swingArm(pattern);
+        } else if (pattern === "high") {
+          this.highAttack();
+        } else if (pattern === "vulnerable") {
+          this.vulnerableOpen();
+        }
+      },
+
+      swingArm: function (side) {
+        const arm = this.el.querySelector(side === "left" ? "#leftArm" : "#rightArm");
+        if (!arm) return;
+
+        const windup = side === "left" ? -15 : 15;
+        const hit = side === "left" ? 120 : -120;
+
+        arm.setAttribute("animation__windup", {
+          property: "rotation",
+          to: `0 0 ${windup}`,
+          dur: 180
+        });
+
+        setTimeout(() => {
+          arm.setAttribute("animation__attack", {
+            property: "rotation",
+            to: `0 0 ${hit}`,
+            dur: 140,
+            dir: "alternate",
+            loop: 2
+          });
+
+          // braço esquerdo vindo => desvia para direita
+          // braço direito vindo => desvia para esquerda
+          const expected = side === "left" ? "dodgeRight" : "dodgeLeft";
+          openPrompt(expected);
+        }, 180);
+      },
+
+      highAttack: function () {
+        const head = this.el.querySelector("#enemyHead");
+        if (!head) return;
+
+        head.setAttribute("animation__headattack", {
+          property: "position",
+          to: "0 2.0 0.4",
+          dur: 180,
+          dir: "alternate",
+          loop: 2
+        });
+
+        setTimeout(() => {
+          openPrompt("duck");
+        }, 180);
+      },
+
+      vulnerableOpen: function () {
+        const head = this.el.querySelector("#enemyHead");
+        if (!head) return;
+
+        head.setAttribute("animation__vulnerable", {
+          property: "rotation",
+          to: "25 0 0",
+          dur: 220,
+          dir: "alternate",
+          loop: 2
+        });
+
+        setTimeout(() => {
+          openPrompt("attack");
+        }, 150);
+      }
+    });
+
+    updateHUD();
+  </script>
 </body>
 </html>
