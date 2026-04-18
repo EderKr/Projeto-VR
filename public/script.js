@@ -14,6 +14,8 @@ const customLivesInfiniteEl = document.getElementById("customLivesInfinite");
 const customEnemyHitsEl = document.getElementById("customEnemyHits");
 const customEnemyHitsInfiniteEl = document.getElementById("customEnemyHitsInfinite");
 const customDifficultyEl = document.getElementById("customDifficulty");
+const performanceHistoryListEl = document.getElementById("performanceHistoryList");
+const historyEmptyTextEl = document.getElementById("historyEmptyText");
 
 const game = {
   running: false,
@@ -33,7 +35,15 @@ const game = {
   enemyHitsNeeded: 3,
 
   customMode: false,
-  difficultyPhase: 1
+  difficultyPhase: 1,
+
+  phaseStartTime: 0,
+  phaseStartHits: 0,
+  phaseStartMisses: 0,
+  phaseStartEnemyHits: 0,
+  phaseStartReactionCount: 0,
+  phaseSummaryCommitted: false,
+  phaseHistory: []
 };
 
 function isInfinite(value) {
@@ -87,6 +97,112 @@ function getStartSettings() {
 
 function setCanvasText(el, value) {
   el.setAttribute("canvas-text", "value", value);
+}
+
+function formatSeconds(seconds) {
+  return `${Number(seconds).toFixed(2)}s`;
+}
+
+function getDifficultyLabel(level) {
+  if (level === 1) return "facil";
+  if (level === 2) return "medio";
+  return "dificil";
+}
+
+function summarizePhase(status) {
+  if (game.phaseSummaryCommitted) return;
+
+  const phaseElapsedSeconds = Math.max(0, (performance.now() - game.phaseStartTime) / 1000);
+  const phaseHits = Math.max(0, game.hits - game.phaseStartHits);
+  const phaseMisses = Math.max(0, game.misses - game.phaseStartMisses);
+  const phaseEnemyHits = Math.max(0, game.enemyHits - game.phaseStartEnemyHits);
+  const phaseReactionCount = Math.max(0, game.reactionTimes.length - game.phaseStartReactionCount);
+  const attempts = phaseHits + phaseMisses;
+  const phaseAccuracy = attempts > 0 ? (phaseHits / attempts) * 100 : 0;
+
+  let phaseAvgReaction = null;
+  if (phaseReactionCount > 0) {
+    const reactionSlice = game.reactionTimes.slice(game.phaseStartReactionCount);
+    const phaseReactionSum = reactionSlice.reduce((acc, value) => acc + value, 0);
+    phaseAvgReaction = phaseReactionSum / phaseReactionCount;
+  }
+
+  game.phaseHistory.unshift({
+    id: `${Date.now()}-${game.phase}-${Math.random().toString(36).slice(2, 8)}`,
+    phase: game.phase,
+    customMode: game.customMode,
+    difficultyPhase: game.difficultyPhase,
+    status,
+    livesLeft: game.lives,
+    enemyHits: phaseEnemyHits,
+    enemyHitsNeeded: game.enemyHitsNeeded,
+    hits: phaseHits,
+    misses: phaseMisses,
+    attempts,
+    accuracy: phaseAccuracy,
+    duration: phaseElapsedSeconds,
+    avgReaction: phaseAvgReaction,
+    createdAt: new Date()
+  });
+
+  if (game.phaseHistory.length > 12) {
+    game.phaseHistory.length = 12;
+  }
+
+  game.phaseSummaryCommitted = true;
+  renderPerformanceHistory();
+}
+
+function beginPhaseTracking() {
+  game.phaseStartTime = performance.now();
+  game.phaseStartHits = game.hits;
+  game.phaseStartMisses = game.misses;
+  game.phaseStartEnemyHits = game.enemyHits;
+  game.phaseStartReactionCount = game.reactionTimes.length;
+  game.phaseSummaryCommitted = false;
+}
+
+function renderPerformanceHistory() {
+  if (!performanceHistoryListEl || !historyEmptyTextEl) return;
+
+  performanceHistoryListEl.innerHTML = "";
+
+  if (game.phaseHistory.length === 0) {
+    historyEmptyTextEl.style.display = "block";
+    return;
+  }
+
+  historyEmptyTextEl.style.display = "none";
+
+  for (const item of game.phaseHistory) {
+    const li = document.createElement("li");
+    li.className = "history-item";
+
+    const title = document.createElement("p");
+    title.className = "history-item-title";
+    const statusLabel = item.status === "concluida"
+      ? "concluida"
+      : (item.status === "derrota" ? "encerrada por derrota" : "interrompida");
+    const modeLabel = item.customMode
+      ? `Modo personalizado (${getDifficultyLabel(item.difficultyPhase)})`
+      : `Fase ${item.phase}`;
+    title.textContent = `${modeLabel} - ${statusLabel}`;
+
+    const meta = document.createElement("p");
+    meta.className = "history-item-meta";
+    const avgReactionLabel = item.avgReaction == null ? "--" : formatSeconds(item.avgReaction);
+    const enemyGoalLabel = isInfinite(item.enemyHitsNeeded) ? "∞" : item.enemyHitsNeeded;
+    const livesLabel = isInfinite(item.livesLeft) ? "∞" : item.livesLeft;
+
+    meta.textContent =
+      `Duracao: ${formatSeconds(item.duration)} | Reacao media: ${avgReactionLabel} | ` +
+      `Acertos: ${item.hits} | Erros: ${item.misses} | Precisao: ${item.accuracy.toFixed(1)}% | ` +
+      `Ataques na fase: ${item.enemyHits}/${enemyGoalLabel} | Vidas restantes: ${livesLabel}`;
+
+    li.appendChild(title);
+    li.appendChild(meta);
+    performanceHistoryListEl.appendChild(li);
+  }
 }
 
 AFRAME.registerComponent("canvas-text", {
@@ -462,6 +578,7 @@ function receiveAction(action, source = "unknown") {
 
 function nextPhase() {
   if (game.phase >= game.maxPhases) {
+    summarizePhase("concluida");
     game.running = false;
     setPrompt("VITÓRIA");
     setPromptState(false);
@@ -469,6 +586,8 @@ function nextPhase() {
     clearTimers();
     return;
   }
+
+  summarizePhase("concluida");
 
   game.phase++;
   game.enemyHits = 0;
@@ -483,6 +602,7 @@ function nextPhase() {
   setPromptState(false);
   setResult("Novo inimigo entrou na arena.");
   updateHUD();
+  beginPhaseTracking();
 
   game.nextRoundTimeoutId = setTimeout(() => {
     if (game.running) {
@@ -493,6 +613,7 @@ function nextPhase() {
 
 function checkGameStateOrContinue() {
   if (!isInfinite(game.lives) && game.lives <= 0) {
+    summarizePhase("derrota");
     game.running = false;
     setPrompt("DERROTA");
     setPromptState(false);
@@ -548,10 +669,16 @@ function startGame() {
   } else {
     setResult("Prepare-se.");
   }
+  beginPhaseTracking();
+  renderPerformanceHistory();
   updateHUD();
 }
 
 function resetGame() {
+  if (game.running) {
+    summarizePhase("interrompida");
+  }
+
   clearTimers();
   repositionWorldHud();
 
@@ -574,6 +701,8 @@ function resetGame() {
   setPrompt("APERTE INICIAR");
   setPromptState(false);
   setResult("Aguardando...");
+  beginPhaseTracking();
+  renderPerformanceHistory();
   updateHUD();
 }
 
@@ -884,6 +1013,7 @@ window.addEventListener("load", () => {
   setTimeout(() => {
     repositionWorldHud();
     setPromptState(false);
+    renderPerformanceHistory();
     updateHUD();
   }, 300);
 });
