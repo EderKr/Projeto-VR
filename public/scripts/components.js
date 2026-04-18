@@ -331,6 +331,15 @@ AFRAME.registerComponent("enemy-ai", {
 
   init: function () {
     this.canAttack = true;
+
+    this.replayAnimation = (target, animationName, config) => {
+      if (!target) return;
+
+      target.removeAttribute(animationName);
+      requestAnimationFrame(() => {
+        target.setAttribute(animationName, config);
+      });
+    };
   },
 
   resumeCombat: function () {
@@ -400,14 +409,14 @@ AFRAME.registerComponent("enemy-ai", {
     const windup = side === "left" ? -15 : 15;
     const hit = side === "left" ? 120 : -120;
 
-    arm.setAttribute("animation__windup", {
+    this.replayAnimation(arm, "animation__windup", {
       property: "rotation",
       to: `0 0 ${windup}`,
       dur: 180
     });
 
     setTimeout(() => {
-      arm.setAttribute("animation__attack", {
+      this.replayAnimation(arm, "animation__attack", {
         property: "rotation",
         to: `0 0 ${hit}`,
         dur: 140,
@@ -424,7 +433,7 @@ AFRAME.registerComponent("enemy-ai", {
     const head = this.el.querySelector("#enemyHead");
     if (!head) return;
 
-    head.setAttribute("animation__headattack", {
+    this.replayAnimation(head, "animation__headattack", {
       property: "position",
       to: "0 2.0 0.4",
       dur: 180,
@@ -441,7 +450,7 @@ AFRAME.registerComponent("enemy-ai", {
     const head = this.el.querySelector("#enemyHead");
     if (!head) return;
 
-    head.setAttribute("animation__vulnerable", {
+    this.replayAnimation(head, "animation__vulnerable", {
       property: "rotation",
       to: "25 0 0",
       dur: 220,
