@@ -461,6 +461,8 @@ function getPromptLabel(action) {
       return "→ DESVIAR";
     case "duck":
       return "↓ AGACHAR";
+    case "jump":
+      return "␣ PULAR";
     case "attack":
       return "↑ ATACAR";
     default:
@@ -715,7 +717,7 @@ window.dispatchGameAction = dispatchAction;
 document.addEventListener(
   "keydown",
   (event) => {
-    const blockedKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+    const blockedKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Space", "Spacebar"];
     if (blockedKeys.includes(event.key)) {
       event.preventDefault();
     }
@@ -726,6 +728,7 @@ document.addEventListener(
     if (event.key === "ArrowLeft") dispatchAction("dodgeLeft", "teclado");
     if (event.key === "ArrowRight") dispatchAction("dodgeRight", "teclado");
     if (event.key === "ArrowDown") dispatchAction("duck", "teclado");
+    if (event.code === "Space") dispatchAction("jump", "teclado");
   },
   { passive: false }
 );
@@ -830,6 +833,7 @@ AFRAME.registerComponent("head-input", {
   schema: {
     dodgeThreshold: { default: 0.16 },
     duckThreshold: { default: 0.13 },
+    jumpThreshold: { default: 0.12 },
     attackThreshold: { default: 0.16 },
     rollThreshold: { default: 0.26 },
     pitchDuckThreshold: { default: 0.2 },
@@ -879,13 +883,16 @@ AFRAME.registerComponent("head-input", {
     if (now - this.lastActionTime < this.data.cooldownMs) return;
 
     if (roll <= -this.data.rollThreshold || dx <= -this.data.dodgeThreshold) {
-      window.dispatchGameAction("dodgeLeft", "cabeça");
+      window.dispatchGameAction("dodgeRight", "cabeça");
       this.lastActionTime = now;
     } else if (roll >= this.data.rollThreshold || dx >= this.data.dodgeThreshold) {
-      window.dispatchGameAction("dodgeRight", "cabeça");
+      window.dispatchGameAction("dodgeLeft", "cabeça");
       this.lastActionTime = now;
     } else if (pitch >= this.data.pitchDuckThreshold || dy <= -this.data.duckThreshold) {
       window.dispatchGameAction("duck", "cabeça");
+      this.lastActionTime = now;
+    } else if (dy >= this.data.jumpThreshold) {
+      window.dispatchGameAction("jump", "cabeça");
       this.lastActionTime = now;
     } else if (pitch <= -this.data.pitchAttackThreshold || dz >= this.data.attackThreshold) {
       window.dispatchGameAction("attack", "cabeça");
@@ -945,13 +952,14 @@ AFRAME.registerComponent("enemy-ai", {
         ? "vulnerable"
         : (Math.random() < 0.5 ? "left" : "right");
     } else if (phase === 2) {
-      const choices = ["left", "right", "high", "vulnerable"];
+      const choices = ["left", "right", "high", "low", "vulnerable"];
       pattern = choices[Math.floor(Math.random() * choices.length)];
     } else {
       const roll = Math.random();
-      if (roll < 0.28) pattern = "left";
-      else if (roll < 0.56) pattern = "right";
-      else if (roll < 0.82) pattern = "high";
+      if (roll < 0.24) pattern = "left";
+      else if (roll < 0.48) pattern = "right";
+      else if (roll < 0.7) pattern = "high";
+      else if (roll < 0.88) pattern = "low";
       else pattern = "vulnerable";
     }
 
@@ -959,6 +967,8 @@ AFRAME.registerComponent("enemy-ai", {
       this.swingArm(pattern);
     } else if (pattern === "high") {
       this.highAttack();
+    } else if (pattern === "low") {
+      this.lowAttack();
     } else if (pattern === "vulnerable") {
       this.vulnerableOpen();
     }
@@ -1006,6 +1016,20 @@ AFRAME.registerComponent("enemy-ai", {
     setTimeout(() => {
       openPrompt("duck");
     }, 180);
+  },
+
+  lowAttack: function () {
+    this.el.setAttribute("animation__lowattack", {
+      property: "position",
+      to: "0 0.25 -8",
+      dur: 170,
+      dir: "alternate",
+      loop: 2
+    });
+
+    setTimeout(() => {
+      openPrompt("jump");
+    }, 170);
   },
 
   vulnerableOpen: function () {
