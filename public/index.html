@@ -32,15 +32,111 @@
       line-height: 1.4;
     }
 
+    .custom-panel {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      z-index: 11;
+      width: min(340px, calc(100vw - 24px));
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      font-size: 13px;
+      line-height: 1.3;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(2px);
+    }
+
+    .custom-panel h2 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .custom-panel .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .custom-panel label {
+      font-size: 12px;
+      color: #f0f0f0;
+    }
+
+    .custom-panel input[type="number"],
+    .custom-panel select {
+      width: 104px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .custom-panel .hint {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #cdcdcd;
+    }
+
     @media (max-width: 768px) {
       .desktop-tip {
         font-size: 12px;
         max-width: 220px;
       }
+
+      .custom-panel {
+        font-size: 12px;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="custom-panel" id="customModePanel">
+    <h2>Modo alternativo</h2>
+
+    <div class="row">
+      <label for="customModeEnabled">Ativar modo customizado</label>
+      <input id="customModeEnabled" type="checkbox" />
+    </div>
+
+    <div class="row">
+      <label for="customLives">Vidas</label>
+      <input id="customLives" type="number" min="1" step="1" value="3" />
+    </div>
+
+    <div class="row">
+      <label for="customLivesInfinite">Vidas infinitas</label>
+      <input id="customLivesInfinite" type="checkbox" />
+    </div>
+
+    <div class="row">
+      <label for="customEnemyHits">Ataques para vencer</label>
+      <input id="customEnemyHits" type="number" min="1" step="1" value="3" />
+    </div>
+
+    <div class="row">
+      <label for="customEnemyHitsInfinite">Ataques infinitos</label>
+      <input id="customEnemyHitsInfinite" type="checkbox" />
+    </div>
+
+    <div class="row">
+      <label for="customDifficulty">Dificuldade (fase)</label>
+      <select id="customDifficulty">
+        <option value="1">Fase 1 (fácil)</option>
+        <option value="2">Fase 2 (médio)</option>
+        <option value="3">Fase 3 (difícil)</option>
+      </select>
+    </div>
+
+    <div class="hint">As opções são aplicadas ao iniciar a partida.</div>
+  </div>
+
   <div class="desktop-tip">
     Use o cursor central para mirar nos botões do painel.
     No desktop, as setas do teclado também funcionam.
