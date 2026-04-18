@@ -1,4 +1,4 @@
-<h1 align="center">Indefinido</h1>
+<h1 align="center">Headbutt Berserker</h1>
 
 <p align="center">
 Jogo em realidade virtual focado em combate baseado em movimento e treinamento de reflexos utilizando visão computacional e inteligência artificial.
@@ -9,7 +9,7 @@ Jogo em realidade virtual focado em combate baseado em movimento e treinamento d
 <h2>🎮 Conceito do Jogo</h2>
 
 <p>
-Indefinido é um jogo em realidade virtual onde o jogador controla um <b>viking sem braços</b> que luta contra inimigos utilizando apenas <b>cabeçadas</b>.
+Headbutt Berserker é um jogo em realidade virtual onde o jogador controla um <b>viking sem braços</b> que luta contra inimigos utilizando apenas <b>cabeçadas</b>.
 </p>
 
 <p>
