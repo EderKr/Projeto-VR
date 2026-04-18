@@ -84,6 +84,64 @@
       color: #cdcdcd;
     }
 
+    .history-panel {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 11;
+      width: min(420px, calc(100vw - 24px));
+      max-height: min(46vh, 340px);
+      overflow: auto;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(2px);
+    }
+
+    .history-panel h2 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .history-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .history-item-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 0 4px;
+    }
+
+    .history-item-meta {
+      font-size: 11px;
+      line-height: 1.35;
+      color: #dedede;
+      margin: 0;
+    }
+
+    .history-empty {
+      font-size: 11px;
+      color: #cdcdcd;
+      margin: 0;
+    }
+
     @media (max-width: 768px) {
       .desktop-tip {
         font-size: 12px;
@@ -92,6 +150,10 @@
 
       .custom-panel {
         font-size: 12px;
+      }
+
+      .history-panel {
+        max-height: min(38vh, 250px);
       }
     }
   </style>
@@ -140,6 +202,12 @@
   <div class="desktop-tip">
     Use o cursor central para mirar nos botões do painel.
     No desktop, as setas do teclado também funcionam.
+  </div>
+
+  <div class="history-panel" id="performanceHistoryPanel">
+    <h2>Histórico de desempenho</h2>
+    <p class="history-empty" id="historyEmptyText">Sem dados ainda. Finalize uma fase para gerar histórico.</p>
+    <ul class="history-list" id="performanceHistoryList"></ul>
   </div>
 
   <a-scene
