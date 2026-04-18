@@ -835,6 +835,7 @@ AFRAME.registerComponent("head-input", {
     dodgeThreshold: { default: 0.16 },
     duckThreshold: { default: 0.13 },
     jumpThreshold: { default: 0.12 },
+    jumpPromptMultiplier: { default: 0.6 },
     attackThreshold: { default: 0.16 },
     rollThreshold: { default: 0.26 },
     pitchDuckThreshold: { default: 0.2 },
@@ -879,9 +880,22 @@ AFRAME.registerComponent("head-input", {
 
     const pitch = this.deltaEuler.x;
     const roll = this.deltaEuler.z;
+    const expectedAction = game.expectedAction;
+    const jumpThreshold = expectedAction === "jump"
+      ? this.data.jumpThreshold * this.data.jumpPromptMultiplier
+      : this.data.jumpThreshold;
 
     const now = performance.now();
     if (now - this.lastActionTime < this.data.cooldownMs) return;
+
+    // During jump prompts, prioritize upward movement and ignore lateral noise.
+    if (expectedAction === "jump") {
+      if (dy >= jumpThreshold) {
+        window.dispatchGameAction("jump", "cabeça");
+        this.lastActionTime = now;
+      }
+      return;
+    }
 
     if (roll <= -this.data.rollThreshold || dx <= -this.data.dodgeThreshold) {
       window.dispatchGameAction("dodgeRight", "cabeça");
@@ -892,7 +906,7 @@ AFRAME.registerComponent("head-input", {
     } else if (pitch >= this.data.pitchDuckThreshold || dy <= -this.data.duckThreshold) {
       window.dispatchGameAction("duck", "cabeça");
       this.lastActionTime = now;
-    } else if (dy >= this.data.jumpThreshold) {
+    } else if (dy >= jumpThreshold) {
       window.dispatchGameAction("jump", "cabeça");
       this.lastActionTime = now;
     } else if (pitch <= -this.data.pitchAttackThreshold || dz >= this.data.attackThreshold) {
