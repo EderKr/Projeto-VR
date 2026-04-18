@@ -8,6 +8,12 @@ const promptEl = document.getElementById("hudPrompt");
 const resultEl = document.getElementById("hudResult");
 const resultBgEl = document.getElementById("hudResultBg");
 const promptBgEl = document.getElementById("hudPromptBg");
+const customModeEnabledEl = document.getElementById("customModeEnabled");
+const customLivesEl = document.getElementById("customLives");
+const customLivesInfiniteEl = document.getElementById("customLivesInfinite");
+const customEnemyHitsEl = document.getElementById("customEnemyHits");
+const customEnemyHitsInfiniteEl = document.getElementById("customEnemyHitsInfinite");
+const customDifficultyEl = document.getElementById("customDifficulty");
 
 const game = {
   running: false,
@@ -24,8 +30,60 @@ const game = {
   misses: 0,
   reactionTimes: [],
   enemyHits: 0,
-  enemyHitsNeeded: 3
+  enemyHitsNeeded: 3,
+
+  customMode: false,
+  difficultyPhase: 1
 };
+
+function isInfinite(value) {
+  return value === Infinity;
+}
+
+function parsePositiveInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return parsed;
+}
+
+function getStartSettings() {
+  const customModeEnabled = Boolean(customModeEnabledEl && customModeEnabledEl.checked);
+
+  if (!customModeEnabled) {
+    return {
+      customMode: false,
+      phase: 1,
+      maxPhases: 3,
+      lives: 3,
+      enemyHitsNeeded: getEnemyHitsNeeded(1),
+      difficultyPhase: 1
+    };
+  }
+
+  const difficultyPhase = customDifficultyEl
+    ? Math.min(3, Math.max(1, parsePositiveInt(customDifficultyEl.value, 1)))
+    : 1;
+
+  const livesInfinite = Boolean(customLivesInfiniteEl && customLivesInfiniteEl.checked);
+  const enemyHitsInfinite = Boolean(customEnemyHitsInfiniteEl && customEnemyHitsInfiniteEl.checked);
+
+  const lives = livesInfinite
+    ? Infinity
+    : parsePositiveInt(customLivesEl ? customLivesEl.value : 3, 3);
+
+  const enemyHitsNeeded = enemyHitsInfinite
+    ? Infinity
+    : parsePositiveInt(customEnemyHitsEl ? customEnemyHitsEl.value : 3, getEnemyHitsNeeded(difficultyPhase));
+
+  return {
+    customMode: true,
+    phase: difficultyPhase,
+    maxPhases: difficultyPhase,
+    lives,
+    enemyHitsNeeded,
+    difficultyPhase
+  };
+}
 
 function setCanvasText(el, value) {
   el.setAttribute("canvas-text", "value", value);
@@ -46,6 +104,7 @@ AFRAME.registerComponent("canvas-text", {
     this.canvas = document.createElement("canvas");
     this.canvas.width = 1024;
     this.canvas.height = 256;
+    this.lastCanvasSize = "1024x256";
     this.ctx = this.canvas.getContext("2d");
 
     this.texture = new THREE.CanvasTexture(this.canvas);
@@ -77,6 +136,8 @@ AFRAME.registerComponent("canvas-text", {
     const mesh = this.el.getObject3D("mesh");
     if (!mesh) return;
 
+    this.resizeCanvasToElement();
+
     const applyToMaterial = (mat) => {
       mat.map = this.texture;
       mat.transparent = true;
@@ -91,6 +152,38 @@ AFRAME.registerComponent("canvas-text", {
     } else {
       applyToMaterial(mesh.material);
     }
+  },
+
+  resizeCanvasToElement: function () {
+    let widthUnits = Number(this.el.getAttribute("width")) || 1;
+    let heightUnits = Number(this.el.getAttribute("height")) || 1;
+
+    const geometry = this.el.getAttribute("geometry");
+    if (geometry) {
+      if (typeof geometry.width === "number" && geometry.width > 0) {
+        widthUnits = geometry.width;
+      }
+      if (typeof geometry.height === "number" && geometry.height > 0) {
+        heightUnits = geometry.height;
+      }
+    }
+
+    widthUnits = Math.max(0.01, widthUnits);
+    heightUnits = Math.max(0.01, heightUnits);
+
+    const pxPerUnit = 700;
+    const nextWidth = Math.min(4096, Math.max(256, Math.round(widthUnits * pxPerUnit)));
+    const nextHeight = Math.min(2048, Math.max(128, Math.round(heightUnits * pxPerUnit)));
+    const nextSize = `${nextWidth}x${nextHeight}`;
+
+    if (this.lastCanvasSize === nextSize) {
+      return;
+    }
+
+    this.canvas.width = nextWidth;
+    this.canvas.height = nextHeight;
+    this.lastCanvasSize = nextSize;
+    this.texture.needsUpdate = true;
   },
 
   wrapLines: function (text, maxWidth) {
@@ -120,6 +213,8 @@ AFRAME.registerComponent("canvas-text", {
   },
 
   draw: function () {
+    this.resizeCanvasToElement();
+
     const { value, color, align, fontSize, padding, fontFamily, lineHeight } = this.data;
     const ctx = this.ctx;
     const canvas = this.canvas;
@@ -212,8 +307,11 @@ function setPromptState(active) {
 
 function updateHUD() {
   setCanvasText(phaseEl, `Fase: ${game.phase}`);
-  setCanvasText(livesEl, `Vidas: ${game.lives}`);
-  setCanvasText(hitsOnEnemyEl, `Ataques no inimigo: ${game.enemyHits}/${game.enemyHitsNeeded}`);
+  setCanvasText(livesEl, `Vidas: ${isInfinite(game.lives) ? "∞" : game.lives}`);
+  setCanvasText(
+    hitsOnEnemyEl,
+    `Ataques no inimigo: ${game.enemyHits}/${isInfinite(game.enemyHitsNeeded) ? "∞" : game.enemyHitsNeeded}`
+  );
   setCanvasText(hitsEl, `Acertos: ${game.hits}`);
   setCanvasText(missesEl, `Erros: ${game.misses}`);
 
@@ -313,7 +411,9 @@ function handleTimeout() {
     setResult("Você perdeu a chance de atacar.", "error");
   } else {
     game.misses++;
-    game.lives--;
+    if (!isInfinite(game.lives)) {
+      game.lives--;
+    }
     flashEnemy("#ff0000");
     setResult("Tempo esgotado. Você foi atingido.", "error");
   }
@@ -348,7 +448,9 @@ function receiveAction(action, source = "unknown") {
     if (game.expectedAction === "attack") {
       setResult(`Ação errada via ${source}. Você perdeu a abertura.`, "error");
     } else {
-      game.lives--;
+      if (!isInfinite(game.lives)) {
+        game.lives--;
+      }
       flashEnemy("#ff0000");
       setResult(`Resposta errada via ${source}. Você foi atingido.`, "error");
     }
@@ -390,7 +492,7 @@ function nextPhase() {
 }
 
 function checkGameStateOrContinue() {
-  if (game.lives <= 0) {
+  if (!isInfinite(game.lives) && game.lives <= 0) {
     game.running = false;
     setPrompt("DERROTA");
     setPromptState(false);
@@ -399,7 +501,7 @@ function checkGameStateOrContinue() {
     return;
   }
 
-  if (game.enemyHits >= game.enemyHitsNeeded) {
+  if (!isInfinite(game.enemyHitsNeeded) && game.enemyHits >= game.enemyHitsNeeded) {
     nextPhase();
     return;
   }
@@ -415,26 +517,37 @@ function startGame() {
   clearTimers();
   repositionWorldHud();
 
+  const settings = getStartSettings();
+
   game.running = true;
   game.waitingInput = false;
   game.expectedAction = null;
-  game.phase = 1;
-  game.lives = 3;
+  game.phase = settings.phase;
+  game.maxPhases = settings.maxPhases;
+  game.lives = settings.lives;
   game.hits = 0;
   game.misses = 0;
   game.reactionTimes = [];
   game.enemyHits = 0;
-  game.enemyHitsNeeded = getEnemyHitsNeeded(1);
+  game.enemyHitsNeeded = settings.enemyHitsNeeded;
+  game.customMode = settings.customMode;
+  game.difficultyPhase = settings.difficultyPhase;
 
   resetEnemyPosition();
 
   const enemy = document.getElementById("enemy");
-  enemy.components["enemy-ai"].data.speed = getEnemySpeed(1);
+  enemy.components["enemy-ai"].data.speed = getEnemySpeed(game.phase);
   enemy.components["enemy-ai"].resumeCombat();
 
   setPrompt("COMEÇOU");
   setPromptState(false);
-  setResult("Prepare-se.");
+  if (game.customMode) {
+    const livesLabel = isInfinite(game.lives) ? "∞" : String(game.lives);
+    const hitsLabel = isInfinite(game.enemyHitsNeeded) ? "∞" : String(game.enemyHitsNeeded);
+    setResult(`Modo customizado ativo: fase ${game.phase}, vidas ${livesLabel}, ataques ${hitsLabel}.`);
+  } else {
+    setResult("Prepare-se.");
+  }
   updateHUD();
 }
 
@@ -446,12 +559,15 @@ function resetGame() {
   game.waitingInput = false;
   game.expectedAction = null;
   game.phase = 1;
+  game.maxPhases = 3;
   game.lives = 3;
   game.hits = 0;
   game.misses = 0;
   game.reactionTimes = [];
   game.enemyHits = 0;
   game.enemyHitsNeeded = getEnemyHitsNeeded(1);
+  game.customMode = false;
+  game.difficultyPhase = 1;
 
   resetEnemyPosition();
 
