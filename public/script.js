@@ -831,18 +831,28 @@ AFRAME.registerComponent("head-input", {
     dodgeThreshold: { default: 0.16 },
     duckThreshold: { default: 0.13 },
     attackThreshold: { default: 0.16 },
+    rollThreshold: { default: 0.26 },
+    pitchDuckThreshold: { default: 0.2 },
+    pitchAttackThreshold: { default: 0.22 },
     cooldownMs: { default: 600 }
   },
 
   init: function () {
     this.rest = new THREE.Vector3();
     this.current = new THREE.Vector3();
+    this.restQuat = new THREE.Quaternion();
+    this.restQuatInv = new THREE.Quaternion();
+    this.currentQuat = new THREE.Quaternion();
+    this.deltaQuat = new THREE.Quaternion();
+    this.deltaEuler = new THREE.Euler(0, 0, 0, "YXZ");
     this.calibrated = false;
     this.lastActionTime = 0;
   },
 
   calibrate: function () {
     this.el.object3D.getWorldPosition(this.rest);
+    this.el.object3D.getWorldQuaternion(this.restQuat);
+    this.restQuatInv.copy(this.restQuat).invert();
     this.calibrated = true;
     this.lastActionTime = performance.now();
   },
@@ -853,24 +863,31 @@ AFRAME.registerComponent("head-input", {
     if (!this.calibrated) return;
 
     this.el.object3D.getWorldPosition(this.current);
+    this.el.object3D.getWorldQuaternion(this.currentQuat);
 
     const dx = this.current.x - this.rest.x;
     const dy = this.current.y - this.rest.y;
     const dz = this.rest.z - this.current.z;
 
+    this.deltaQuat.copy(this.restQuatInv).multiply(this.currentQuat);
+    this.deltaEuler.setFromQuaternion(this.deltaQuat, "YXZ");
+
+    const pitch = this.deltaEuler.x;
+    const roll = this.deltaEuler.z;
+
     const now = performance.now();
     if (now - this.lastActionTime < this.data.cooldownMs) return;
 
-    if (dx <= -this.data.dodgeThreshold) {
+    if (roll <= -this.data.rollThreshold || dx <= -this.data.dodgeThreshold) {
       window.dispatchGameAction("dodgeLeft", "cabeça");
       this.lastActionTime = now;
-    } else if (dx >= this.data.dodgeThreshold) {
+    } else if (roll >= this.data.rollThreshold || dx >= this.data.dodgeThreshold) {
       window.dispatchGameAction("dodgeRight", "cabeça");
       this.lastActionTime = now;
-    } else if (dy <= -this.data.duckThreshold) {
+    } else if (pitch >= this.data.pitchDuckThreshold || dy <= -this.data.duckThreshold) {
       window.dispatchGameAction("duck", "cabeça");
       this.lastActionTime = now;
-    } else if (dz >= this.data.attackThreshold) {
+    } else if (pitch <= -this.data.pitchAttackThreshold || dz >= this.data.attackThreshold) {
       window.dispatchGameAction("attack", "cabeça");
       this.lastActionTime = now;
     }
