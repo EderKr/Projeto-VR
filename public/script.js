@@ -16,6 +16,7 @@ const customEnemyHitsInfiniteEl = document.getElementById("customEnemyHitsInfini
 const customDifficultyEl = document.getElementById("customDifficulty");
 const performanceHistoryListEl = document.getElementById("performanceHistoryList");
 const historyEmptyTextEl = document.getElementById("historyEmptyText");
+const JUMP_TEST_ONLY_MODE = true;
 
 const game = {
   running: false,
@@ -947,20 +948,25 @@ AFRAME.registerComponent("enemy-ai", {
     const phase = game.phase;
     let pattern;
 
-    if (phase === 1) {
-      pattern = Math.random() < 0.33
-        ? "vulnerable"
-        : (Math.random() < 0.5 ? "left" : "right");
-    } else if (phase === 2) {
-      const choices = ["left", "right", "high", "low", "vulnerable"];
-      pattern = choices[Math.floor(Math.random() * choices.length)];
+    if (JUMP_TEST_ONLY_MODE) {
+      pattern = "low";
     } else {
-      const roll = Math.random();
-      if (roll < 0.24) pattern = "left";
-      else if (roll < 0.48) pattern = "right";
-      else if (roll < 0.7) pattern = "high";
-      else if (roll < 0.88) pattern = "low";
-      else pattern = "vulnerable";
+
+      if (phase === 1) {
+        pattern = Math.random() < 0.33
+          ? "vulnerable"
+          : (Math.random() < 0.5 ? "left" : "right");
+      } else if (phase === 2) {
+        const choices = ["left", "right", "high", "low", "vulnerable"];
+        pattern = choices[Math.floor(Math.random() * choices.length)];
+      } else {
+        const roll = Math.random();
+        if (roll < 0.24) pattern = "left";
+        else if (roll < 0.48) pattern = "right";
+        else if (roll < 0.7) pattern = "high";
+        else if (roll < 0.88) pattern = "low";
+        else pattern = "vulnerable";
+      }
     }
 
     if (pattern === "left" || pattern === "right") {
