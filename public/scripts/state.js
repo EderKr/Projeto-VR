@@ -17,6 +17,10 @@ const customDifficultyEl = document.getElementById("customDifficulty");
 const performanceHistoryListEl = document.getElementById("performanceHistoryList");
 const historyEmptyTextEl = document.getElementById("historyEmptyText");
 
+const PERFORMANCE_HISTORY_COOKIE = "hb_performance_history";
+const PERFORMANCE_HISTORY_COOKIE_DAYS = 180;
+const PERFORMANCE_HISTORY_LIMIT = 12;
+
 const game = {
   running: false,
   waitingInput: false,
@@ -103,6 +107,112 @@ function formatSeconds(seconds) {
   return `${Number(seconds).toFixed(2)}s`;
 }
 
+function setCookie(name, value, days) {
+  const maxAgeSeconds = Math.max(0, Math.floor(days * 24 * 60 * 60));
+  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+}
+
+function getCookie(name) {
+  const encodedName = `${encodeURIComponent(name)}=`;
+  const parts = document.cookie ? document.cookie.split(";") : [];
+
+  for (const part of parts) {
+    const cookie = part.trim();
+    if (cookie.startsWith(encodedName)) {
+      return decodeURIComponent(cookie.slice(encodedName.length));
+    }
+  }
+
+  return null;
+}
+
+function normalizeHistoryItem(rawItem) {
+  if (!rawItem || typeof rawItem !== "object") return null;
+
+  const phase = parsePositiveInt(rawItem.phase, 1);
+  const difficultyPhase = parsePositiveInt(rawItem.difficultyPhase, phase);
+  const status = rawItem.status === "concluida" || rawItem.status === "derrota" || rawItem.status === "interrompida"
+    ? rawItem.status
+    : "interrompida";
+  const livesLeft = rawItem.livesLeft === Infinity ? Infinity : Number(rawItem.livesLeft);
+  const enemyHitsNeeded = rawItem.enemyHitsNeeded === Infinity ? Infinity : Number(rawItem.enemyHitsNeeded);
+  const parsedCreatedAt = new Date(rawItem.createdAt);
+
+  return {
+    id: String(rawItem.id || `${Date.now()}-${phase}`).slice(0, 80),
+    phase,
+    customMode: Boolean(rawItem.customMode),
+    difficultyPhase,
+    status,
+    livesLeft: Number.isFinite(livesLeft) ? Math.max(0, livesLeft) : Infinity,
+    enemyHits: Math.max(0, Number(rawItem.enemyHits) || 0),
+    enemyHitsNeeded: Number.isFinite(enemyHitsNeeded) ? Math.max(1, enemyHitsNeeded) : Infinity,
+    hits: Math.max(0, Number(rawItem.hits) || 0),
+    misses: Math.max(0, Number(rawItem.misses) || 0),
+    attempts: Math.max(0, Number(rawItem.attempts) || 0),
+    accuracy: Math.max(0, Math.min(100, Number(rawItem.accuracy) || 0)),
+    duration: Math.max(0, Number(rawItem.duration) || 0),
+    avgReaction: rawItem.avgReaction == null ? null : Math.max(0, Number(rawItem.avgReaction) || 0),
+    createdAt: Number.isFinite(parsedCreatedAt.getTime()) ? parsedCreatedAt.toISOString() : new Date().toISOString()
+  };
+}
+
+function savePerformanceHistory() {
+  try {
+    const compact = game.phaseHistory
+      .slice(0, PERFORMANCE_HISTORY_LIMIT)
+      .map((item) => ({
+        id: item.id,
+        phase: item.phase,
+        customMode: item.customMode,
+        difficultyPhase: item.difficultyPhase,
+        status: item.status,
+        livesLeft: isInfinite(item.livesLeft) ? "INF" : item.livesLeft,
+        enemyHits: item.enemyHits,
+        enemyHitsNeeded: isInfinite(item.enemyHitsNeeded) ? "INF" : item.enemyHitsNeeded,
+        hits: item.hits,
+        misses: item.misses,
+        attempts: item.attempts,
+        accuracy: Number(item.accuracy.toFixed(2)),
+        duration: Number(item.duration.toFixed(2)),
+        avgReaction: item.avgReaction == null ? null : Number(item.avgReaction.toFixed(3)),
+        createdAt: item.createdAt
+      }));
+
+    setCookie(
+      PERFORMANCE_HISTORY_COOKIE,
+      JSON.stringify(compact),
+      PERFORMANCE_HISTORY_COOKIE_DAYS
+    );
+  } catch (error) {
+    console.warn("Nao foi possivel salvar historico em cookie.", error);
+  }
+}
+
+function loadPerformanceHistory() {
+  try {
+    const rawCookie = getCookie(PERFORMANCE_HISTORY_COOKIE);
+    if (!rawCookie) return [];
+
+    const parsed = JSON.parse(rawCookie);
+    if (!Array.isArray(parsed)) return [];
+
+    const normalized = parsed
+      .map((item) => {
+        if (item && item.livesLeft === "INF") item.livesLeft = Infinity;
+        if (item && item.enemyHitsNeeded === "INF") item.enemyHitsNeeded = Infinity;
+        return normalizeHistoryItem(item);
+      })
+      .filter(Boolean)
+      .slice(0, PERFORMANCE_HISTORY_LIMIT);
+
+    return normalized;
+  } catch (error) {
+    console.warn("Historico em cookie invalido, iniciando vazio.", error);
+    return [];
+  }
+}
+
 function getDifficultyLabel(level) {
   if (level === 1) return "facil";
   if (level === 2) return "medio";
@@ -142,14 +252,15 @@ function summarizePhase(status) {
     accuracy: phaseAccuracy,
     duration: phaseElapsedSeconds,
     avgReaction: phaseAvgReaction,
-    createdAt: new Date()
+    createdAt: new Date().toISOString()
   });
 
-  if (game.phaseHistory.length > 12) {
-    game.phaseHistory.length = 12;
+  if (game.phaseHistory.length > PERFORMANCE_HISTORY_LIMIT) {
+    game.phaseHistory.length = PERFORMANCE_HISTORY_LIMIT;
   }
 
   game.phaseSummaryCommitted = true;
+  savePerformanceHistory();
   renderPerformanceHistory();
 }
 
@@ -204,6 +315,8 @@ function renderPerformanceHistory() {
     performanceHistoryListEl.appendChild(li);
   }
 }
+
+game.phaseHistory = loadPerformanceHistory();
 
 function getEnemyHitsNeeded(phase) {
   if (phase === 1) return 3;
