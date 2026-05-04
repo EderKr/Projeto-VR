@@ -216,6 +216,7 @@ document.addEventListener(
     const blockedKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
     if (blockedKeys.includes(event.key)) {
       event.preventDefault();
+      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
     }
 
     if (!game.running) return;
@@ -225,5 +226,5 @@ document.addEventListener(
     if (event.key === "ArrowRight") dispatchAction("dodgeRight", "teclado");
     if (event.key === "ArrowDown") dispatchAction("duck", "teclado");
   },
-  { passive: false }
+  { passive: false, capture: true }
 );
