@@ -94,7 +94,6 @@ function nextPhase() {
   const enemy = document.getElementById("enemy");
   enemy.components["enemy-ai"].data.speed = getEnemySpeed(game.phase);
   resetEnemyPosition();
-  repositionWorldHud();
 
   setPrompt(`FASE ${game.phase}`);
   setPromptState(false);
@@ -134,7 +133,6 @@ function checkGameStateOrContinue() {
 
 function startGame() {
   clearTimers();
-  repositionWorldHud();
 
   const settings = getStartSettings();
 
@@ -178,7 +176,6 @@ function resetGame() {
   }
 
   clearTimers();
-  repositionWorldHud();
 
   game.running = false;
   game.waitingInput = false;
@@ -205,6 +202,14 @@ function resetGame() {
 }
 
 function dispatchAction(action, source = "unknown") {
+  try {
+    if (source === "teclado" && window.animateKeyboardCamera) {
+      window.animateKeyboardCamera(action);
+    }
+  } catch (e) {
+    console.warn("animateKeyboardCamera failed", e);
+  }
+
   receiveAction(action, source);
 }
 

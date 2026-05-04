@@ -102,3 +102,97 @@ function repositionWorldHud() {
   hud.object3D.rotation.x = 0;
   hud.object3D.rotation.z = 0;
 }
+
+window.animateKeyboardCamera = function (action) {
+  try {
+    const scene = document.querySelector('a-scene');
+    if (scene && typeof scene.is === 'function' && scene.is('vr-mode')) return;
+
+    const rig = document.getElementById('rig');
+    if (!rig || !rig.object3D) return;
+
+    const obj = rig.object3D;
+
+    if (obj._kbdAnimCancel) {
+      obj._kbdAnimCancel();
+      obj._kbdAnimCancel = null;
+    }
+
+    const startPos = obj.position.clone();
+    const startQuat = obj.quaternion.clone();
+
+    const toPos = startPos.clone();
+    const deltaEuler = { x: 0, y: 0, z: 0 };
+
+    if (action === 'dodgeLeft') {
+      deltaEuler.z = 0.11;
+      toPos.x -= 0.03;
+    } else if (action === 'dodgeRight') {
+      deltaEuler.z = -0.11;
+      toPos.x += 0.03;
+    } else if (action === 'duck') {
+      toPos.y -= 0.18;
+    } else if (action === 'attack') {
+      deltaEuler.x = -0.07;
+      toPos.z -= 0.03;
+    } else {
+      return;
+    }
+
+    const tempEuler = new THREE.Euler(deltaEuler.x, deltaEuler.y, deltaEuler.z, 'YXZ');
+    const deltaQuat = new THREE.Quaternion().setFromEuler(tempEuler);
+    const targetQuat = startQuat.clone().multiply(deltaQuat);
+
+    const durationTo = 140;
+    const hold = 80;
+    const durationBack = 260;
+
+    let startTime = null;
+    let phase = 'to';
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
+
+      if (phase === 'to') {
+        const t = Math.min(1, elapsed / durationTo);
+        obj.position.lerpVectors(startPos, toPos, t);
+        obj.quaternion.slerpQuaternions(startQuat, targetQuat, t);
+        if (t >= 1) {
+          phase = 'hold';
+          startTime = ts;
+        }
+      } else if (phase === 'hold') {
+        if (elapsed >= hold) {
+          phase = 'back';
+          startTime = ts;
+        }
+      } else if (phase === 'back') {
+        const t = Math.min(1, elapsed / durationBack);
+        obj.position.lerpVectors(toPos, startPos, t);
+        obj.quaternion.slerpQuaternions(targetQuat, startQuat, t);
+        if (t >= 1) {
+          obj.position.copy(startPos);
+          obj.quaternion.copy(startQuat);
+          obj._kbdAnimCancel = null;
+          return;
+        }
+      }
+
+      obj._kbdAnimFrame = requestAnimationFrame(step);
+    }
+
+    obj._kbdAnimCancel = () => {
+      if (obj._kbdAnimFrame) cancelAnimationFrame(obj._kbdAnimFrame);
+      obj.position.copy(startPos);
+      obj.quaternion.copy(startQuat);
+      obj._kbdAnimCancel = null;
+    };
+
+    obj._kbdAnimFrame = requestAnimationFrame(step);
+  } catch (e) {
+    console.warn('animateKeyboardCamera error', e);
+  }
+};

@@ -184,7 +184,6 @@ AFRAME.registerComponent("gaze-button", {
         const cam = document.getElementById("playerCamera");
         if (cam && cam.components["head-input"]) {
           cam.components["head-input"].calibrate();
-          repositionWorldHud();
           setResult("Cabeça calibrada.", "success");
         }
       } else if (this.data.action === "reset") {
@@ -466,7 +465,6 @@ AFRAME.registerComponent("enemy-ai", {
 
 window.addEventListener("load", () => {
   setTimeout(() => {
-    repositionWorldHud();
     setPromptState(false);
     renderPerformanceHistory();
     updateHUD();
