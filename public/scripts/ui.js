@@ -103,6 +103,26 @@ function repositionWorldHud() {
   hud.object3D.rotation.z = 0;
 }
 
+function setRoundControlsVisibility(isRunning) {
+  const controlsRoot = document.getElementById("vrControlsRoot");
+  const stopButtonGroup = document.getElementById("stopButtonGroup");
+  if (!controlsRoot || !stopButtonGroup) return;
+
+  const children = Array.from(controlsRoot.children);
+
+  if (isRunning) {
+    for (const child of children) {
+      child.setAttribute("visible", "false");
+    }
+
+    stopButtonGroup.setAttribute("visible", "true");
+  } else {
+    for (const child of children) {
+      child.setAttribute("visible", "true");
+    }
+  }
+}
+
 window.animateKeyboardCamera = function (action) {
   try {
     const scene = document.querySelector('a-scene');

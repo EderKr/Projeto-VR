@@ -468,6 +468,7 @@ window.addEventListener("load", () => {
     setPromptState(false);
     renderPerformanceHistory();
     updateHUD();
+    setRoundControlsVisibility(game.running);
   }, 300);
 });
 

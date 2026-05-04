@@ -78,6 +78,7 @@ function nextPhase() {
   if (game.phase >= game.maxPhases) {
     summarizePhase("concluida");
     game.running = false;
+    setRoundControlsVisibility(false);
     setPrompt("VITÓRIA");
     setPromptState(false);
     setResult("Você derrotou todos os inimigos!", "success");
@@ -112,6 +113,7 @@ function checkGameStateOrContinue() {
   if (!isInfinite(game.lives) && game.lives <= 0) {
     summarizePhase("derrota");
     game.running = false;
+    setRoundControlsVisibility(false);
     setPrompt("DERROTA");
     setPromptState(false);
     setResult("Você perdeu todas as vidas.", "error");
@@ -149,6 +151,8 @@ function startGame() {
   game.enemyHitsNeeded = settings.enemyHitsNeeded;
   game.customMode = settings.customMode;
   game.difficultyPhase = settings.difficultyPhase;
+
+  setRoundControlsVisibility(true);
 
   resetEnemyPosition();
 
@@ -190,6 +194,8 @@ function resetGame() {
   game.enemyHitsNeeded = getEnemyHitsNeeded(1);
   game.customMode = false;
   game.difficultyPhase = 1;
+
+  setRoundControlsVisibility(false);
 
   resetEnemyPosition();
 
