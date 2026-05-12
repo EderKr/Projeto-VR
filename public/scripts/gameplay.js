@@ -19,6 +19,12 @@ function handleTimeout() {
   clearTimers();
   game.waitingInput = false;
   setPromptState(false);
+  recordActionAttempt({
+    actualAction: null,
+    source: "tempo esgotado",
+    outcome: "timeout",
+    reactionTime: null
+  });
 
   if (game.expectedAction === "attack") {
     game.misses++;
@@ -44,8 +50,16 @@ function receiveAction(action, source = "unknown") {
   setPromptState(false);
 
   const reactionTime = (performance.now() - game.promptStartTime) / 1000;
+  const correct = action === game.expectedAction;
 
-  if (action === game.expectedAction) {
+  recordActionAttempt({
+    actualAction: action,
+    source,
+    outcome: correct ? "success" : "miss",
+    reactionTime
+  });
+
+  if (correct) {
     game.hits++;
     game.reactionTimes.push(reactionTime);
 
@@ -136,6 +150,16 @@ function checkGameStateOrContinue() {
 function startGame() {
   clearTimers();
 
+  if (typeof closeVRPauseMenu === 'function') {
+    closeVRPauseMenu();
+  }
+
+  if (typeof customModeEnabledEl !== 'undefined' && customModeEnabledEl) {
+    if (typeof vrMenuState !== 'undefined') {
+      vrMenuState.customModeEnabled = customModeEnabledEl.checked;
+    }
+  }
+
   const settings = getStartSettings();
 
   game.running = true;
@@ -151,6 +175,7 @@ function startGame() {
   game.enemyHitsNeeded = settings.enemyHitsNeeded;
   game.customMode = settings.customMode;
   game.difficultyPhase = settings.difficultyPhase;
+  game.actionHistory = [];
 
   setRoundControlsVisibility(true);
 
@@ -194,6 +219,7 @@ function resetGame() {
   game.enemyHitsNeeded = getEnemyHitsNeeded(1);
   game.customMode = false;
   game.difficultyPhase = 1;
+  game.actionHistory = [];
 
   setRoundControlsVisibility(false);
 

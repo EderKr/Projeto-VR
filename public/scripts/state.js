@@ -17,13 +17,23 @@ const customDifficultyEl = document.getElementById("customDifficulty");
 const performanceHistoryListEl = document.getElementById("performanceHistoryList");
 const historyEmptyTextEl = document.getElementById("historyEmptyText");
 
-const PERFORMANCE_HISTORY_COOKIE = "hb_performance_history";
+const HISTORY_API_URL = "/api/history";
+const HISTORY_IMPORT_API_URL = "/api/history/import";
+const LEGACY_PERFORMANCE_HISTORY_COOKIE = "hb_performance_history";
 const PERFORMANCE_HISTORY_COOKIE_DAYS = 180;
 const PERFORMANCE_HISTORY_LIMIT = 12;
+const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
+const ACTION_LABELS = {
+  attack: "ataque",
+  dodgeLeft: "desvio para a esquerda",
+  dodgeRight: "desvio para a direita",
+  duck: "agachar"
+};
 
 const game = {
   running: false,
   waitingInput: false,
+  menuOpen: false,
   expectedAction: null,
   promptStartTime: 0,
   reactionTimeoutId: null,
@@ -46,8 +56,10 @@ const game = {
   phaseStartMisses: 0,
   phaseStartEnemyHits: 0,
   phaseStartReactionCount: 0,
+  phaseStartActionCount: 0,
   phaseSummaryCommitted: false,
-  phaseHistory: []
+  phaseHistory: [],
+  actionHistory: []
 };
 
 function isInfinite(value) {
@@ -107,6 +119,20 @@ function formatSeconds(seconds) {
   return `${Number(seconds).toFixed(2)}s`;
 }
 
+function getActionLabel(action) {
+  return ACTION_LABELS[action] || String(action || "desconhecida");
+}
+
+function isKnownAction(action) {
+  return ACTION_TYPES.includes(action);
+}
+
+function parseMaybeInfinite(value) {
+  if (value === "INF" || value === Infinity) return Infinity;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function setCookie(name, value, days) {
   const maxAgeSeconds = Math.max(0, Math.floor(days * 24 * 60 * 60));
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
@@ -126,6 +152,113 @@ function getCookie(name) {
   return null;
 }
 
+function createEmptyActionStats() {
+  return {
+    attempts: 0,
+    hits: 0,
+    misses: 0,
+    timeouts: 0,
+    wrongActions: 0,
+    accuracy: 0,
+    avgReaction: null
+  };
+}
+
+function normalizeActionItem(rawItem, phaseFallback = 1, index = 0) {
+  if (!rawItem || typeof rawItem !== "object") return null;
+
+  const expectedAction = isKnownAction(rawItem.expectedAction) ? rawItem.expectedAction : "attack";
+  const actualAction = rawItem.actualAction == null ? null : String(rawItem.actualAction).slice(0, 40);
+  const reactionTimeValue = rawItem.reactionTime == null ? null : Number(rawItem.reactionTime);
+  const createdAt = new Date(rawItem.createdAt);
+  const outcome = rawItem.outcome === "success" || rawItem.outcome === "miss" || rawItem.outcome === "timeout"
+    ? rawItem.outcome
+    : (rawItem.correct ? "success" : (actualAction == null ? "timeout" : "miss"));
+
+  return {
+    id: String(rawItem.id || `${Date.now()}-${phaseFallback}-${index}`).slice(0, 80),
+    phase: parsePositiveInt(rawItem.phase, phaseFallback),
+    expectedAction,
+    actualAction,
+    source: String(rawItem.source || "unknown").slice(0, 40),
+    outcome,
+    correct: outcome === "success",
+    reactionTime: Number.isFinite(reactionTimeValue) && reactionTimeValue >= 0 ? reactionTimeValue : null,
+    createdAt: Number.isFinite(createdAt.getTime()) ? createdAt.toISOString() : new Date().toISOString()
+  };
+}
+
+function buildActionBreakdown(actions) {
+  const breakdown = {};
+
+  for (const actionType of ACTION_TYPES) {
+    breakdown[actionType] = createEmptyActionStats();
+  }
+
+  for (const action of actions) {
+    const actionType = isKnownAction(action.expectedAction) ? action.expectedAction : "attack";
+    const bucket = breakdown[actionType];
+
+    bucket.attempts += 1;
+
+    if (action.outcome === "success") {
+      bucket.hits += 1;
+      if (Number.isFinite(action.reactionTime)) {
+        bucket.avgReaction = bucket.avgReaction == null
+          ? action.reactionTime
+          : bucket.avgReaction + action.reactionTime;
+      }
+      continue;
+    }
+
+    bucket.misses += 1;
+    if (action.outcome === "timeout") {
+      bucket.timeouts += 1;
+    } else {
+      bucket.wrongActions += 1;
+    }
+  }
+
+  for (const actionType of ACTION_TYPES) {
+    const bucket = breakdown[actionType];
+    if (bucket.hits > 0 && bucket.avgReaction != null) {
+      bucket.avgReaction = bucket.avgReaction / bucket.hits;
+    } else {
+      bucket.avgReaction = null;
+    }
+
+    bucket.accuracy = bucket.attempts > 0 ? (bucket.hits / bucket.attempts) * 100 : 0;
+  }
+
+  return breakdown;
+}
+
+function normalizeActionBreakdown(rawBreakdown) {
+  const normalized = {};
+
+  for (const actionType of ACTION_TYPES) {
+    const rawStats = rawBreakdown && typeof rawBreakdown === "object" ? rawBreakdown[actionType] : null;
+    const attempts = Math.max(0, Number(rawStats && rawStats.attempts) || 0);
+    const hits = Math.max(0, Number(rawStats && rawStats.hits) || 0);
+    const misses = Math.max(0, Number(rawStats && rawStats.misses) || 0);
+    const timeouts = Math.max(0, Number(rawStats && rawStats.timeouts) || 0);
+    const wrongActions = Math.max(0, Number(rawStats && rawStats.wrongActions) || 0);
+    const avgReactionValue = rawStats && rawStats.avgReaction == null ? null : Number(rawStats && rawStats.avgReaction);
+
+    normalized[actionType] = {
+      attempts,
+      hits,
+      misses,
+      timeouts,
+      wrongActions,
+      accuracy: attempts > 0 ? (hits / attempts) * 100 : 0,
+      avgReaction: Number.isFinite(avgReactionValue) && avgReactionValue >= 0 ? avgReactionValue : null
+    };
+  }
+
+  return normalized;
+}
+
 function normalizeHistoryItem(rawItem) {
   if (!rawItem || typeof rawItem !== "object") return null;
 
@@ -134,9 +267,12 @@ function normalizeHistoryItem(rawItem) {
   const status = rawItem.status === "concluida" || rawItem.status === "derrota" || rawItem.status === "interrompida"
     ? rawItem.status
     : "interrompida";
-  const livesLeft = rawItem.livesLeft === Infinity ? Infinity : Number(rawItem.livesLeft);
-  const enemyHitsNeeded = rawItem.enemyHitsNeeded === Infinity ? Infinity : Number(rawItem.enemyHitsNeeded);
+  const livesLeft = parseMaybeInfinite(rawItem.livesLeft);
+  const enemyHitsNeeded = parseMaybeInfinite(rawItem.enemyHitsNeeded);
   const parsedCreatedAt = new Date(rawItem.createdAt);
+  const actions = Array.isArray(rawItem.actions)
+    ? rawItem.actions.map((item, index) => normalizeActionItem(item, phase, index)).filter(Boolean)
+    : [];
 
   return {
     id: String(rawItem.id || `${Date.now()}-${phase}`).slice(0, 80),
@@ -144,7 +280,7 @@ function normalizeHistoryItem(rawItem) {
     customMode: Boolean(rawItem.customMode),
     difficultyPhase,
     status,
-    livesLeft: Number.isFinite(livesLeft) ? Math.max(0, livesLeft) : Infinity,
+    livesLeft: Number.isFinite(livesLeft) ? livesLeft : Infinity,
     enemyHits: Math.max(0, Number(rawItem.enemyHits) || 0),
     enemyHitsNeeded: Number.isFinite(enemyHitsNeeded) ? Math.max(1, enemyHitsNeeded) : Infinity,
     hits: Math.max(0, Number(rawItem.hits) || 0),
@@ -153,64 +289,211 @@ function normalizeHistoryItem(rawItem) {
     accuracy: Math.max(0, Math.min(100, Number(rawItem.accuracy) || 0)),
     duration: Math.max(0, Number(rawItem.duration) || 0),
     avgReaction: rawItem.avgReaction == null ? null : Math.max(0, Number(rawItem.avgReaction) || 0),
+    actions,
+    actionBreakdown: actions.length > 0 ? buildActionBreakdown(actions) : normalizeActionBreakdown(rawItem.actionBreakdown),
     createdAt: Number.isFinite(parsedCreatedAt.getTime()) ? parsedCreatedAt.toISOString() : new Date().toISOString()
   };
 }
 
-function savePerformanceHistory() {
-  try {
-    const compact = game.phaseHistory
-      .slice(0, PERFORMANCE_HISTORY_LIMIT)
-      .map((item) => ({
-        id: item.id,
-        phase: item.phase,
-        customMode: item.customMode,
-        difficultyPhase: item.difficultyPhase,
-        status: item.status,
-        livesLeft: isInfinite(item.livesLeft) ? "INF" : item.livesLeft,
-        enemyHits: item.enemyHits,
-        enemyHitsNeeded: isInfinite(item.enemyHitsNeeded) ? "INF" : item.enemyHitsNeeded,
-        hits: item.hits,
-        misses: item.misses,
-        attempts: item.attempts,
-        accuracy: Number(item.accuracy.toFixed(2)),
-        duration: Number(item.duration.toFixed(2)),
-        avgReaction: item.avgReaction == null ? null : Number(item.avgReaction.toFixed(3)),
-        createdAt: item.createdAt
-      }));
+function serializeActionItem(item) {
+  return {
+    id: item.id,
+    phase: item.phase,
+    expectedAction: item.expectedAction,
+    actualAction: item.actualAction,
+    source: item.source,
+    outcome: item.outcome,
+    correct: Boolean(item.correct),
+    reactionTime: item.reactionTime == null ? null : Number(item.reactionTime.toFixed(3)),
+    createdAt: item.createdAt
+  };
+}
 
-    setCookie(
-      PERFORMANCE_HISTORY_COOKIE,
-      JSON.stringify(compact),
-      PERFORMANCE_HISTORY_COOKIE_DAYS
-    );
+function serializeActionBreakdown(breakdown) {
+  const result = {};
+
+  for (const actionType of ACTION_TYPES) {
+    const stats = breakdown && breakdown[actionType] ? breakdown[actionType] : createEmptyActionStats();
+    result[actionType] = {
+      attempts: stats.attempts,
+      hits: stats.hits,
+      misses: stats.misses,
+      timeouts: stats.timeouts,
+      wrongActions: stats.wrongActions,
+      accuracy: Number((stats.accuracy || 0).toFixed(2)),
+      avgReaction: stats.avgReaction == null ? null : Number(stats.avgReaction.toFixed(3))
+    };
+  }
+
+  return result;
+}
+
+function serializeHistoryItem(item) {
+  return {
+    id: item.id,
+    phase: item.phase,
+    customMode: item.customMode,
+    difficultyPhase: item.difficultyPhase,
+    status: item.status,
+    livesLeft: item.livesLeft === Infinity ? "INF" : item.livesLeft,
+    enemyHits: item.enemyHits,
+    enemyHitsNeeded: item.enemyHitsNeeded === Infinity ? "INF" : item.enemyHitsNeeded,
+    hits: item.hits,
+    misses: item.misses,
+    attempts: item.attempts,
+    accuracy: Number(item.accuracy.toFixed(2)),
+    duration: Number(item.duration.toFixed(2)),
+    avgReaction: item.avgReaction == null ? null : Number(item.avgReaction.toFixed(3)),
+    actions: Array.isArray(item.actions) ? item.actions.map(serializeActionItem) : [],
+    actionBreakdown: serializeActionBreakdown(item.actionBreakdown),
+    createdAt: item.createdAt
+  };
+}
+
+async function fetchPerformanceHistoryFromDb() {
+  try {
+    const response = await fetch(HISTORY_API_URL, { cache: "no-store" });
+    if (!response.ok) return [];
+
+    const parsed = await response.json();
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => normalizeHistoryItem(item))
+      .filter(Boolean)
+      .slice(0, PERFORMANCE_HISTORY_LIMIT);
   } catch (error) {
-    console.warn("Nao foi possivel salvar historico em cookie.", error);
+    console.warn("Nao foi possivel carregar historico do db.json.", error);
+    return [];
   }
 }
 
-function loadPerformanceHistory() {
+function loadLegacyPerformanceHistory() {
   try {
-    const rawCookie = getCookie(PERFORMANCE_HISTORY_COOKIE);
+    const rawCookie = getCookie(LEGACY_PERFORMANCE_HISTORY_COOKIE);
     if (!rawCookie) return [];
 
     const parsed = JSON.parse(rawCookie);
     if (!Array.isArray(parsed)) return [];
 
-    const normalized = parsed
-      .map((item) => {
+    return parsed
+      .map((item, index) => {
         if (item && item.livesLeft === "INF") item.livesLeft = Infinity;
         if (item && item.enemyHitsNeeded === "INF") item.enemyHitsNeeded = Infinity;
-        return normalizeHistoryItem(item);
+        return normalizeHistoryItem(item, index);
       })
       .filter(Boolean)
       .slice(0, PERFORMANCE_HISTORY_LIMIT);
-
-    return normalized;
   } catch (error) {
-    console.warn("Historico em cookie invalido, iniciando vazio.", error);
+    console.warn("Nao foi possivel ler historico antigo em cookie.", error);
     return [];
   }
+}
+
+async function importLegacyPerformanceHistory(entries) {
+  try {
+    const response = await fetch(HISTORY_IMPORT_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ entries: entries.map((item) => serializeHistoryItem(item)) })
+    });
+
+    if (!response.ok) return [];
+
+    const parsed = await response.json();
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => normalizeHistoryItem(item))
+      .filter(Boolean)
+      .slice(0, PERFORMANCE_HISTORY_LIMIT);
+  } catch (error) {
+    console.warn("Nao foi possivel migrar historico antigo para o db.json.", error);
+    return [];
+  }
+}
+
+async function persistPerformanceHistory() {
+  const latestItem = game.phaseHistory[0];
+  if (!latestItem) return null;
+
+  try {
+    const response = await fetch(HISTORY_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(serializeHistoryItem(latestItem))
+    });
+
+    if (!response.ok) return null;
+
+    const savedItem = await response.json();
+    const normalizedItem = normalizeHistoryItem(savedItem);
+    if (normalizedItem) {
+      game.phaseHistory[0] = normalizedItem;
+      renderPerformanceHistory();
+      if (typeof updateVRHistory === "function") updateVRHistory();
+    }
+
+    return normalizedItem;
+  } catch (error) {
+    console.warn("Nao foi possivel salvar historico no db.json.", error);
+    return null;
+  }
+}
+
+async function initializePerformanceHistory() {
+  const dbHistory = await fetchPerformanceHistoryFromDb();
+
+  if (dbHistory.length > 0) {
+    game.phaseHistory = dbHistory;
+    renderPerformanceHistory();
+    if (typeof updateVRHistory === "function") updateVRHistory();
+    return;
+  }
+
+  const legacyHistory = loadLegacyPerformanceHistory();
+  if (legacyHistory.length > 0) {
+    game.phaseHistory = legacyHistory;
+    renderPerformanceHistory();
+    if (typeof updateVRHistory === "function") updateVRHistory();
+
+    const migratedHistory = await importLegacyPerformanceHistory(legacyHistory);
+    if (migratedHistory.length > 0) {
+      game.phaseHistory = migratedHistory;
+      renderPerformanceHistory();
+      if (typeof updateVRHistory === "function") updateVRHistory();
+    }
+    return;
+  }
+
+  game.phaseHistory = [];
+  renderPerformanceHistory();
+  if (typeof updateVRHistory === "function") updateVRHistory();
+}
+
+function recordActionAttempt({ actualAction = null, source = "unknown", reactionTime = null, outcome = null } = {}) {
+  const expectedAction = game.expectedAction || "attack";
+  const correct = actualAction != null && actualAction === expectedAction;
+  const resolvedOutcome = outcome || (correct ? "success" : (actualAction == null ? "timeout" : "miss"));
+
+  const entry = {
+    id: `${Date.now()}-${game.phase}-${game.actionHistory.length}`,
+    phase: game.phase,
+    expectedAction,
+    actualAction,
+    source: String(source || "unknown").slice(0, 40),
+    outcome: resolvedOutcome,
+    correct,
+    reactionTime: Number.isFinite(reactionTime) && reactionTime >= 0 ? reactionTime : null,
+    createdAt: new Date().toISOString()
+  };
+
+  game.actionHistory.push(entry);
+  return entry;
 }
 
 function getDifficultyLabel(level) {
@@ -229,6 +512,7 @@ function summarizePhase(status) {
   const phaseReactionCount = Math.max(0, game.reactionTimes.length - game.phaseStartReactionCount);
   const attempts = phaseHits + phaseMisses;
   const phaseAccuracy = attempts > 0 ? (phaseHits / attempts) * 100 : 0;
+  const phaseActions = game.actionHistory.slice(game.phaseStartActionCount);
 
   let phaseAvgReaction = null;
   if (phaseReactionCount > 0) {
@@ -252,6 +536,8 @@ function summarizePhase(status) {
     accuracy: phaseAccuracy,
     duration: phaseElapsedSeconds,
     avgReaction: phaseAvgReaction,
+    actions: phaseActions,
+    actionBreakdown: buildActionBreakdown(phaseActions),
     createdAt: new Date().toISOString()
   });
 
@@ -260,7 +546,9 @@ function summarizePhase(status) {
   }
 
   game.phaseSummaryCommitted = true;
-  savePerformanceHistory();
+  game.actionHistory = [];
+  game.phaseStartActionCount = 0;
+  void persistPerformanceHistory();
   renderPerformanceHistory();
 }
 
@@ -270,6 +558,7 @@ function beginPhaseTracking() {
   game.phaseStartMisses = game.misses;
   game.phaseStartEnemyHits = game.enemyHits;
   game.phaseStartReactionCount = game.reactionTimes.length;
+  game.phaseStartActionCount = game.actionHistory.length;
   game.phaseSummaryCommitted = false;
 }
 
@@ -310,13 +599,75 @@ function renderPerformanceHistory() {
       `Acertos: ${item.hits} | Erros: ${item.misses} | Precisao: ${item.accuracy.toFixed(1)}% | ` +
       `Ataques na fase: ${item.enemyHits}/${enemyGoalLabel} | Vidas restantes: ${livesLabel}`;
 
+    const details = document.createElement("details");
+    details.className = "history-details";
+
+    const summary = document.createElement("summary");
+    summary.textContent = "Ver detalhes por ação";
+
+    const breakdownTitle = document.createElement("p");
+    breakdownTitle.className = "history-section-title";
+    breakdownTitle.textContent = "Resumo por ação";
+
+    const breakdownList = document.createElement("ul");
+    breakdownList.className = "history-breakdown-list";
+
+    for (const actionType of ACTION_TYPES) {
+      const stats = item.actionBreakdown && item.actionBreakdown[actionType]
+        ? item.actionBreakdown[actionType]
+        : createEmptyActionStats();
+
+      const breakdownItem = document.createElement("li");
+      breakdownItem.className = "history-breakdown-item";
+      const avgActionLabel = stats.avgReaction == null ? "--" : formatSeconds(stats.avgReaction);
+      breakdownItem.textContent = `${getActionLabel(actionType)}: ${stats.attempts} tentativas | ${stats.hits} acertos | ${stats.misses} erros | ${stats.timeouts} por tempo | media ${avgActionLabel} | precisao ${stats.accuracy.toFixed(1)}%`;
+      breakdownList.appendChild(breakdownItem);
+    }
+
+    const actionLogTitle = document.createElement("p");
+    actionLogTitle.className = "history-section-title";
+    actionLogTitle.textContent = "Eventos individuais";
+
+    details.appendChild(summary);
+    details.appendChild(breakdownTitle);
+    details.appendChild(breakdownList);
+    details.appendChild(actionLogTitle);
+
+    if (Array.isArray(item.actions) && item.actions.length > 0) {
+      const actionLogList = document.createElement("ul");
+      actionLogList.className = "history-action-log";
+
+      for (const action of item.actions) {
+        const actionItem = document.createElement("li");
+        actionItem.className = "history-action-item";
+
+        const outcomeLabel = action.outcome === "success"
+          ? "acerto"
+          : (action.outcome === "timeout" ? "tempo esgotado" : "erro");
+        const expectedLabel = getActionLabel(action.expectedAction);
+        const actualLabel = action.actualAction == null ? "--" : getActionLabel(action.actualAction);
+        const reactionLabel = action.reactionTime == null ? "--" : formatSeconds(action.reactionTime);
+
+        actionItem.textContent = `${expectedLabel} -> ${outcomeLabel} | resposta: ${actualLabel} | reacao: ${reactionLabel} | fonte: ${action.source}`;
+        actionLogList.appendChild(actionItem);
+      }
+
+      details.appendChild(actionLogList);
+    } else {
+      const actionEmpty = document.createElement("p");
+      actionEmpty.className = "history-action-empty";
+      actionEmpty.textContent = "Sem detalhamento por ação para sessões antigas.";
+      details.appendChild(actionEmpty);
+    }
+
     li.appendChild(title);
     li.appendChild(meta);
+    li.appendChild(details);
     performanceHistoryListEl.appendChild(li);
   }
 }
 
-game.phaseHistory = loadPerformanceHistory();
+void initializePerformanceHistory();
 
 function getEnemyHitsNeeded(phase) {
   if (phase === 1) return 3;

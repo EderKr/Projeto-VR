@@ -109,18 +109,296 @@ function setRoundControlsVisibility(isRunning) {
   if (!controlsRoot || !stopButtonGroup) return;
 
   const children = Array.from(controlsRoot.children);
+  const pauseOnlyIds = new Set(["customModeVR", "historyPanelVR"]);
 
   if (isRunning) {
     for (const child of children) {
+      if (pauseOnlyIds.has(child.id)) {
+        child.setAttribute("visible", "false");
+        continue;
+      }
       child.setAttribute("visible", "false");
     }
 
     stopButtonGroup.setAttribute("visible", "true");
   } else {
     for (const child of children) {
+      if (pauseOnlyIds.has(child.id)) {
+        child.setAttribute("visible", "false");
+        continue;
+      }
       child.setAttribute("visible", "true");
     }
   }
+}
+
+function setDesktopPauseMenuVisible(visible) {
+  const menu = document.getElementById("pauseMenuDesktop");
+  if (!menu) return;
+
+  menu.classList.toggle("open", Boolean(visible));
+  menu.setAttribute("aria-hidden", visible ? "false" : "true");
+}
+
+function toggleDesktopPauseMenu() {
+  const menu = document.getElementById("pauseMenuDesktop");
+  if (!menu) return;
+  const isOpen = menu.classList.contains("open");
+  setDesktopPauseMenuVisible(!isOpen);
+}
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  toggleDesktopPauseMenu();
+});
+
+window.addEventListener("load", () => {
+  if (typeof customModeEnabledEl !== 'undefined' && customModeEnabledEl) {
+    vrMenuState.customModeEnabled = customModeEnabledEl.checked;
+  }
+
+  const openBtn = document.getElementById("pauseMenuDesktopToggle");
+  const closeBtn = document.getElementById("pauseMenuDesktopClose");
+  const menu = document.getElementById("pauseMenuDesktop");
+
+  if (openBtn) {
+    openBtn.addEventListener("click", () => {
+      toggleDesktopPauseMenu();
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      setDesktopPauseMenuVisible(false);
+    });
+  }
+
+  if (menu) {
+    menu.addEventListener("click", (event) => {
+      if (event.target === menu) {
+        setDesktopPauseMenuVisible(false);
+      }
+    });
+  }
+});
+
+const vrMenuState = {
+  currentMenu: null,
+  isOpen: false,
+  previouslyRunning: false,
+  customModeEnabled: false,
+  currentHistoryTab: 'history'
+};
+
+function hideAllVRMenus() {
+  const mainScreen = document.getElementById("menuMainScreen");
+  const customizeScreen = document.getElementById("menuCustomizeScreen");
+  const historyScreen = document.getElementById("menuHistoryScreen");
+
+  if (mainScreen) mainScreen.setAttribute("visible", "false");
+  if (customizeScreen) customizeScreen.setAttribute("visible", "false");
+  if (historyScreen) historyScreen.setAttribute("visible", "false");
+}
+
+function setVRMenuOpen(open) {
+  const overlay = document.getElementById("menuOverlay");
+  if (!overlay) return;
+
+  vrMenuState.isOpen = open;
+  overlay.setAttribute("visible", String(open));
+
+  if (open) {
+    vrMenuState.previouslyRunning = game.running;
+    game.menuOpen = true;
+    if (game.running) {
+      game.running = false;
+    }
+  } else {
+    game.menuOpen = false;
+    if (vrMenuState.previouslyRunning) {
+      game.running = true;
+    }
+    hideAllVRMenus();
+  }
+}
+
+function showVRMenu(menuId) {
+  if (!vrMenuState.isOpen) return;
+  hideAllVRMenus();
+
+  const targetMenu = document.getElementById(menuId);
+  if (targetMenu) {
+    targetMenu.setAttribute("visible", "true");
+    vrMenuState.currentMenu = menuId;
+  }
+}
+
+function toggleVRPauseMenu() {
+  if (vrMenuState.isOpen) {
+    closeVRPauseMenu();
+  } else {
+    openVRPauseMenu();
+  }
+}
+
+function openVRPauseMenu() {
+  setVRMenuOpen(true);
+  showVRMenu("menuMainScreen");
+  updateCustomizeMenuDisplay();
+}
+
+function closeVRPauseMenu() {
+  setVRMenuOpen(false);
+  vrMenuState.currentMenu = null;
+}
+
+function openCustomizeMenu() {
+  if (!vrMenuState.isOpen) return;
+  showVRMenu("menuCustomizeScreen");
+  updateCustomizeMenuDisplay();
+}
+
+function openHistoryMenu() {
+  if (!vrMenuState.isOpen) return;
+  showVRMenu("menuHistoryScreen");
+  updateHistoryMenuDisplay();
+}
+
+function backToMainMenu() {
+  if (!vrMenuState.isOpen) return;
+  showVRMenu("menuMainScreen");
+}
+
+function resumeGame() {
+  closeVRPauseMenu();
+}
+
+function updateCustomizeMenuDisplay() {
+  const statusEl = document.getElementById("customModeStatus");
+  const statusColor = vrMenuState.customModeEnabled ? "#4ECDC4" : "#FF6B6B";
+  const statusText = vrMenuState.customModeEnabled ? "ATIVADO" : "DESATIVADO";
+  
+  if (statusEl) {
+    setCanvasText(statusEl, statusText);
+    statusEl.setAttribute("color", statusColor);
+  }
+
+  const livesDisplay = document.getElementById("customLivesDisplay");
+  const enemyDisplay = document.getElementById("customEnemyDisplay");
+
+  if (typeof customLivesEl !== 'undefined' && customLivesEl && livesDisplay) {
+    setCanvasText(livesDisplay, String(customLivesEl.value || 3));
+  }
+
+  if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl && enemyDisplay) {
+    setCanvasText(enemyDisplay, String(customEnemyHitsEl.value || 3));
+  }
+
+  const livesInfiniteBtn = document.getElementById('customLivesInfiniteBtn');
+  const enemyInfiniteBtn = document.getElementById('customEnemyInfiniteBtn');
+
+  if (typeof customLivesInfiniteEl !== 'undefined' && customLivesInfiniteEl && livesInfiniteBtn) {
+    livesInfiniteBtn.setAttribute('color', customLivesInfiniteEl.checked ? '#4ECDC4' : '#555');
+  }
+
+  if (typeof customEnemyHitsInfiniteEl !== 'undefined' && customEnemyHitsInfiniteEl && enemyInfiniteBtn) {
+    enemyInfiniteBtn.setAttribute('color', customEnemyHitsInfiniteEl.checked ? '#4ECDC4' : '#555');
+  }
+
+  const difficultyBtn1 = document.getElementById('difficultyBtn1');
+  const difficultyBtn2 = document.getElementById('difficultyBtn2');
+  const difficultyBtn3 = document.getElementById('difficultyBtn3');
+
+  const selectedDifficulty = customDifficultyEl ? parseInt(customDifficultyEl.value, 10) : 1;
+
+  if (difficultyBtn1) {
+    difficultyBtn1.setAttribute('color', selectedDifficulty === 1 ? '#4ECDC4' : '#2C6CB0');
+  }
+  if (difficultyBtn2) {
+    difficultyBtn2.setAttribute('color', selectedDifficulty === 2 ? '#4ECDC4' : '#B8A200');
+  }
+  if (difficultyBtn3) {
+    difficultyBtn3.setAttribute('color', selectedDifficulty === 3 ? '#4ECDC4' : '#8B0000');
+  }
+}
+
+function toggleCustomMode() {
+  vrMenuState.customModeEnabled = !vrMenuState.customModeEnabled;
+  
+  if (typeof customModeEnabledEl !== 'undefined' && customModeEnabledEl) {
+    customModeEnabledEl.checked = vrMenuState.customModeEnabled;
+  }
+  
+  const checkboxTextEl = document.getElementById("customModeCheckboxText");
+  if (checkboxTextEl) {
+    setCanvasText(checkboxTextEl, vrMenuState.customModeEnabled ? '☑' : '☐');
+  }
+  
+  updateCustomizeMenuDisplay();
+}
+
+function toggleCustomEnemyInfinite() {
+  if (typeof customEnemyHitsInfiniteEl !== 'undefined' && customEnemyHitsInfiniteEl) {
+    customEnemyHitsInfiniteEl.checked = !customEnemyHitsInfiniteEl.checked;
+  }
+  updateCustomizeMenuDisplay();
+}
+
+function updateHistoryMenuDisplay() {
+  const historyContent = document.getElementById("historyTabContent");
+  const aiContent = document.getElementById("aiTabContent");
+  
+  if (!historyContent) return;
+
+  if (!game.phaseHistory || game.phaseHistory.length === 0) {
+    setCanvasText(historyContent, 'Sem dados ainda.\nFinalize uma fase para gerar histórico.');
+    return;
+  }
+
+  const lines = [];
+  lines.push('ÚLTIMAS PARTIDAS\n');
+  
+  for (let i = 0; i < Math.min(game.phaseHistory.length, 10); i++) {
+    const item = game.phaseHistory[i];
+    const modeLabel = item.customMode ? `Custom (${getDifficultyLabel(item.difficultyPhase)})` : `Fase ${item.phase}`;
+    const statusLabel = item.status === 'concluida' ? '✓' : (item.status === 'derrota' ? '✗' : '⊘');
+    const time = formatSeconds(item.duration || 0);
+    const acc = item.accuracy != null ? `${Number(item.accuracy).toFixed(1)}%` : '--';
+    lines.push(`${i+1}. ${modeLabel} ${statusLabel}\n   ${time} | ${acc}`);
+    if (i < game.phaseHistory.length - 1) lines.push('\n');
+  }
+
+  setCanvasText(historyContent, lines.join(''));
+}
+
+function selectHistoryTab() {
+  vrMenuState.currentHistoryTab = 'history';
+  
+  const historyContent = document.getElementById("historyTabContent");
+  const aiContent = document.getElementById("aiTabContent");
+  const tabHistoryBtn = document.getElementById("tabHistoryBtn");
+  const tabAIBtn = document.getElementById("tabAIBtn");
+  
+  if (historyContent) historyContent.setAttribute("visible", "true");
+  if (aiContent) aiContent.setAttribute("visible", "false");
+  if (tabHistoryBtn) tabHistoryBtn.setAttribute("color", "#2C5AA0");
+  if (tabAIBtn) tabAIBtn.setAttribute("color", "#555555");
+  
+  updateHistoryMenuDisplay();
+}
+
+function selectAITab() {
+  vrMenuState.currentHistoryTab = 'ai';
+  
+  const historyContent = document.getElementById("historyTabContent");
+  const aiContent = document.getElementById("aiTabContent");
+  const tabHistoryBtn = document.getElementById("tabHistoryBtn");
+  const tabAIBtn = document.getElementById("tabAIBtn");
+  
+  if (historyContent) historyContent.setAttribute("visible", "false");
+  if (aiContent) aiContent.setAttribute("visible", "true");
+  if (tabHistoryBtn) tabHistoryBtn.setAttribute("color", "#555555");
+  if (tabAIBtn) tabAIBtn.setAttribute("color", "#2C5AA0");
 }
 
 window.animateKeyboardCamera = function (action) {

@@ -162,13 +162,51 @@ AFRAME.registerComponent("canvas-text", {
 AFRAME.registerComponent("gaze-button", {
   schema: {
     action: { type: "string" },
-    dwellTime: { type: "number", default: 1200 }
+    dwellTime: { type: "number", default: 1200 },
+    alwaysActive: { type: "boolean", default: false }
   },
 
   init: function () {
     this.defaultScale = this.el.object3D.scale.clone();
     this.hoverTimeout = null;
     this.hasActivated = false;
+    this.raycaster = new THREE.Raycaster();
+    this.direction = new THREE.Vector3();
+
+    this.isVisibleInHierarchy = () => {
+      let current = this.el;
+      while (current) {
+        if (current.getAttribute) {
+          const visibleAttr = current.getAttribute('visible');
+          if (visibleAttr === false || visibleAttr === 'false') {
+            return false;
+          }
+        }
+        current = current.parentEl;
+      }
+      return true;
+    };
+
+    this.isLookingAt = () => {
+      if (!this.data.alwaysActive) return false;
+
+      const camera = document.getElementById('playerCamera');
+      if (!camera) return false;
+
+      const cameraPos = new THREE.Vector3();
+      const cameraDir = new THREE.Vector3(0, 0, -1);
+      camera.object3D.getWorldPosition(cameraPos);
+      camera.object3D.getWorldDirection(cameraDir);
+
+      const buttonPos = new THREE.Vector3();
+      this.el.object3D.getWorldPosition(buttonPos);
+
+      const toButton = buttonPos.clone().sub(cameraPos).normalize();
+      const dot = cameraDir.dot(toButton);
+      const angle = Math.acos(Math.max(-1, Math.min(1, dot))) * 180 / Math.PI;
+
+      return angle < 15;
+    };
 
     this.clearHoverTimer = () => {
       if (this.hoverTimeout) {
@@ -188,11 +226,95 @@ AFRAME.registerComponent("gaze-button", {
         }
       } else if (this.data.action === "reset") {
         resetGame();
+
+      /* VR UI actions */
+      } else {
+        const vrMenuActions = new Set([
+          "openCustomizeMenu",
+          "openHistoryMenu",
+          "backToMainMenu",
+          "resumeGame",
+          "toggle_custom_mode",
+          "selectHistoryTab",
+          "selectAITab",
+          "custom_lives_inc",
+          "custom_lives_dec",
+          "custom_toggle_lives_infinite",
+          "custom_enemy_inc",
+          "custom_enemy_dec",
+          "custom_toggle_enemy_infinite",
+          "custom_set_difficulty_1",
+          "custom_set_difficulty_2",
+          "custom_set_difficulty_3"
+        ]);
+
+        if (vrMenuActions.has(this.data.action)) {
+          if (typeof vrMenuState === 'undefined' || !vrMenuState.isOpen) {
+            return;
+          }
+        }
+      }
+
+      if (this.data.action === "togglePauseMenu") {
+        if (typeof toggleVRPauseMenu === "function") toggleVRPauseMenu();
+      } else if (this.data.action === "openVRPauseMenu") {
+        if (typeof openVRPauseMenu === "function") openVRPauseMenu();
+      } else if (this.data.action === "openCustomizeMenu") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof openCustomizeMenu === "function") openCustomizeMenu();
+      } else if (this.data.action === "openHistoryMenu") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof openHistoryMenu === "function") openHistoryMenu();
+      } else if (this.data.action === "backToMainMenu") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof backToMainMenu === "function") backToMainMenu();
+      } else if (this.data.action === "resumeGame") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof resumeGame === "function") resumeGame();
+      } else if (this.data.action === "toggle_custom_mode") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof toggleCustomMode === "function") toggleCustomMode();
+      } else if (this.data.action === "selectHistoryTab") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof selectHistoryTab === "function") selectHistoryTab();
+      } else if (this.data.action === "selectAITab") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof selectAITab === "function") selectAITab();
+      } else if (this.data.action === "custom_lives_inc") {
+        if (typeof customLivesEl !== 'undefined' && customLivesEl) {
+          customLivesEl.value = Math.max(1, (parseInt(customLivesEl.value, 10) || 3) + 1);
+        }
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action === "custom_lives_dec") {
+        if (typeof customLivesEl !== 'undefined' && customLivesEl) {
+          customLivesEl.value = Math.max(1, (parseInt(customLivesEl.value, 10) || 3) - 1);
+        }
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action === "custom_toggle_lives_infinite") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof customLivesInfiniteEl !== 'undefined' && customLivesInfiniteEl) {
+          customLivesInfiniteEl.checked = !customLivesInfiniteEl.checked;
+        }
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action === "custom_enemy_inc") {
+        if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl) {
+          customEnemyHitsEl.value = Math.max(1, (parseInt(customEnemyHitsEl.value, 10) || 3) + 1);
+        }
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action === "custom_toggle_enemy_infinite") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof toggleCustomEnemyInfinite === 'function') toggleCustomEnemyInfinite();
+      } else if (this.data.action === "custom_enemy_dec") {
+        if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl) {
+          customEnemyHitsEl.value = Math.max(1, (parseInt(customEnemyHitsEl.value, 10) || 3) - 1);
+        }
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action === "custom_set_difficulty_1") {
+        if (typeof customDifficultyEl !== 'undefined' && customDifficultyEl) customDifficultyEl.value = "1";
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action === "custom_set_difficulty_2") {
+        if (typeof customDifficultyEl !== 'undefined' && customDifficultyEl) customDifficultyEl.value = "2";
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action === "custom_set_difficulty_3") {
+        if (typeof customDifficultyEl !== 'undefined' && customDifficultyEl) customDifficultyEl.value = "3";
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
       }
     };
 
     this.activate = () => {
       if (this.hasActivated) return;
+      if (!this.isVisibleInHierarchy()) return;
       this.hasActivated = true;
       this.el.object3D.scale.copy(this.defaultScale);
       this.runAction();
@@ -469,6 +591,8 @@ window.addEventListener("load", () => {
     renderPerformanceHistory();
     updateHUD();
     setRoundControlsVisibility(game.running);
+    if (typeof updateVRCustomPanel === 'function') updateVRCustomPanel();
+    if (typeof updateVRHistory === 'function') updateVRHistory();
   }, 300);
 });
 
