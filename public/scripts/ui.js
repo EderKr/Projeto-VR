@@ -24,6 +24,28 @@ function setPromptState(active) {
   }
 }
 
+function updateEnemyHpBar() {
+  if (!enemyHpFillEl || !enemyHpTextEl) return;
+
+  if (isInfinite(game.enemyHitsNeeded)) {
+    enemyHpFillEl.setAttribute("width", "1.62");
+    enemyHpFillEl.setAttribute("position", "0 0.30 0.035");
+    setCanvasText(enemyHpTextEl, "HP ∞");
+    return;
+  }
+
+  const maxHp = Math.max(1, Number(game.enemyHitsNeeded) || 1);
+  const remainingHp = Math.max(0, maxHp - Math.max(0, Number(game.enemyHits) || 0));
+  const percent = Math.max(0, Math.min(1, remainingHp / maxHp));
+  const fullWidth = 1.62;
+  const width = Math.max(0.001, fullWidth * percent);
+  const x = -fullWidth / 2 + width / 2;
+
+  enemyHpFillEl.setAttribute("width", String(width));
+  enemyHpFillEl.setAttribute("position", `${x} 0.30 0.035`);
+  setCanvasText(enemyHpTextEl, `HP ${remainingHp}/${maxHp}`);
+}
+
 function updateHUD() {
   setCanvasText(phaseEl, `Fase: ${game.phase}`);
   setCanvasText(livesEl, `Vidas: ${isInfinite(game.lives) ? "∞" : game.lives}`);
@@ -33,6 +55,7 @@ function updateHUD() {
   );
   setCanvasText(hitsEl, `Acertos: ${game.hits}`);
   setCanvasText(missesEl, `Erros: ${game.misses}`);
+  updateEnemyHpBar();
 
   if (game.reactionTimes.length > 0) {
     const avg = game.reactionTimes.reduce((a, b) => a + b, 0) / game.reactionTimes.length;

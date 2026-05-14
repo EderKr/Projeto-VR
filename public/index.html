@@ -121,8 +121,10 @@
           raycaster="objects: .clickable">
         </a-cursor>
 
-        <a-entity id="cameraHudRoot" position="-0.52 0.24 -1.1" scale="0.28 0.28 0.28">
+        <a-entity id="cameraHudRoot" position="0 -0.46 -1.1" scale="0.28 0.28 0.28">
           <a-plane
+            id="hudStatsPanel"
+            visible="false"
             width="2.15"
             height="2.55"
             color="#07131F"
@@ -133,6 +135,7 @@
 
           <a-plane
             id="hudTitle"
+            visible="false"
             position="0 0.98 0.02"
             width="1.8"
             height="0.18"
@@ -142,6 +145,7 @@
 
           <a-plane
             id="hudPhase"
+            visible="false"
             position="0 0.72 0.02"
             width="1.8"
             height="0.15"
@@ -151,6 +155,7 @@
 
           <a-plane
             id="hudLives"
+            visible="false"
             position="0 0.50 0.02"
             width="1.8"
             height="0.15"
@@ -160,6 +165,7 @@
 
           <a-plane
             id="hudEnemyHits"
+            visible="false"
             position="0 0.28 0.02"
             width="1.8"
             height="0.15"
@@ -169,6 +175,7 @@
 
           <a-plane
             id="hudHits"
+            visible="false"
             position="0 0.06 0.02"
             width="1.8"
             height="0.15"
@@ -178,6 +185,7 @@
 
           <a-plane
             id="hudMisses"
+            visible="false"
             position="0 -0.16 0.02"
             width="1.8"
             height="0.15"
@@ -187,6 +195,7 @@
 
           <a-plane
             id="hudAvgReaction"
+            visible="false"
             position="0 -0.38 0.02"
             width="1.8"
             height="0.15"
@@ -195,8 +204,39 @@
           </a-plane>
 
           <a-plane
+            id="enemyHpBarBg"
+            position="0 0.30 0.01"
+            width="1.78"
+            height="0.16"
+            color="#241219"
+            opacity="0.96"
+            material="shader: flat; depthTest: false"
+            radius="0.04">
+          </a-plane>
+
+          <a-plane
+            id="enemyHpFill"
+            position="0 0.30 0.035"
+            width="1.62"
+            height="0.08"
+            color="#D94A3A"
+            opacity="0.98"
+            material="shader: flat; depthTest: false"
+            radius="0.03">
+          </a-plane>
+
+          <a-plane
+            id="enemyHpText"
+            position="0 0.30 0.045"
+            width="1.55"
+            height="0.10"
+            material="transparent: true; opacity: 0; shader: flat; depthTest: false"
+            canvas-text="value: HP 3/3; align: center; fontSize: 44; color: #FFFFFF; padding: 8;">
+          </a-plane>
+
+          <a-plane
             id="hudPromptBg"
-            position="0 -0.76 0.01"
+            position="0 0.06 0.01"
             width="1.78"
             height="0.26"
             color="#9A5B18"
@@ -207,7 +247,7 @@
 
           <a-plane
             id="hudPrompt"
-            position="0 -0.76 0.02"
+            position="0 0.06 0.02"
             width="1.68"
             height="0.18"
             material="transparent: true; opacity: 0; shader: flat; depthTest: false"
@@ -216,7 +256,7 @@
 
           <a-plane
             id="hudResultBg"
-            position="0 -1.08 0.01"
+            position="0 -0.26 0.01"
             width="1.78"
             height="0.34"
             color="#122536"
@@ -227,7 +267,7 @@
 
           <a-plane
             id="hudResult"
-            position="0 -1.08 0.02"
+            position="0 -0.26 0.02"
             width="1.68"
             height="0.24"
             material="transparent: true; opacity: 0; shader: flat; depthTest: false"
@@ -490,6 +530,12 @@
         <a-sphere radius="0.18" color="#B85CFF" opacity="0.86" material="shader: flat; transparent: true"></a-sphere>
         <a-torus radius="0.28" radius-tubular="0.015" rotation="90 0 0" color="#FFFFFF" opacity="0.82" material="shader: flat; transparent: true"></a-torus>
         <a-cylinder position="0 0 -0.18" radius="0.045" height="1.15" rotation="90 0 0" color="#7B2CBF" opacity="0.56" material="shader: flat; transparent: true"></a-cylinder>
+      </a-entity>
+
+      <a-entity id="highMagicFx" visible="false" position="0 2.25 0.68" scale="0.2 0.2 0.2">
+        <a-plane width="1.75" height="0.12" color="#E9B8FF" opacity="0.9" material="shader: flat; transparent: true; side: double"></a-plane>
+        <a-plane position="0 0 0.018" width="1.25" height="0.035" color="#FFFFFF" opacity="0.92" material="shader: flat; transparent: true; side: double"></a-plane>
+        <a-torus position="0 0 0.035" radius="0.52" radius-tubular="0.012" rotation="0 90 0" color="#B85CFF" opacity="0.55" material="shader: flat; transparent: true"></a-torus>
       </a-entity>
 
       <!-- Hitboxes/âncoras invisíveis mantêm a lógica original do jogo. -->

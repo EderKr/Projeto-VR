@@ -463,6 +463,7 @@ AFRAME.registerComponent("enemy-ai", {
     this.modelEl = this.modelEls.king;
     this.swordSlashFx = this.el.querySelector("#swordSlashFx");
     this.magicFx = this.el.querySelector("#magicFx");
+    this.highMagicFx = this.el.querySelector("#highMagicFx");
     this.swordSlashFxTimeout = null;
     this.swordSlashFxRaf = null;
     this.magicFxTimeout = null;
@@ -471,6 +472,7 @@ AFRAME.registerComponent("enemy-ai", {
     this.modelActionsByEl = new WeakMap();
     this.currentAction = null;
     this.pendingIdleTimeout = null;
+    this.pendingAttackTimeout = null;
     this.currentPhaseModel = 1;
 
     this.getActiveProfile = () => {
@@ -491,6 +493,7 @@ AFRAME.registerComponent("enemy-ai", {
       this.magicFxRaf = null;
       if (this.swordSlashFx) this.swordSlashFx.setAttribute("visible", "false");
       if (this.magicFx) this.magicFx.setAttribute("visible", "false");
+      if (this.highMagicFx) this.highMagicFx.setAttribute("visible", "false");
     };
 
     this.resetActionState = () => {
@@ -502,6 +505,10 @@ AFRAME.registerComponent("enemy-ai", {
       if (this.pendingIdleTimeout) {
         clearTimeout(this.pendingIdleTimeout);
         this.pendingIdleTimeout = null;
+      }
+      if (this.pendingAttackTimeout) {
+        clearTimeout(this.pendingAttackTimeout);
+        this.pendingAttackTimeout = null;
       }
     };
 
@@ -596,6 +603,7 @@ AFRAME.registerComponent("enemy-ai", {
         const entry = actions.get(clip);
         const action = entry.action;
         const shouldReverse = Boolean(options.reverse);
+        const customTimeScale = Number.isFinite(Number(options.timeScale)) ? Math.max(0.05, Math.abs(Number(options.timeScale))) : 1;
 
         if (this.currentAction && this.currentAction !== action) {
           this.currentAction.fadeOut(0.08);
@@ -605,7 +613,7 @@ AFRAME.registerComponent("enemy-ai", {
         action.enabled = true;
         action.clampWhenFinished = clampWhenFinished;
         action.setLoop(loop === "repeat" ? THREE.LoopRepeat : THREE.LoopOnce, loop === "repeat" ? Infinity : 1);
-        action.timeScale = shouldReverse ? -1 : 1;
+        action.timeScale = shouldReverse ? -customTimeScale : customTimeScale;
         action.time = shouldReverse ? entry.clip.duration : 0;
         action.fadeIn(this.currentAction && this.currentAction !== action ? 0.08 : 0);
         action.play();
@@ -822,11 +830,15 @@ AFRAME.registerComponent("enemy-ai", {
   },
 
   playMagicFx: function (pattern) {
-    const fx = this.magicFx || this.el.querySelector("#magicFx");
+    const normalFx = this.magicFx || this.el.querySelector("#magicFx");
+    const highFx = this.highMagicFx || this.el.querySelector("#highMagicFx");
+    const fx = pattern === "high" && highFx ? highFx : normalFx;
     if (!fx) return;
 
     if (this.magicFxTimeout) clearTimeout(this.magicFxTimeout);
     if (this.magicFxRaf) cancelAnimationFrame(this.magicFxRaf);
+    if (normalFx) normalFx.setAttribute("visible", "false");
+    if (highFx) highFx.setAttribute("visible", "false");
 
     const setFxOpacity = (opacity) => {
       fx.object3D.traverse((node) => {
@@ -845,21 +857,23 @@ AFRAME.registerComponent("enemy-ai", {
       // energia à esquerda do jogador => desvie para a direita; energia à direita => desvie para a esquerda.
       left: new THREE.Vector3(-0.95, 1.82, 0.72),
       right: new THREE.Vector3(0.95, 1.82, 0.72),
-      high: new THREE.Vector3(0, 2.55, 0.72)
+      // Ataque alto: a magia passa por cima da cabeça, em linha horizontal, para pedir AGACHAR.
+      high: new THREE.Vector3(0, 2.34, 0.52)
     };
     const endMap = {
       left: new THREE.Vector3(-0.34, 1.48, 2.12),
       right: new THREE.Vector3(0.34, 1.48, 2.12),
-      high: new THREE.Vector3(0, 1.02, 2.12)
+      high: new THREE.Vector3(0, 2.08, 2.35)
     };
 
     const startPos = startMap[pattern] || startMap.high;
     const endPos = endMap[pattern] || endMap.high;
     const startedAt = performance.now();
-    const duration = 460;
+    const duration = pattern === "high" ? 520 : 460;
 
     fx.setAttribute("visible", "true");
     fx.object3D.position.copy(startPos);
+    fx.object3D.rotation.set(0, 0, pattern === "high" ? 0 : fx.object3D.rotation.z);
     fx.object3D.scale.set(0.18, 0.18, 0.18);
     setFxOpacity(0.9);
 
@@ -868,8 +882,13 @@ AFRAME.registerComponent("enemy-ai", {
       const ease = 1 - Math.pow(1 - t, 3);
       const pulse = 1 + Math.sin(t * Math.PI * 4) * 0.12;
       fx.object3D.position.lerpVectors(startPos, endPos, ease);
-      fx.object3D.scale.setScalar((0.18 + 0.62 * ease) * pulse);
-      fx.object3D.rotation.y += 0.18;
+      if (pattern === "high") {
+        fx.object3D.scale.set(0.42 + 0.42 * ease, 0.42 + 0.16 * ease, 0.42 + 0.22 * ease);
+        fx.object3D.rotation.z = Math.sin(t * Math.PI * 3) * 0.06;
+      } else {
+        fx.object3D.scale.setScalar((0.18 + 0.62 * ease) * pulse);
+        fx.object3D.rotation.y += 0.18;
+      }
       setFxOpacity(Math.max(0, 0.9 * (1 - t * 0.86)));
 
       if (t < 1) {
@@ -917,10 +936,31 @@ AFRAME.registerComponent("enemy-ai", {
     const clip = clips[pattern] || "CharacterArmature|Punch_Right";
     const options = clips[`${pattern}Options`] || {};
     const usesSwordFx = Boolean(options.swordFx);
+    const windupMs = profile && profile.windupMs ? Number(profile.windupMs) : 0;
+    const windupClips = profile && profile.windupClips ? profile.windupClips : null;
+    const windupClip = windupClips && windupClips[pattern]
+      ? windupClips[pattern]
+      : (profile && profile.windupClip ? profile.windupClip : null);
 
-    // A janela abre junto com o início do golpe. Assim o jogador pode desviar antecipadamente,
-    // sem esperar uma instrução específica aparecer depois da animação.
+    // A janela abre assim que o movimento começa. No Rei, primeiro vem um wind-up lento e claro;
+    // se o jogador ler o golpe cedo, ele já pode desviar antes do soco sair.
     this.openDefenseWindow(pattern, "attack");
+
+    if (windupMs > 0 && windupClip) {
+      const windupOptions = profile.windupOptions || { timeScale: 0.45 };
+      this.playModelClip(windupClip, "once", true, windupOptions);
+
+      this.pendingAttackTimeout = setTimeout(() => {
+        this.pendingAttackTimeout = null;
+        if (!game.running || this.isDefeated) return;
+        if (this.playModelClip(clip, "once", true, options) && usesSwordFx) {
+          this.playSwordSlashFx();
+        }
+      }, windupMs);
+
+      this.scheduleIdleReturn(windupMs + 920);
+      return;
+    }
 
     if (this.playModelClip(clip, "once", true, options)) {
       if (usesSwordFx) this.playSwordSlashFx();
