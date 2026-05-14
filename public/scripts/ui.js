@@ -44,28 +44,145 @@ function updateHUD() {
 
 function resetEnemyPosition() {
   const enemy = document.getElementById("enemy");
-  enemy.setAttribute("position", "0 0 -8");
+  if (!enemy) return;
+
+  enemy.object3D.visible = true;
+  enemy.object3D.position.set(0, 0, -5.8);
+  enemy.object3D.rotation.set(0, 0, 0);
+  enemy.setAttribute("visible", "true");
+
+  const modelsRoot = document.getElementById("enemyModelsRoot");
+  if (modelsRoot) {
+    modelsRoot.object3D.visible = true;
+    modelsRoot.object3D.position.set(0, 0, 0);
+    modelsRoot.object3D.rotation.set(0, 0, 0);
+  }
+
+  document.querySelectorAll(".enemy-character-model").forEach((model) => {
+    model.object3D.visible = model.getAttribute("visible") !== false;
+    model.object3D.position.set(0, 0, 0);
+    model.object3D.rotation.set(0, 0, 0);
+  });
 }
+
+
+function syncEnemyWithSelectedDifficulty(options = {}) {
+  const difficulty = typeof getSelectedDifficultyPhase === "function" ? getSelectedDifficultyPhase() : 2;
+  game.difficultyPhase = difficulty;
+
+  if (!game.customMode && !game.running) {
+    game.enemyHitsNeeded = getEnemyHitsNeeded(difficulty);
+  }
+
+  const enemy = document.getElementById("enemy");
+  if (enemy && enemy.components && enemy.components["enemy-ai"] && enemy.components["enemy-ai"].setVariantForPhase) {
+    enemy.components["enemy-ai"].setVariantForPhase(difficulty);
+    if (options.resetPosition !== false) {
+      resetEnemyPosition();
+    }
+  }
+
+  updateHUD();
+}
+
+function setSelectedDifficulty(level) {
+  const difficulty = Math.min(3, Math.max(1, parseInt(level, 10) || 2));
+  if (typeof customDifficultyEl !== "undefined" && customDifficultyEl) {
+    customDifficultyEl.value = String(difficulty);
+  }
+
+  syncEnemyWithSelectedDifficulty({ resetPosition: true });
+
+  if (typeof updateCustomizeMenuDisplay === "function") {
+    updateCustomizeMenuDisplay();
+  }
+
+  if (!game.running) {
+    setResult(`Dificuldade selecionada: ${getDifficultyLabel(difficulty)}.`);
+  }
+}
+
+if (typeof customDifficultyEl !== "undefined" && customDifficultyEl) {
+  customDifficultyEl.addEventListener("change", () => {
+    setSelectedDifficulty(customDifficultyEl.value);
+  });
+}
+
+const enemyOriginalMaterialColors = new WeakMap();
+let enemyFlashTimeoutId = null;
+let enemyHeadFlashTimeoutId = null;
 
 function flashEnemy(color = "#ff4444", duration = 180) {
   const head = document.getElementById("enemyHead");
-  const oldColor = head.getAttribute("color") || "#f1c27d";
-  head.setAttribute("color", color);
-  setTimeout(() => {
-    head.setAttribute("color", oldColor);
+  if (head) {
+    const baseHeadColor = head.dataset.baseColor || head.getAttribute("color") || "#f1c27d";
+    head.dataset.baseColor = baseHeadColor;
+
+    if (enemyHeadFlashTimeoutId) {
+      clearTimeout(enemyHeadFlashTimeoutId);
+    }
+
+    head.setAttribute("color", color);
+    enemyHeadFlashTimeoutId = setTimeout(() => {
+      head.setAttribute("color", baseHeadColor);
+      enemyHeadFlashTimeoutId = null;
+    }, duration);
+  }
+
+  const enemy = document.getElementById("enemy");
+  const model = enemy && enemy.components && enemy.components["enemy-ai"]
+    ? enemy.components["enemy-ai"].getActiveModelEl()
+    : document.querySelector(".enemy-character-model[visible='true']");
+  if (!model || !model.object3D) return;
+
+  const THREERef = AFRAME.THREE;
+  const flashColor = new THREERef.Color(color);
+  const flashedMaterials = [];
+
+  if (enemyFlashTimeoutId) {
+    clearTimeout(enemyFlashTimeoutId);
+    enemyFlashTimeoutId = null;
+  }
+
+  model.object3D.traverse((node) => {
+    if (!node.isMesh || !node.material) return;
+
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    materials.forEach((material) => {
+      if (!material.color) return;
+
+      if (!enemyOriginalMaterialColors.has(material)) {
+        enemyOriginalMaterialColors.set(material, material.color.clone());
+      }
+
+      flashedMaterials.push(material);
+      material.color.copy(flashColor);
+      material.needsUpdate = true;
+    });
+  });
+
+  enemyFlashTimeoutId = setTimeout(() => {
+    flashedMaterials.forEach((material) => {
+      const originalColor = enemyOriginalMaterialColors.get(material);
+      if (!originalColor || !material.color) return;
+
+      material.color.copy(originalColor);
+      material.needsUpdate = true;
+    });
+    enemyFlashTimeoutId = null;
   }, duration);
 }
 
 function getPromptLabel(action) {
   switch (action) {
     case "dodgeLeft":
-      return "← DESVIAR";
+      return "DESVIAR À ESQUERDA";
     case "dodgeRight":
-      return "→ DESVIAR";
+      return "DESVIAR À DIREITA";
     case "duck":
-      return "↓ AGACHAR";
+      return "AGACHAR";
     case "attack":
-      return "↑ ATACAR";
+      return "ATACAR";
     default:
       return "...";
   }
@@ -371,6 +488,133 @@ function updateHistoryMenuDisplay() {
   setCanvasText(historyContent, lines.join(''));
 }
 
+
+function buildAssistantRecommendations() {
+  const entries = Array.isArray(game.phaseHistory) ? game.phaseHistory : [];
+
+  if (entries.length === 0) {
+    return 'ASSISTENTE IA\n\nSem histórico suficiente.\n\nFinalize pelo menos uma fase para receber recomendações de treino.';
+  }
+
+  const recent = entries.slice(0, 6);
+  let attempts = 0;
+  let hits = 0;
+  let misses = 0;
+  let timeouts = 0;
+  let reactionSum = 0;
+  let reactionSamples = 0;
+  const byAction = {};
+
+  for (const actionType of ACTION_TYPES) {
+    byAction[actionType] = { attempts: 0, hits: 0, misses: 0, timeouts: 0, reactionSum: 0, reactionSamples: 0 };
+  }
+
+  for (const entry of recent) {
+    const actions = Array.isArray(entry.actions) ? entry.actions : [];
+    for (const action of actions) {
+      const actionType = isKnownAction(action.expectedAction) ? action.expectedAction : 'attack';
+      const bucket = byAction[actionType];
+      attempts += 1;
+      bucket.attempts += 1;
+
+      if (action.outcome === 'success') {
+        hits += 1;
+        bucket.hits += 1;
+        if (Number.isFinite(action.reactionTime)) {
+          reactionSum += action.reactionTime;
+          reactionSamples += 1;
+          bucket.reactionSum += action.reactionTime;
+          bucket.reactionSamples += 1;
+        }
+      } else {
+        misses += 1;
+        bucket.misses += 1;
+        if (action.outcome === 'timeout') {
+          timeouts += 1;
+          bucket.timeouts += 1;
+        }
+      }
+    }
+  }
+
+  const accuracy = attempts > 0 ? (hits / attempts) * 100 : 0;
+  const timeoutRate = attempts > 0 ? (timeouts / attempts) * 100 : 0;
+  const avgReaction = reactionSamples > 0 ? reactionSum / reactionSamples : null;
+  const weakestAction = ACTION_TYPES
+    .filter((actionType) => byAction[actionType].attempts > 0)
+    .sort((a, b) => {
+      const accA = byAction[a].hits / byAction[a].attempts;
+      const accB = byAction[b].hits / byAction[b].attempts;
+      return accA - accB;
+    })[0];
+
+  const lines = [];
+  lines.push('ASSISTENTE IA');
+  lines.push('Base: últimas ' + recent.length + ' fases');
+  lines.push('');
+  lines.push('Precisão: ' + accuracy.toFixed(1) + '%');
+  lines.push('Tempo médio: ' + (avgReaction == null ? '--' : avgReaction.toFixed(3) + 's'));
+  lines.push('Timeouts: ' + timeoutRate.toFixed(1) + '%');
+  lines.push('');
+
+  const recommendations = [];
+
+  if (attempts < 8) {
+    recommendations.push('Jogue mais 2-3 rodadas para calibrar a análise.');
+  }
+
+  if (accuracy >= 80 && avgReaction != null && avgReaction <= 0.9) {
+    recommendations.push('Você está pronto para aumentar a dificuldade.');
+  } else if (accuracy < 55) {
+    recommendations.push('Reduza a dificuldade e foque em precisão antes de velocidade.');
+  } else if (accuracy < 70) {
+    recommendations.push('Treine uma rodada curta no modo customizado com mais vidas.');
+  }
+
+  if (avgReaction != null && avgReaction > 1.15) {
+    recommendations.push('Seu tempo de reação está alto: antecipe o comando visual.');
+  }
+
+  if (timeoutRate > 25) {
+    recommendations.push('Muitos timeouts: aumente vidas ou reduza fase no modo customizado.');
+  }
+
+  if (weakestAction) {
+    const weak = byAction[weakestAction];
+    const weakAccuracy = (weak.hits / weak.attempts) * 100;
+    recommendations.push('Ponto fraco: ' + getActionLabel(weakestAction) + ' (' + weakAccuracy.toFixed(0) + '%).');
+  }
+
+  if (misses === 0 && attempts >= 8) {
+    recommendations.push('Sequência perfeita recente: tente fase difícil.');
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push('Desempenho estável: mantenha séries curtas e consistentes.');
+  }
+
+  lines.push('RECOMENDAÇÕES');
+  for (let i = 0; i < Math.min(4, recommendations.length); i++) {
+    lines.push('- ' + recommendations[i]);
+  }
+
+  return lines.join('\n');
+}
+
+function updateAIAssistantDisplay() {
+  const aiContent = document.getElementById('aiTabContent');
+  if (!aiContent) return;
+  setCanvasText(aiContent, buildAssistantRecommendations());
+}
+
+function updateVRHistory() {
+  if (vrMenuState.currentHistoryTab === 'ai') {
+    updateAIAssistantDisplay();
+  } else {
+    updateHistoryMenuDisplay();
+  }
+}
+
 function selectHistoryTab() {
   vrMenuState.currentHistoryTab = 'history';
   
@@ -399,6 +643,8 @@ function selectAITab() {
   if (aiContent) aiContent.setAttribute("visible", "true");
   if (tabHistoryBtn) tabHistoryBtn.setAttribute("color", "#555555");
   if (tabAIBtn) tabAIBtn.setAttribute("color", "#2C5AA0");
+
+  updateAIAssistantDisplay();
 }
 
 window.animateKeyboardCamera = function (action) {

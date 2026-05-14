@@ -1,16 +1,19 @@
-function openPrompt(action) {
+function openPrompt(action, options = {}) {
   clearTimers();
   game.expectedAction = action;
   game.waitingInput = true;
   game.promptStartTime = performance.now();
 
-  setPrompt(getPromptLabel(action));
+  const label = options.label || getPromptLabel(action);
+  const resultText = options.resultText || "Reaja agora.";
+
+  setPrompt(label);
   setPromptState(true);
-  setResult("Reaja agora.");
+  setResult(resultText);
 
   game.reactionTimeoutId = setTimeout(() => {
     handleTimeout();
-  }, getReactionWindow(game.phase));
+  }, getReactionWindow(getActiveDifficultyPhase()));
 }
 
 function handleTimeout() {
@@ -89,30 +92,54 @@ function receiveAction(action, source = "unknown") {
 }
 
 function nextPhase() {
+  const enemy = document.getElementById("enemy");
+
   if (game.phase >= game.maxPhases) {
     summarizePhase("concluida");
     game.running = false;
     setRoundControlsVisibility(false);
     setPrompt("VITÓRIA");
     setPromptState(false);
-    setResult("Você derrotou todos os inimigos!", "success");
+    setResult(`${getEnemyDisplayName(getActiveDifficultyPhase())} foi derrotado(a)!`, "success");
     clearTimers();
+
+    if (enemy && enemy.components["enemy-ai"]) {
+      enemy.components["enemy-ai"].defeat();
+    }
     return;
   }
+
+  if (enemy && enemy.components["enemy-ai"]) {
+    setPrompt("INIMIGO DERROTADO");
+    setPromptState(false);
+    setResult(`${getEnemyDisplayName(getActiveDifficultyPhase())} caiu. Próxima fase em instantes.`, "success");
+    enemy.components["enemy-ai"].defeat(() => {
+      advanceToNextPhaseAfterDeath();
+    });
+    return;
+  }
+
+  advanceToNextPhaseAfterDeath();
+}
+
+function advanceToNextPhaseAfterDeath() {
 
   summarizePhase("concluida");
 
   game.phase++;
   game.enemyHits = 0;
-  game.enemyHitsNeeded = getEnemyHitsNeeded(game.phase);
+  game.enemyHitsNeeded = getEnemyHitsNeeded(getActiveDifficultyPhase());
 
   const enemy = document.getElementById("enemy");
-  enemy.components["enemy-ai"].data.speed = getEnemySpeed(game.phase);
+  enemy.components["enemy-ai"].data.speed = getEnemySpeed(getActiveDifficultyPhase());
+  if (enemy.components["enemy-ai"].setVariantForPhase) {
+    enemy.components["enemy-ai"].setVariantForPhase(getActiveDifficultyPhase());
+  }
   resetEnemyPosition();
 
   setPrompt(`FASE ${game.phase}`);
   setPromptState(false);
-  setResult("Novo inimigo entrou na arena.");
+  setResult(`${getEnemyDisplayName(getActiveDifficultyPhase())} continua na arena.`);
   updateHUD();
   beginPhaseTracking();
 
@@ -182,7 +209,10 @@ function startGame() {
   resetEnemyPosition();
 
   const enemy = document.getElementById("enemy");
-  enemy.components["enemy-ai"].data.speed = getEnemySpeed(game.phase);
+  enemy.components["enemy-ai"].data.speed = getEnemySpeed(getActiveDifficultyPhase());
+  if (enemy.components["enemy-ai"].setVariantForPhase) {
+    enemy.components["enemy-ai"].setVariantForPhase(getActiveDifficultyPhase());
+  }
   enemy.components["enemy-ai"].resumeCombat();
 
   setPrompt("COMEÇOU");
@@ -190,7 +220,7 @@ function startGame() {
   if (game.customMode) {
     const livesLabel = isInfinite(game.lives) ? "∞" : String(game.lives);
     const hitsLabel = isInfinite(game.enemyHitsNeeded) ? "∞" : String(game.enemyHitsNeeded);
-    setResult(`Modo customizado ativo: fase ${game.phase}, vidas ${livesLabel}, ataques ${hitsLabel}.`);
+    setResult(`Modo customizado ativo: ${getDifficultyLabel(getActiveDifficultyPhase())}, vidas ${livesLabel}, ataques ${hitsLabel}.`);
   } else {
     setResult("Prepare-se.");
   }
@@ -216,14 +246,19 @@ function resetGame() {
   game.misses = 0;
   game.reactionTimes = [];
   game.enemyHits = 0;
-  game.enemyHitsNeeded = getEnemyHitsNeeded(1);
+  game.difficultyPhase = getSelectedDifficultyPhase();
+  game.enemyHitsNeeded = getEnemyHitsNeeded(game.difficultyPhase);
   game.customMode = false;
-  game.difficultyPhase = 1;
   game.actionHistory = [];
 
   setRoundControlsVisibility(false);
 
   resetEnemyPosition();
+
+  const enemy = document.getElementById("enemy");
+  if (enemy && enemy.components["enemy-ai"] && enemy.components["enemy-ai"].setVariantForPhase) {
+    enemy.components["enemy-ai"].setVariantForPhase(getActiveDifficultyPhase());
+  }
 
   setPrompt("APERTE INICIAR");
   setPromptState(false);

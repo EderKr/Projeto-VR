@@ -301,14 +301,11 @@ AFRAME.registerComponent("gaze-button", {
         }
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
       } else if (this.data.action === "custom_set_difficulty_1") {
-        if (typeof customDifficultyEl !== 'undefined' && customDifficultyEl) customDifficultyEl.value = "1";
-        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+        if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(1);
       } else if (this.data.action === "custom_set_difficulty_2") {
-        if (typeof customDifficultyEl !== 'undefined' && customDifficultyEl) customDifficultyEl.value = "2";
-        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+        if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(2);
       } else if (this.data.action === "custom_set_difficulty_3") {
-        if (typeof customDifficultyEl !== 'undefined' && customDifficultyEl) customDifficultyEl.value = "3";
-        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+        if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(3);
       }
     };
 
@@ -407,7 +404,11 @@ AFRAME.registerComponent("head-input", {
     this.lastActionTime = performance.now();
   },
 
-  tick: function () {
+  tick: function (time, timeDelta) {
+    if (this.modelMixer) {
+      this.modelMixer.update((timeDelta || 0) / 1000);
+    }
+
     if (!game.running) return;
     if (!game.waitingInput) return;
     if (!this.calibrated) return;
@@ -452,24 +453,237 @@ AFRAME.registerComponent("enemy-ai", {
 
   init: function () {
     this.canAttack = true;
-
-    this.replayAnimation = (target, animationName, config) => {
-      if (!target) return;
-
-      target.removeAttribute(animationName);
-      requestAnimationFrame(() => {
-        target.setAttribute(animationName, config);
-      });
+    this.isDefeated = false;
+    this.currentModelClip = null;
+    this.modelEls = {
+      king: this.el.querySelector("#enemyModelKing"),
+      adventurer: this.el.querySelector("#enemyModelAdventurer"),
+      witch: this.el.querySelector("#enemyModelWitch")
     };
+    this.modelEl = this.modelEls.king;
+    this.swordSlashFx = this.el.querySelector("#swordSlashFx");
+    this.magicFx = this.el.querySelector("#magicFx");
+    this.swordSlashFxTimeout = null;
+    this.swordSlashFxRaf = null;
+    this.magicFxTimeout = null;
+    this.magicFxRaf = null;
+    this.modelMixers = new Map();
+    this.modelActionsByEl = new WeakMap();
+    this.currentAction = null;
+    this.pendingIdleTimeout = null;
+    this.currentPhaseModel = 1;
+
+    this.getActiveProfile = () => {
+      return typeof getEnemyProfile === "function" ? getEnemyProfile(this.currentPhaseModel || getActiveDifficultyPhase()) : null;
+    };
+
+    this.getActiveModelEl = () => this.modelEl || this.modelEls.king;
+    this.el.getActiveModelEl = this.getActiveModelEl;
+
+    this.stopVisualFx = () => {
+      if (this.swordSlashFxTimeout) clearTimeout(this.swordSlashFxTimeout);
+      if (this.swordSlashFxRaf) cancelAnimationFrame(this.swordSlashFxRaf);
+      if (this.magicFxTimeout) clearTimeout(this.magicFxTimeout);
+      if (this.magicFxRaf) cancelAnimationFrame(this.magicFxRaf);
+      this.swordSlashFxTimeout = null;
+      this.swordSlashFxRaf = null;
+      this.magicFxTimeout = null;
+      this.magicFxRaf = null;
+      if (this.swordSlashFx) this.swordSlashFx.setAttribute("visible", "false");
+      if (this.magicFx) this.magicFx.setAttribute("visible", "false");
+    };
+
+    this.resetActionState = () => {
+      if (this.currentAction) {
+        this.currentAction.stop();
+      }
+      this.currentAction = null;
+      this.currentModelClip = null;
+      if (this.pendingIdleTimeout) {
+        clearTimeout(this.pendingIdleTimeout);
+        this.pendingIdleTimeout = null;
+      }
+    };
+
+    this.prepareModelAnimations = (modelEl, modelRoot) => {
+      if (!modelEl || !modelRoot) return;
+      const clips = modelRoot.animations || [];
+      if (!clips.length) return;
+
+      const previousMixer = this.modelMixers.get(modelEl);
+      if (previousMixer) previousMixer.stopAllAction();
+
+      const mixer = new THREE.AnimationMixer(modelRoot);
+      const actions = new Map();
+      clips.forEach((clip) => {
+        actions.set(clip.name, {
+          clip,
+          action: mixer.clipAction(clip)
+        });
+      });
+
+      this.modelMixers.set(modelEl, mixer);
+      this.modelActionsByEl.set(modelEl, actions);
+
+      if (modelEl === this.getActiveModelEl()) {
+        this.resetActionState();
+        this.playIdle();
+      }
+    };
+
+    Object.values(this.modelEls).forEach((modelEl) => {
+      if (!modelEl) return;
+      modelEl.addEventListener("model-loaded", (event) => {
+        this.prepareModelAnimations(modelEl, event.detail.model || modelEl.getObject3D("mesh"));
+      });
+
+      const existingModel = modelEl.getObject3D("mesh");
+      if (existingModel) {
+        this.prepareModelAnimations(modelEl, existingModel);
+      }
+    });
+
+    this.applyVariantForPhase = (phase) => {
+      const resolvedPhase = Math.min(3, Math.max(1, Number.parseInt(phase, 10) || 1));
+      const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(resolvedPhase) : null;
+      const key = profile && profile.key ? profile.key : "king";
+      const scale = profile && profile.scale ? profile.scale : "1.12 1.12 1.12";
+      const distance = profile && profile.attackDistance ? profile.attackDistance : 1.9;
+      const speed = profile && profile.speed ? profile.speed : this.data.speed;
+      const activeModel = this.modelEls[key] || this.modelEls.king;
+      if (!activeModel) return;
+
+      this.stopVisualFx();
+      this.resetActionState();
+      this.currentPhaseModel = resolvedPhase;
+      this.data.attackDistance = distance;
+      this.data.speed = speed;
+      this.isDefeated = false;
+      this.canAttack = true;
+
+      this.el.object3D.visible = true;
+      this.el.setAttribute("visible", "true");
+      this.el.object3D.rotation.set(0, 0, 0);
+
+      Object.entries(this.modelEls).forEach(([modelKey, modelEl]) => {
+        if (!modelEl) return;
+        const isActive = modelKey === key;
+        modelEl.setAttribute("visible", isActive ? "true" : "false");
+        modelEl.object3D.visible = isActive;
+        modelEl.object3D.position.set(0, 0, 0);
+        modelEl.object3D.rotation.set(0, 0, 0);
+        if (isActive) modelEl.setAttribute("scale", scale);
+      });
+
+      this.modelEl = activeModel;
+      this.playIdle();
+    };
+
+    this.playModelClip = (clip, loop = "once", clampWhenFinished = true, options = {}) => {
+      const model = this.getActiveModelEl();
+      if (!model || !clip) return false;
+      if (this.currentModelClip === clip && loop === "repeat" && this.currentAction) return true;
+
+      if (this.pendingIdleTimeout) {
+        clearTimeout(this.pendingIdleTimeout);
+        this.pendingIdleTimeout = null;
+      }
+
+      const mixer = this.modelMixers.get(model);
+      const actions = this.modelActionsByEl.get(model);
+
+      if (mixer && actions && actions.has(clip)) {
+        const entry = actions.get(clip);
+        const action = entry.action;
+        const shouldReverse = Boolean(options.reverse);
+
+        if (this.currentAction && this.currentAction !== action) {
+          this.currentAction.fadeOut(0.08);
+        }
+
+        action.reset();
+        action.enabled = true;
+        action.clampWhenFinished = clampWhenFinished;
+        action.setLoop(loop === "repeat" ? THREE.LoopRepeat : THREE.LoopOnce, loop === "repeat" ? Infinity : 1);
+        action.timeScale = shouldReverse ? -1 : 1;
+        action.time = shouldReverse ? entry.clip.duration : 0;
+        action.fadeIn(this.currentAction && this.currentAction !== action ? 0.08 : 0);
+        action.play();
+
+        this.currentAction = action;
+        this.currentModelClip = clip;
+        return true;
+      }
+
+      return false;
+    };
+
+    this.playIdle = () => {
+      const profile = this.getActiveProfile();
+      const idleClip = profile && profile.idleClip ? profile.idleClip : "CharacterArmature|Idle";
+      this.playModelClip(idleClip, "repeat", false);
+    };
+
+    this.scheduleIdleReturn = (delay = 850) => {
+      if (this.pendingIdleTimeout) clearTimeout(this.pendingIdleTimeout);
+      this.pendingIdleTimeout = setTimeout(() => {
+        this.pendingIdleTimeout = null;
+        if (!this.isDefeated && game.running) this.playIdle();
+      }, delay);
+    };
+
+    this.applyVariantForPhase(getActiveDifficultyPhase());
+  },
+
+  getActiveModelEl: function () {
+    return this.modelEl || (this.modelEls && (this.modelEls.king || this.modelEls.adventurer || this.modelEls.witch));
+  },
+
+  setVariantForPhase: function (phase) {
+    if (typeof this.applyVariantForPhase === "function") {
+      this.applyVariantForPhase(phase);
+    }
   },
 
   resumeCombat: function () {
+    if (typeof this.applyVariantForPhase === "function") {
+      this.applyVariantForPhase(getActiveDifficultyPhase());
+    }
+    this.isDefeated = false;
     this.canAttack = true;
+    this.el.object3D.visible = true;
+    this.el.setAttribute("visible", "true");
+    const model = this.getActiveModelEl();
+    if (model) {
+      model.object3D.visible = true;
+      model.setAttribute("visible", "true");
+      model.object3D.position.set(0, 0, 0);
+      model.object3D.rotation.set(0, 0, 0);
+    }
+    this.playIdle();
   },
 
-  tick: function () {
+  defeat: function (onFinished) {
+    this.isDefeated = true;
+    this.canAttack = false;
+    if (typeof this.stopVisualFx === "function") this.stopVisualFx();
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(this.currentPhaseModel || getActiveDifficultyPhase()) : null;
+    const deathClip = profile && profile.deathClip ? profile.deathClip : "CharacterArmature|Death";
+    this.playModelClip(deathClip, "once", true);
+
+    if (typeof onFinished === "function") {
+      setTimeout(onFinished, 1450);
+    }
+  },
+
+  tick: function (time, timeDelta) {
+    for (const mixer of this.modelMixers.values()) {
+      mixer.update((timeDelta || 0) / 1000);
+    }
+
     if (!game.running) return;
     if (game.waitingInput) return;
+    if (this.isDefeated) return;
     if (!this.canAttack) return;
 
     const playerCam = document.getElementById("playerCamera");
@@ -482,106 +696,268 @@ AFRAME.registerComponent("enemy-ai", {
     playerPos.y = enemyPos.y;
 
     const distance = enemyPos.distanceTo(playerPos);
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(this.currentPhaseModel || getActiveDifficultyPhase()) : null;
+    const attackDistance = profile && profile.attackDistance ? profile.attackDistance : this.data.attackDistance;
+    const keepDistance = profile && profile.keepDistance ? profile.keepDistance : 0;
 
-    if (distance > this.data.attackDistance) {
+    if (distance > attackDistance) {
+      const runClip = profile && profile.runClip ? profile.runClip : "CharacterArmature|Run";
+      this.playModelClip(runClip, "repeat", false);
       const direction = new THREE.Vector3();
       direction.subVectors(playerPos, enemyPos).normalize();
       this.el.object3D.position.add(direction.multiplyScalar(this.data.speed));
       this.el.object3D.lookAt(playerPos);
-    } else {
-      this.attack();
+      const model = this.getActiveModelEl();
+      if (model) {
+        model.object3D.visible = true;
+        model.object3D.position.set(0, 0, 0);
+      }
+      return;
     }
+
+    if (keepDistance > 0 && distance < keepDistance) {
+      const direction = new THREE.Vector3();
+      direction.subVectors(enemyPos, playerPos).normalize();
+      this.el.object3D.position.add(direction.multiplyScalar(this.data.speed * 0.65));
+      this.el.object3D.lookAt(playerPos);
+      this.playIdle();
+      return;
+    }
+
+    this.el.object3D.lookAt(playerPos);
+    this.attack();
+  },
+
+  choosePattern: function (weights) {
+    let roll = Math.random();
+    let pattern = "vulnerable";
+    for (const [candidate, weight] of Object.entries(weights)) {
+      roll -= weight;
+      if (roll <= 0) {
+        pattern = candidate;
+        break;
+      }
+    }
+    return pattern;
   },
 
   attack: function () {
     this.canAttack = false;
-
     const phase = game.phase;
-    let pattern;
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
+    const weights = profile && profile.patternWeights
+      ? profile.patternWeights
+      : { vulnerable: 0.25, left: 0.25, right: 0.25, high: 0.25 };
 
-    if (phase === 1) {
-      pattern = Math.random() < 0.33
-        ? "vulnerable"
-        : (Math.random() < 0.5 ? "left" : "right");
-    } else if (phase === 2) {
-      const choices = ["left", "right", "high", "vulnerable"];
-      pattern = choices[Math.floor(Math.random() * choices.length)];
-    } else {
-      const roll = Math.random();
-      if (roll < 0.28) pattern = "left";
-      else if (roll < 0.56) pattern = "right";
-      else if (roll < 0.82) pattern = "high";
-      else pattern = "vulnerable";
-    }
+    const pattern = this.choosePattern(weights);
+    const style = profile && profile.attackStyle ? profile.attackStyle : "brawler";
 
-    if (pattern === "left" || pattern === "right") {
-      this.swingArm(pattern);
-    } else if (pattern === "high") {
-      this.highAttack();
-    } else if (pattern === "vulnerable") {
+    if (pattern === "vulnerable") {
       this.vulnerableOpen();
+    } else if (style === "magic") {
+      this.magicAttack(pattern);
+    } else {
+      this.physicalAttack(pattern);
     }
   },
 
-  swingArm: function (side) {
-    const arm = this.el.querySelector(side === "left" ? "#leftArm" : "#rightArm");
-    if (!arm) return;
+  playSwordSlashFx: function () {
+    const fx = this.swordSlashFx || this.el.querySelector("#swordSlashFx");
+    if (!fx) return;
 
-    const windup = side === "left" ? -15 : 15;
-    const hit = side === "left" ? 120 : -120;
+    if (this.swordSlashFxTimeout) clearTimeout(this.swordSlashFxTimeout);
+    if (this.swordSlashFxRaf) cancelAnimationFrame(this.swordSlashFxRaf);
 
-    this.replayAnimation(arm, "animation__windup", {
-      property: "rotation",
-      to: `0 0 ${windup}`,
-      dur: 180
-    });
-
-    setTimeout(() => {
-      this.replayAnimation(arm, "animation__attack", {
-        property: "rotation",
-        to: `0 0 ${hit}`,
-        dur: 140,
-        dir: "alternate",
-        loop: 2
+    const setFxOpacity = (opacity) => {
+      fx.object3D.traverse((node) => {
+        if (!node.isMesh || !node.material) return;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach((material) => {
+          material.transparent = true;
+          material.opacity = opacity;
+          material.needsUpdate = true;
+        });
       });
+    };
 
-      const expected = side === "left" ? "dodgeRight" : "dodgeLeft";
-      openPrompt(expected);
-    }, 180);
+    const startPos = new THREE.Vector3(0.55, 2.25, 0.72);
+    const endPos = new THREE.Vector3(-0.42, 1.55, 0.72);
+    const duration = 300;
+    const startedAt = performance.now();
+
+    fx.setAttribute("visible", "true");
+    fx.object3D.position.copy(startPos);
+    fx.object3D.rotation.set(0, 0, THREE.MathUtils.degToRad(35));
+    fx.object3D.scale.set(0.15, 0.15, 0.15);
+    setFxOpacity(0.92);
+
+    const animate = (now) => {
+      const t = Math.min(1, (now - startedAt) / duration);
+      const easeOut = 1 - Math.pow(1 - t, 3);
+      const scale = 0.15 + (1.14 - 0.15) * easeOut;
+      const opacity = Math.max(0, 0.92 * (1 - Math.pow(t, 1.35)));
+
+      fx.object3D.position.lerpVectors(startPos, endPos, easeOut);
+      fx.object3D.scale.set(scale, scale, scale);
+      setFxOpacity(opacity);
+
+      if (t < 1) {
+        this.swordSlashFxRaf = requestAnimationFrame(animate);
+        return;
+      }
+
+      fx.setAttribute("visible", "false");
+      fx.object3D.position.copy(startPos);
+      fx.object3D.scale.set(0.15, 0.15, 0.15);
+      setFxOpacity(0.88);
+      this.swordSlashFxRaf = null;
+    };
+
+    this.swordSlashFxRaf = requestAnimationFrame(animate);
+    this.swordSlashFxTimeout = setTimeout(() => {
+      fx.setAttribute("visible", "false");
+      setFxOpacity(0.88);
+      this.swordSlashFxTimeout = null;
+    }, 440);
   },
 
-  highAttack: function () {
-    const head = this.el.querySelector("#enemyHead");
-    if (!head) return;
+  playMagicFx: function (pattern) {
+    const fx = this.magicFx || this.el.querySelector("#magicFx");
+    if (!fx) return;
 
-    this.replayAnimation(head, "animation__headattack", {
-      property: "position",
-      to: "0 2.0 0.4",
-      dur: 180,
-      dir: "alternate",
-      loop: 2
-    });
+    if (this.magicFxTimeout) clearTimeout(this.magicFxTimeout);
+    if (this.magicFxRaf) cancelAnimationFrame(this.magicFxRaf);
 
-    setTimeout(() => {
-      openPrompt("duck");
-    }, 180);
+    const setFxOpacity = (opacity) => {
+      fx.object3D.traverse((node) => {
+        if (!node.isMesh || !node.material) return;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach((material) => {
+          material.transparent = true;
+          material.opacity = opacity;
+          material.needsUpdate = true;
+        });
+      });
+    };
+
+    const startMap = {
+      // A magia nasce claramente no lado do ataque para permitir leitura antecipada:
+      // energia à esquerda do jogador => desvie para a direita; energia à direita => desvie para a esquerda.
+      left: new THREE.Vector3(-0.95, 1.82, 0.72),
+      right: new THREE.Vector3(0.95, 1.82, 0.72),
+      high: new THREE.Vector3(0, 2.55, 0.72)
+    };
+    const endMap = {
+      left: new THREE.Vector3(-0.34, 1.48, 2.12),
+      right: new THREE.Vector3(0.34, 1.48, 2.12),
+      high: new THREE.Vector3(0, 1.02, 2.12)
+    };
+
+    const startPos = startMap[pattern] || startMap.high;
+    const endPos = endMap[pattern] || endMap.high;
+    const startedAt = performance.now();
+    const duration = 460;
+
+    fx.setAttribute("visible", "true");
+    fx.object3D.position.copy(startPos);
+    fx.object3D.scale.set(0.18, 0.18, 0.18);
+    setFxOpacity(0.9);
+
+    const animate = (now) => {
+      const t = Math.min(1, (now - startedAt) / duration);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const pulse = 1 + Math.sin(t * Math.PI * 4) * 0.12;
+      fx.object3D.position.lerpVectors(startPos, endPos, ease);
+      fx.object3D.scale.setScalar((0.18 + 0.62 * ease) * pulse);
+      fx.object3D.rotation.y += 0.18;
+      setFxOpacity(Math.max(0, 0.9 * (1 - t * 0.86)));
+
+      if (t < 1) {
+        this.magicFxRaf = requestAnimationFrame(animate);
+      } else {
+        fx.setAttribute("visible", "false");
+        fx.object3D.scale.set(0.2, 0.2, 0.2);
+        setFxOpacity(0.86);
+        this.magicFxRaf = null;
+      }
+    };
+
+    this.magicFxRaf = requestAnimationFrame(animate);
+    this.magicFxTimeout = setTimeout(() => {
+      fx.setAttribute("visible", "false");
+      setFxOpacity(0.86);
+      this.magicFxTimeout = null;
+    }, duration + 120);
+  },
+
+  getAttackDelay: function (pattern, fallback) {
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
+    return profile && profile.attackDelay && profile.attackDelay[pattern] ? profile.attackDelay[pattern] : fallback;
+  },
+
+  getResponseActionForPattern: function (pattern) {
+    if (pattern === "left") return "dodgeRight";
+    if (pattern === "right") return "dodgeLeft";
+    return "duck";
+  },
+
+  openDefenseWindow: function (pattern, sourceType = "attack") {
+    const expected = this.getResponseActionForPattern(pattern);
+    if (typeof openPrompt === "function") {
+      openPrompt(expected, {
+        label: sourceType === "magic" ? "MAGIA" : "DEFENDA-SE",
+        resultText: sourceType === "magic" ? "Leia a origem da magia." : "Leia o movimento do inimigo."
+      });
+    }
+  },
+
+  physicalAttack: function (pattern) {
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
+    const clips = profile && profile.attacks ? profile.attacks : {};
+    const clip = clips[pattern] || "CharacterArmature|Punch_Right";
+    const options = clips[`${pattern}Options`] || {};
+    const usesSwordFx = Boolean(options.swordFx);
+
+    // A janela abre junto com o início do golpe. Assim o jogador pode desviar antecipadamente,
+    // sem esperar uma instrução específica aparecer depois da animação.
+    this.openDefenseWindow(pattern, "attack");
+
+    if (this.playModelClip(clip, "once", true, options)) {
+      if (usesSwordFx) this.playSwordSlashFx();
+      this.scheduleIdleReturn(860);
+      return;
+    }
+
+    this.scheduleIdleReturn(760);
+  },
+
+  magicAttack: function (pattern) {
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
+    const clips = profile && profile.attacks ? profile.attacks : {};
+    const clip = clips[pattern] || "CharacterArmature|Gun_Shoot";
+
+    // A Bruxa também abre a janela no começo do telegraph. O efeito visual indica o lado,
+    // mas a UI não entrega qual ação fazer.
+    this.openDefenseWindow(pattern, "magic");
+    this.playModelClip(clip, "once", true);
+    this.playMagicFx(pattern);
+    this.scheduleIdleReturn(780);
   },
 
   vulnerableOpen: function () {
-    const head = this.el.querySelector("#enemyHead");
-    if (!head) return;
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
+    const clip = profile && profile.vulnerableClip ? profile.vulnerableClip : "CharacterArmature|HitRecieve";
 
-    this.replayAnimation(head, "animation__vulnerable", {
-      property: "rotation",
-      to: "25 0 0",
-      dur: 220,
-      dir: "alternate",
-      loop: 2
-    });
+    if (typeof openPrompt === "function") {
+      openPrompt("attack", { label: "ABERTURA", resultText: "Acerte enquanto o inimigo está exposto." });
+    }
 
-    setTimeout(() => {
-      openPrompt("attack");
-    }, 150);
+    if (this.playModelClip(clip, "once", true)) {
+      this.scheduleIdleReturn(850);
+      return;
+    }
+
+    this.scheduleIdleReturn(720);
   }
 });
 

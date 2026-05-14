@@ -1,17 +1,26 @@
 {
-  "name": "json-server-deploy",
-  "version": "1.0.0",
-  "description": "Simple json database to deploy to the host of your choice",
+  "name": "headbutt-berserker",
+  "version": "1.2.0",
+  "description": "Jogo VR/WebXR de reflexos com histórico de desempenho, assistente por regras e suporte a Supabase/PostgreSQL.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check database.js && node --check public/scripts/*.js"
   },
   "keywords": [
-    "json-server,heroku, node, REST API"
+    "aframe",
+    "webxr",
+    "vr",
+    "game",
+    "node"
   ],
-  "author": "Jesper Orb",
+  "author": "",
   "license": "ISC",
   "dependencies": {
-    "json-server": "^0.17.4"
+    "@supabase/supabase-js": "2.49.4"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

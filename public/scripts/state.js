@@ -72,8 +72,19 @@ function parsePositiveInt(value, fallback) {
   return parsed;
 }
 
+function getSelectedDifficultyPhase() {
+  return customDifficultyEl
+    ? Math.min(3, Math.max(1, parsePositiveInt(customDifficultyEl.value, 2)))
+    : 2;
+}
+
+function getActiveDifficultyPhase() {
+  return Math.min(3, Math.max(1, parsePositiveInt(game.difficultyPhase || getSelectedDifficultyPhase(), 2)));
+}
+
 function getStartSettings() {
   const customModeEnabled = Boolean(customModeEnabledEl && customModeEnabledEl.checked);
+  const difficultyPhase = getSelectedDifficultyPhase();
 
   if (!customModeEnabled) {
     return {
@@ -81,14 +92,10 @@ function getStartSettings() {
       phase: 1,
       maxPhases: 3,
       lives: 3,
-      enemyHitsNeeded: getEnemyHitsNeeded(1),
-      difficultyPhase: 1
+      enemyHitsNeeded: getEnemyHitsNeeded(difficultyPhase),
+      difficultyPhase
     };
   }
-
-  const difficultyPhase = customDifficultyEl
-    ? Math.min(3, Math.max(1, parsePositiveInt(customDifficultyEl.value, 1)))
-    : 1;
 
   const livesInfinite = Boolean(customLivesInfiniteEl && customLivesInfiniteEl.checked);
   const enemyHitsInfinite = Boolean(customEnemyHitsInfiniteEl && customEnemyHitsInfiniteEl.checked);
@@ -103,8 +110,8 @@ function getStartSettings() {
 
   return {
     customMode: true,
-    phase: difficultyPhase,
-    maxPhases: difficultyPhase,
+    phase: 1,
+    maxPhases: 3,
     lives,
     enemyHitsNeeded,
     difficultyPhase
@@ -497,9 +504,9 @@ function recordActionAttempt({ actualAction = null, source = "unknown", reaction
 }
 
 function getDifficultyLabel(level) {
-  if (level === 1) return "facil";
-  if (level === 2) return "medio";
-  return "dificil";
+  if (level === 1) return "Fácil — Rei";
+  if (level === 2) return "Intermediário — Aventureira";
+  return "Difícil — Bruxa";
 }
 
 function summarizePhase(status) {
@@ -669,22 +676,127 @@ function renderPerformanceHistory() {
 
 void initializePerformanceHistory();
 
+function getEnemyName(phase) {
+  if (phase === 1) return "o rei";
+  if (phase === 2) return "a aventureira";
+  return "a bruxa";
+}
+
+function getEnemyDisplayName(phase) {
+  if (phase === 1) return "Rei";
+  if (phase === 2) return "Aventureira";
+  return "Bruxa";
+}
+
+function getEnemyModelAsset(phase) {
+  return getEnemyProfile(phase).asset;
+}
+
+const ENEMY_PROFILES = {
+  1: {
+    key: "king",
+    displayName: "Rei",
+    asset: "#kingModel",
+    scale: "1.12 1.12 1.12",
+    idleClip: "CharacterArmature|Idle_Neutral",
+    runClip: "CharacterArmature|Walk",
+    deathClip: "CharacterArmature|Death",
+    vulnerableClip: "CharacterArmature|HitRecieve_2",
+    attackStyle: "brawler",
+    attacks: {
+      left: "CharacterArmature|Punch_Left",
+      right: "CharacterArmature|Punch_Right",
+      high: "CharacterArmature|Punch_Right"
+    },
+    speed: 0.022,
+    attackDistance: 2.2,
+    hitsNeeded: 3,
+    reactionWindow: 2700,
+    attackCooldown: 980,
+    attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
+    patternWeights: { vulnerable: 0.42, left: 0.28, right: 0.22, high: 0.08 }
+  },
+  2: {
+    key: "adventurer",
+    displayName: "Aventureira",
+    asset: "#hoodedAdventurerModel",
+    scale: "1.15 1.15 1.15",
+    idleClip: "CharacterArmature|Idle_Sword",
+    runClip: "CharacterArmature|Run",
+    deathClip: "CharacterArmature|Death",
+    vulnerableClip: "CharacterArmature|HitRecieve",
+    attackStyle: "weapon",
+    attacks: {
+      left: "CharacterArmature|Punch_Left",
+      right: "CharacterArmature|Sword_Slash",
+      rightOptions: { reverse: false, swordFx: true },
+      high: "CharacterArmature|Kick_Right"
+    },
+    speed: 0.046,
+    attackDistance: 1.9,
+    hitsNeeded: 4,
+    reactionWindow: 1750,
+    attackCooldown: 760,
+    attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
+    patternWeights: { vulnerable: 0.24, left: 0.28, right: 0.28, high: 0.20 }
+  },
+  3: {
+    key: "witch",
+    displayName: "Bruxa",
+    asset: "#witchModel",
+    scale: "1.13 1.13 1.13",
+    idleClip: "CharacterArmature|Idle_Gun_Pointing",
+    runClip: "CharacterArmature|Run",
+    deathClip: "CharacterArmature|Death",
+    vulnerableClip: "CharacterArmature|HitRecieve",
+    attackStyle: "magic",
+    attacks: {
+      left: "CharacterArmature|Idle_Gun_Shoot",
+      right: "CharacterArmature|Gun_Shoot",
+      high: "CharacterArmature|Gun_Shoot"
+    },
+    speed: 0.039,
+    attackDistance: 3.45,
+    keepDistance: 2.85,
+    hitsNeeded: 5,
+    reactionWindow: 1500,
+    attackCooldown: 720,
+    attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
+    patternWeights: { vulnerable: 0.14, left: 0.31, right: 0.31, high: 0.24 }
+  }
+};
+
+function getEnemyProfile(phase) {
+  const resolvedPhase = Math.min(3, Math.max(1, Number.parseInt(phase, 10) || 1));
+  return ENEMY_PROFILES[resolvedPhase] || ENEMY_PROFILES[1];
+}
+
+function getEnemyModelScale(phase) {
+  return getEnemyProfile(phase).scale;
+}
+
+function getEnemyIdleClip(phase) {
+  return getEnemyProfile(phase).idleClip;
+}
+
+function getEnemyRunClip(phase) {
+  return getEnemyProfile(phase).runClip;
+}
+
 function getEnemyHitsNeeded(phase) {
-  if (phase === 1) return 3;
-  if (phase === 2) return 4;
-  return 5;
+  return getEnemyProfile(phase).hitsNeeded;
 }
 
 function getReactionWindow(phase) {
-  if (phase === 1) return 2200;
-  if (phase === 2) return 1700;
-  return 1400;
+  return getEnemyProfile(phase).reactionWindow;
 }
 
 function getEnemySpeed(phase) {
-  if (phase === 1) return 0.018;
-  if (phase === 2) return 0.024;
-  return 0.03;
+  return getEnemyProfile(phase).speed;
+}
+
+function getEnemyAttackDistance(phase) {
+  return getEnemyProfile(phase).attackDistance;
 }
 
 function clearTimers() {
