@@ -376,10 +376,10 @@ AFRAME.registerComponent("arena-circle", {
 AFRAME.registerComponent("head-input", {
   schema: {
     dodgeThreshold: { default: 0.16 },
-    duckThreshold: { default: 0.13 },
+    duckThreshold: { default: 0.08 },
     attackThreshold: { default: 0.16 },
     rollThreshold: { default: 0.26 },
-    pitchDuckThreshold: { default: 0.2 },
+    pitchDuckThreshold: { default: 0.14 },
     pitchAttackThreshold: { default: 0.22 },
     cooldownMs: { default: 600 }
   },
@@ -679,6 +679,31 @@ AFRAME.registerComponent("enemy-ai", {
     const deathClip = profile && profile.deathClip ? profile.deathClip : "CharacterArmature|Death";
     this.playModelClip(deathClip, "once", true);
 
+    // play defeat sfx specific to this enemy
+    try {
+      const key = profile && profile.key ? profile.key : null;
+      let defeatSfxId = null;
+      if (key === 'king') defeatSfxId = 'king-defeat';
+      else if (key === 'adventurer') defeatSfxId = 'adventurer-defeat';
+      else if (key === 'witch') defeatSfxId = 'witch-defeat';
+
+      if (defeatSfxId) {
+        const sfxEl = document.getElementById(defeatSfxId);
+        if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+      }
+
+      // rare easter-egg chance to play a silly sample on enemy defeat
+      const easterEggChance = 0.05; // 5% chance
+      if (Math.random() < easterEggChance) {
+        const eggs = ['roblox-oof', 'lego-yoda', 'wilhelm-scream'];
+        const pick = eggs[Math.floor(Math.random() * eggs.length)];
+        const eggEl = document.getElementById(pick);
+        if (eggEl && typeof eggEl.play === 'function') { eggEl.currentTime = 0; eggEl.play().catch(() => {}); }
+      }
+    } catch (e) {
+      console.warn('play defeat sfx failed', e);
+    }
+
     if (typeof onFinished === "function") {
       setTimeout(onFinished, 1450);
     }
@@ -920,12 +945,14 @@ AFRAME.registerComponent("enemy-ai", {
     return "duck";
   },
 
-  openDefenseWindow: function (pattern, sourceType = "attack") {
+  openDefenseWindow: function (pattern, sourceType = "attack", attackSfxSwing = null, attackSfxHit = null) {
     const expected = this.getResponseActionForPattern(pattern);
     if (typeof openPrompt === "function") {
       openPrompt(expected, {
         label: sourceType === "magic" ? "MAGIA" : "DEFENDA-SE",
-        resultText: sourceType === "magic" ? "Leia a origem da magia." : "Leia o movimento do inimigo."
+        resultText: sourceType === "magic" ? "Leia a origem da magia." : "Leia o movimento do inimigo.",
+        attackSfxSwing: attackSfxSwing,
+        attackSfxHit: attackSfxHit
       });
     }
   },
@@ -942,9 +969,28 @@ AFRAME.registerComponent("enemy-ai", {
       ? windupClips[pattern]
       : (profile && profile.windupClip ? profile.windupClip : null);
 
+    // Determine SFX for this attack and open defense window accordingly.
+    let attackSwingSfx = null;
+    let attackHitSfx = null;
+    if (profile && profile.key === 'king') {
+      attackSwingSfx = 'punch-swing';
+      attackHitSfx = 'punch-hit';
+    } else if (profile && profile.key === 'adventurer') {
+      if (usesSwordFx && pattern === 'left') {
+        attackSwingSfx = 'sword-swing';
+        attackHitSfx = 'sword-hit';
+      } else {
+        attackSwingSfx = 'punch-swing';
+        attackHitSfx = 'punch-hit';
+      }
+    } else if (profile && profile.key === 'witch') {
+      attackSwingSfx = 'magic-swing';
+      attackHitSfx = 'magic-hit';
+    }
+
     // A janela abre assim que o movimento começa. No Rei, primeiro vem um wind-up lento e claro;
     // se o jogador ler o golpe cedo, ele já pode desviar antes do soco sair.
-    this.openDefenseWindow(pattern, "attack");
+    this.openDefenseWindow(pattern, "attack", attackSwingSfx, attackHitSfx);
 
     if (windupMs > 0 && windupClip) {
       const windupOptions = profile.windupOptions || { timeScale: 0.45 };
@@ -953,8 +999,15 @@ AFRAME.registerComponent("enemy-ai", {
       this.pendingAttackTimeout = setTimeout(() => {
         this.pendingAttackTimeout = null;
         if (!game.running || this.isDefeated) return;
-        if (this.playModelClip(clip, "once", true, options) && usesSwordFx) {
-          this.playSwordSlashFx();
+        if (this.playModelClip(clip, "once", true, options)) {
+          if (usesSwordFx) this.playSwordSlashFx();
+          // play swing sfx
+          try {
+            if (attackSwingSfx) {
+              const sfxEl = document.getElementById(attackSwingSfx);
+              if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+            }
+          } catch (e) { console.warn('play swing sfx failed', e); }
         }
       }, windupMs);
 
@@ -964,6 +1017,13 @@ AFRAME.registerComponent("enemy-ai", {
 
     if (this.playModelClip(clip, "once", true, options)) {
       if (usesSwordFx) this.playSwordSlashFx();
+      // play immediate swing sfx
+      try {
+        if (attackSwingSfx) {
+          const sfxEl = document.getElementById(attackSwingSfx);
+          if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+        }
+      } catch (e) { console.warn('play swing sfx failed', e); }
       this.scheduleIdleReturn(860);
       return;
     }
@@ -978,8 +1038,23 @@ AFRAME.registerComponent("enemy-ai", {
 
     // A Bruxa também abre a janela no começo do telegraph. O efeito visual indica o lado,
     // mas a UI não entrega qual ação fazer.
-    this.openDefenseWindow(pattern, "magic");
+    // determine sfx for magic attacks
+    let attackSwingSfx = null;
+    let attackHitSfx = null;
+    if (profile && profile.key === 'witch') {
+      attackSwingSfx = 'magic-swing';
+      attackHitSfx = 'magic-hit';
+    }
+
+    this.openDefenseWindow(pattern, "magic", attackSwingSfx, attackHitSfx);
     this.playModelClip(clip, "once", true);
+    // play magic swing sfx
+    try {
+      if (attackSwingSfx) {
+        const sfxEl = document.getElementById(attackSwingSfx);
+        if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+      }
+    } catch (e) { console.warn('play magic swing sfx failed', e); }
     this.playMagicFx(pattern);
     this.scheduleIdleReturn(780);
   },
