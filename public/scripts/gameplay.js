@@ -11,7 +11,6 @@ function openPrompt(action, options = {}) {
   setPromptState(true);
   setResult(resultText);
 
-  // store pending attack SFX so we can play hit SFX if the player is struck
   game.pendingAttackSfx = {
     swing: options.attackSfxSwing || null,
     hit: options.attackSfxHit || null
@@ -45,7 +44,6 @@ function handleTimeout() {
     }
     flashEnemy("#ff0000");
     setResult("Tempo esgotado. Você foi atingido.", "error");
-    // play hit sfx if provided by the attacker
     try {
       if (game.pendingAttackSfx && game.pendingAttackSfx.hit) {
         playSfx(game.pendingAttackSfx.hit);
@@ -56,7 +54,6 @@ function handleTimeout() {
   }
 
   updateHUD();
-  // clear pending attack sfx (handled on timeout/hit)
   try { game.pendingAttackSfx = null; } catch (e) {}
   checkGameStateOrContinue();
 }
@@ -99,7 +96,6 @@ function receiveAction(action, source = "unknown") {
         game.lives--;
       }
       flashEnemy("#ff0000");
-      // play hit sfx when player responded incorrectly
       try {
         if (game.pendingAttackSfx && game.pendingAttackSfx.hit) {
           playSfx(game.pendingAttackSfx.hit);
@@ -111,7 +107,6 @@ function receiveAction(action, source = "unknown") {
     }
   }
 
-  // clear pending sfx after resolving hit/timeout
   try { game.pendingAttackSfx = null; } catch (e) {}
 
    updateHUD();
@@ -179,7 +174,6 @@ function advanceToNextPhaseAfterDeath() {
 
 function checkGameStateOrContinue() {
   if (!isInfinite(game.lives) && game.lives <= 0) {
-    // play enemy win sfx for current enemy
     try {
       const phase = getActiveDifficultyPhase();
       const profile = typeof getEnemyProfile === 'function' ? getEnemyProfile(phase) : null;
@@ -328,7 +322,6 @@ function dispatchAction(action, source = "unknown") {
     console.warn("animateKeyboardCamera failed", e);
   }
 
-  // play headbutt sound whenever player attacks
   try {
     if (action === 'attack') {
       playSfx('headbutt');
