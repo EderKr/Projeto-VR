@@ -28,22 +28,44 @@ function updateEnemyHpBar() {
   if (!enemyHpFillEl || !enemyHpTextEl) return;
 
   if (isInfinite(game.enemyHitsNeeded)) {
-    enemyHpFillEl.setAttribute("width", "1.62");
-    enemyHpFillEl.setAttribute("position", "0 0.30 0.035");
-    setCanvasText(enemyHpTextEl, "HP ∞");
+    enemyHpFillEl.setAttribute("width", "2.05");
+    enemyHpFillEl.setAttribute("position", "0 0 0.025");
+    setCanvasText(enemyHpTextEl, "INIMIGO HP ∞");
     return;
   }
 
   const maxHp = Math.max(1, Number(game.enemyHitsNeeded) || 1);
   const remainingHp = Math.max(0, maxHp - Math.max(0, Number(game.enemyHits) || 0));
   const percent = Math.max(0, Math.min(1, remainingHp / maxHp));
-  const fullWidth = 1.62;
+  const fullWidth = 2.05;
   const width = Math.max(0.001, fullWidth * percent);
   const x = -fullWidth / 2 + width / 2;
 
   enemyHpFillEl.setAttribute("width", String(width));
-  enemyHpFillEl.setAttribute("position", `${x} 0.30 0.035`);
-  setCanvasText(enemyHpTextEl, `HP ${remainingHp}/${maxHp}`);
+  enemyHpFillEl.setAttribute("position", `${x} 0 0.025`);
+  setCanvasText(enemyHpTextEl, `INIMIGO HP ${remainingHp}/${maxHp}`);
+}
+
+function updatePlayerHpBar() {
+  if (!playerHpFillEl || !playerHpTextEl) return;
+
+  if (isInfinite(game.lives)) {
+    playerHpFillEl.setAttribute("width", "1.66");
+    playerHpFillEl.setAttribute("position", "0 0.34 0.035");
+    setCanvasText(playerHpTextEl, "SEU HP ∞");
+    return;
+  }
+
+  const maxHp = Math.max(1, Number(game.maxLives || game.lives) || 1);
+  const remainingHp = Math.max(0, Math.min(maxHp, Number(game.lives) || 0));
+  const percent = Math.max(0, Math.min(1, remainingHp / maxHp));
+  const fullWidth = 1.66;
+  const width = Math.max(0.001, fullWidth * percent);
+  const x = -fullWidth / 2 + width / 2;
+
+  playerHpFillEl.setAttribute("width", String(width));
+  playerHpFillEl.setAttribute("position", `${x} 0.34 0.035`);
+  setCanvasText(playerHpTextEl, `SEU HP ${remainingHp}/${maxHp}`);
 }
 
 function updateHUD() {
@@ -56,6 +78,7 @@ function updateHUD() {
   setCanvasText(hitsEl, `Acertos: ${game.hits}`);
   setCanvasText(missesEl, `Erros: ${game.misses}`);
   updateEnemyHpBar();
+  updatePlayerHpBar();
 
   if (game.reactionTimes.length > 0) {
     const avg = game.reactionTimes.reduce((a, b) => a + b, 0) / game.reactionTimes.length;
@@ -231,12 +254,20 @@ function repositionWorldHud() {
     forward.normalize();
   }
 
-  const targetPos = camWorldPos.clone().add(forward.multiplyScalar(2.4));
-  targetPos.y = 1.9;
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camWorldQuat);
+  right.y = 0;
+  if (right.lengthSq() > 0.0001) right.normalize();
+
+  // Mantém o guia fora do centro da mira. Assim ele não cobre o cursor,
+  // mas continua acompanhando a direção geral do jogador.
+  const targetPos = camWorldPos.clone()
+    .add(forward.multiplyScalar(2.45))
+    .add(right.multiplyScalar(1.25));
+  targetPos.y = 1.82;
   hud.object3D.position.copy(targetPos);
 
   const lookTarget = camWorldPos.clone();
-  lookTarget.y = 1.9;
+  lookTarget.y = 1.82;
   hud.object3D.lookAt(lookTarget);
 
   hud.object3D.rotation.x = 0;
@@ -320,6 +351,15 @@ window.addEventListener("load", () => {
       }
     });
   }
+
+  if (typeof sfxVolumeSelectEl !== "undefined" && sfxVolumeSelectEl) {
+    sfxVolumeSelectEl.addEventListener("change", () => {
+      setSfxVolume(sfxVolumeSelectEl.value);
+    });
+    setSfxVolume(sfxVolumeSelectEl.value);
+  } else if (typeof setSfxVolume === "function") {
+    setSfxVolume(1);
+  }
 });
 
 const vrMenuState = {
@@ -340,12 +380,48 @@ function hideAllVRMenus() {
   if (historyScreen) historyScreen.setAttribute("visible", "false");
 }
 
+function positionVRMenusInFrontOfPlayer() {
+  // Mantém o menu de pausa fixo no centro da cena principal,
+  // em vez de prendê-lo à direção atual da câmera/jogador.
+  // Assim, ao clicar em pause, o painel aparece sempre no mesmo lugar
+  // do mundo e não acompanha a cabeça.
+  const fixedMenus = [
+    { id: "menuMainScreen", position: "0 1.38 -3.25", rotation: "0 0 0", scale: "0.82 0.82 0.82" },
+    { id: "menuCustomizeScreen", position: "0 1.46 -3.15", rotation: "0 0 0", scale: "0.82 0.82 0.82" },
+    { id: "menuHistoryScreen", position: "0 1.38 -3.35", rotation: "0 0 0", scale: "0.78 0.78 0.78" }
+  ];
+
+  for (const item of fixedMenus) {
+    const menu = document.getElementById(item.id);
+    if (!menu) continue;
+    menu.setAttribute("position", item.position);
+    menu.setAttribute("rotation", item.rotation);
+    menu.setAttribute("scale", item.scale);
+  }
+}
+
 function setVRMenuOpen(open) {
   const overlay = document.getElementById("menuOverlay");
   if (!overlay) return;
 
+  const pauseButton = document.getElementById("pauseButtonVR");
+  const menuCursor = document.getElementById("menuCursorReticle");
+  const gazeCursor = document.getElementById("gazeCursor");
+
   vrMenuState.isOpen = open;
   overlay.setAttribute("visible", String(open));
+
+  if (pauseButton) pauseButton.setAttribute("visible", String(!open));
+  if (menuCursor) {
+    menuCursor.setAttribute("visible", String(open));
+    menuCursor.setAttribute("always-on-top", "order: 10001");
+    menuCursor.setAttribute("material", "shader: flat; color: #FFFFFF; depthTest: false; depthWrite: false; transparent: true; opacity: 1; side: double");
+  }
+  if (gazeCursor) {
+    gazeCursor.setAttribute("visible", "true");
+    gazeCursor.setAttribute("always-on-top", "order: 10000");
+    gazeCursor.setAttribute("material", "shader: flat; color: #FFFFFF; depthTest: false; depthWrite: false; transparent: true; opacity: 1; side: double");
+  }
 
   if (open) {
     vrMenuState.previouslyRunning = game.running;
@@ -383,6 +459,7 @@ function toggleVRPauseMenu() {
 
 function openVRPauseMenu() {
   setVRMenuOpen(true);
+  positionVRMenusInFrontOfPlayer();
   showVRMenu("menuMainScreen");
   updateCustomizeMenuDisplay();
 }
@@ -411,6 +488,22 @@ function backToMainMenu() {
 
 function resumeGame() {
   closeVRPauseMenu();
+}
+
+function updateSfxVolumeButtons() {
+  const buttons = [
+    { id: "sfxVolBtn0", value: 0 },
+    { id: "sfxVolBtn25", value: 0.25 },
+    { id: "sfxVolBtn50", value: 0.5 },
+    { id: "sfxVolBtn100", value: 1 }
+  ];
+  const currentVolume = typeof game !== "undefined" ? normalizeSfxVolume(game.sfxVolume) : 1;
+
+  for (const item of buttons) {
+    const btn = document.getElementById(item.id);
+    if (!btn) continue;
+    btn.setAttribute("color", currentVolume === item.value ? "#4ECDC4" : "#273242");
+  }
 }
 
 function updateCustomizeMenuDisplay() {
@@ -460,6 +553,8 @@ function updateCustomizeMenuDisplay() {
   if (difficultyBtn3) {
     difficultyBtn3.setAttribute('color', selectedDifficulty === 3 ? '#4ECDC4' : '#8B0000');
   }
+
+  updateSfxVolumeButtons();
 }
 
 function toggleCustomMode() {

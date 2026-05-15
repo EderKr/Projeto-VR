@@ -1,0 +1,204 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>VR Forest Game</title>
+
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+
+    <script>
+      AFRAME.registerComponent('enemy-ai', {
+        schema: { speed: { default: 0.03 }, attackDistance: { default: 1.8 } },
+
+        init: function () {
+          this.nextArm = "left";
+          this.attackInterval = null;
+        },
+
+        tick: function () {
+          const player = document.querySelector('[camera]');
+          if (!player) return;
+
+          const playerPos = player.object3D.getWorldPosition(new THREE.Vector3());
+          const enemyPos = this.el.object3D.position;
+
+          playerPos.y = enemyPos.y;
+
+          const distance = enemyPos.distanceTo(playerPos);
+
+          if (distance > this.data.attackDistance) {
+            const direction = new THREE.Vector3();
+            direction.subVectors(playerPos, enemyPos).normalize();
+            enemyPos.add(direction.multiplyScalar(this.data.speed));
+
+            this.el.object3D.lookAt(playerPos);
+
+            // parar ataques
+            if (this.attackInterval) {
+              clearInterval(this.attackInterval);
+              this.attackInterval = null;
+            }
+
+          } else {
+            if (!this.attackInterval) {
+              this.startAttackLoop();
+            }
+          }
+        },
+
+        startAttackLoop: function () {
+          this.attackInterval = setInterval(() => {
+            this.attack();
+          }, 1200); // delay entre ataques
+        },
+
+        attack: function () {
+          const arm = this.el.querySelector(
+            this.nextArm === "left" ? "#leftArm" : "#rightArm"
+          );
+
+          if (!arm) return;
+
+          const isLeft = this.nextArm === "left";
+          const windup = isLeft ? -10 : 10;
+          const hit = isLeft ? 120 : -120;
+
+          // WIND-UP
+          arm.setAttribute('animation__windup', {
+            property: 'rotation',
+            to: `0 0 ${windup}`,
+            dur: 200
+          });
+
+          // ATAQUE
+          setTimeout(() => {
+            arm.setAttribute('animation__attack', {
+              property: 'rotation',
+              to: `0 0 ${hit}`,
+              dur: 150,
+              dir: 'alternate',
+              loop: 2
+            });
+
+            this.checkDodge();
+          }, 200);
+
+          // alterna braço
+          this.nextArm = isLeft ? "right" : "left";
+        },
+
+        checkDodge: function () {
+          const cam = document.querySelector('[camera]');
+          const rot = cam.getAttribute('rotation');
+
+          if (Math.abs(rot.y) > 25 || Math.abs(rot.x) > 20) {
+            console.log("🟢 DESVIO!");
+          } else {
+            console.log("🔴 HIT!");
+          }
+        }
+      });
+
+      AFRAME.registerComponent('arena-circle', {
+        init: function () {
+          const radius = 12;
+          const count = 48;
+
+          for (let i = 0; i < count; i++) {
+            const angle = (i / count) * Math.PI * 2;
+
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+
+            const wall = document.createElement('a-box');
+
+            wall.setAttribute('position', `${x} 1 ${z}`);
+            wall.setAttribute('rotation', `0 ${(-angle * 180 / Math.PI) + 90} 0`);
+            wall.setAttribute('width', '2');
+            wall.setAttribute('height', '2');
+            wall.setAttribute('depth', '0.3');
+            wall.setAttribute('color', '#8B4513');
+            wall.setAttribute('static-body', 'shape: box');
+
+            this.el.appendChild(wall);
+          }
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <a-scene physics="gravity: -9.8">
+
+      <!-- PLAYER -->
+      <a-entity id="rig"
+        position="0 1.6 0"
+        dynamic-body="shape: sphere; radius: 0.5"
+        fixed-rotation="true">
+
+        <a-entity camera wasd-controls="acceleration: 30" look-controls>
+          <a-cursor color="black"></a-cursor>
+        </a-entity>
+      </a-entity>
+
+      <!-- Som -->
+      <a-assets>
+        <audio id="battleSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3"></audio>
+      </a-assets>
+
+      <!-- Ambiente -->
+      <a-entity environment="
+        preset: forest;
+        dressingAmount: 200;
+        ground: hills;
+        lighting: dusk;">
+      </a-entity>
+
+      <!-- Inimigo -->
+      <a-entity id="enemy" position="10 0 0" enemy-ai sound="src: #battleSound">
+
+        <!-- Corpo -->
+        <a-cylinder position="0 1 0" height="2" radius="0.5" color="#c68642"></a-cylinder>
+
+        <!-- Cabeça -->
+        <a-sphere position="0 2.3 0" radius="0.5" color="#f1c27d"></a-sphere>
+
+        <!-- Capacete -->
+        <a-sphere position="0 2.5 0" radius="0.55" color="gray"></a-sphere>
+
+        <!-- Chifres -->
+        <a-cone position="-0.4 3.0 0" rotation="0 0 60" radius-bottom="0.1" height="0.8" color="white"></a-cone>
+        <a-cone position="0.4 3.0 0" rotation="0 0 -60" radius-bottom="0.1" height="0.8" color="white"></a-cone>
+
+        <!-- Braço Esquerdo-->
+        <a-entity id="leftArm" position="-0.8 1.2 0" rotation="0 0 30">
+          <a-cylinder radius="0.15" height="1.2" color="#c68642"></a-cylinder>
+
+          <!-- Machado Esquerdo -->
+          <a-cylinder position="-0.25 -0.6 0" radius="0.05" height="1.2" rotation="0 0 -30" color="#8B4513"></a-cylinder>
+          <a-box position="-0.1 -1.2 0" depth="0.15" height="0.6" width="0.5" rotation="0 0 -30" color="silver"></a-box>
+        </a-entity>
+
+        <!-- Braço Direito -->
+        <a-entity id="rightArm" position="0.8 1.2 0" rotation="0 0 -30">
+          <a-cylinder radius="0.15" height="1.2" color="#c68642"></a-cylinder>
+
+          <!-- Machado Direito -->
+          <a-cylinder position="0.25 -0.6 0" radius="0.05" height="1.2" rotation="0 0 30" color="#8B4513"></a-cylinder>
+          <a-box position="0.1 -1.2 0" depth="0.15" height="0.6" width="0.5" rotation="0 0 30" color="silver"></a-box>
+        </a-entity>
+
+      </a-entity>
+
+      <!-- Arena -->
+      <a-entity arena-circle></a-entity>
+
+      <!-- chão -->
+      <a-plane rotation="-90 0 0" width="200" height="200" visible="false" static-body></a-plane>
+
+    </a-scene>
+  </body>
+</html>

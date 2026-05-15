@@ -7,6 +7,8 @@ const avgReactionEl = document.getElementById("hudAvgReaction");
 const promptEl = document.getElementById("hudPrompt");
 const enemyHpFillEl = document.getElementById("enemyHpFill");
 const enemyHpTextEl = document.getElementById("enemyHpText");
+const playerHpFillEl = document.getElementById("playerHpFill");
+const playerHpTextEl = document.getElementById("playerHpText");
 const resultEl = document.getElementById("hudResult");
 const resultBgEl = document.getElementById("hudResultBg");
 const promptBgEl = document.getElementById("hudPromptBg");
@@ -16,6 +18,7 @@ const customLivesInfiniteEl = document.getElementById("customLivesInfinite");
 const customEnemyHitsEl = document.getElementById("customEnemyHits");
 const customEnemyHitsInfiniteEl = document.getElementById("customEnemyHitsInfinite");
 const customDifficultyEl = document.getElementById("customDifficulty");
+const sfxVolumeSelectEl = document.getElementById("sfxVolumeSelect");
 const performanceHistoryListEl = document.getElementById("performanceHistoryList");
 const historyEmptyTextEl = document.getElementById("historyEmptyText");
 
@@ -32,6 +35,25 @@ const ACTION_LABELS = {
   duck: "agachar"
 };
 
+const SFX_AUDIO_IDS = [
+  "punch-swing",
+  "punch-hit",
+  "sword-swing",
+  "sword-hit",
+  "magic-swing",
+  "magic-hit",
+  "headbutt",
+  "king-win",
+  "king-defeat",
+  "adventure-win",
+  "adventurer-defeat",
+  "witch-win",
+  "witch-defeat",
+  "roblox-oof",
+  "lego-yoda",
+  "wilhelm-scream"
+];
+
 const game = {
   running: false,
   waitingInput: false,
@@ -44,6 +66,7 @@ const game = {
   phase: 1,
   maxPhases: 3,
   lives: 3,
+  maxLives: 3,
   hits: 0,
   misses: 0,
   reactionTimes: [],
@@ -61,8 +84,47 @@ const game = {
   phaseStartActionCount: 0,
   phaseSummaryCommitted: false,
   phaseHistory: [],
-  actionHistory: []
+  actionHistory: [],
+  sfxVolume: 1
 };
+
+function normalizeSfxVolume(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 1;
+  if (parsed <= 0) return 0;
+  if (parsed <= 0.25) return 0.25;
+  if (parsed <= 0.5) return 0.5;
+  return 1;
+}
+
+function setSfxVolume(value) {
+  const volume = normalizeSfxVolume(value);
+  game.sfxVolume = volume;
+
+  if (sfxVolumeSelectEl && sfxVolumeSelectEl.value !== String(volume)) {
+    sfxVolumeSelectEl.value = String(volume);
+  }
+
+  for (const audioId of SFX_AUDIO_IDS) {
+    const audioEl = document.getElementById(audioId);
+    if (audioEl && typeof audioEl.volume === "number") {
+      audioEl.volume = volume;
+    }
+  }
+
+  if (typeof updateSfxVolumeButtons === "function") {
+    updateSfxVolumeButtons();
+  }
+}
+
+function playSfx(audioId) {
+  if (!audioId || game.sfxVolume <= 0) return;
+  const audioEl = document.getElementById(audioId);
+  if (!audioEl || typeof audioEl.play !== "function") return;
+  audioEl.volume = game.sfxVolume;
+  audioEl.currentTime = 0;
+  audioEl.play().catch(() => {});
+}
 
 function isInfinite(value) {
   return value === Infinity;
@@ -715,15 +777,15 @@ const ENEMY_PROFILES = {
       right: "CharacterArmature|Punch_Left",
       high: "CharacterArmature|Punch_Left"
     },
-    windupOptions: { timeScale: 0.23 },
-    windupMs: 900,
-    speed: 0.017,
-    attackDistance: 2.25,
+    windupOptions: { timeScale: 0.18, holdAtWindup: true },
+    windupMs: 1150,
+    speed: 0.046,
+    attackDistance: 2.35,
     hitsNeeded: 3,
-    reactionWindow: 3600,
-    attackCooldown: 1250,
+    reactionWindow: 1500,
+    attackCooldown: 1500,
     attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
-    patternWeights: { vulnerable: 0.52, left: 0.20, right: 0.18, high: 0.10 }
+    patternWeights: { vulnerable: 0.60, left: 0.20, right: 0.20, high: 0 }
   },
   2: {
     key: "adventurer",
@@ -744,7 +806,7 @@ const ENEMY_PROFILES = {
     speed: 0.046,
     attackDistance: 1.9,
     hitsNeeded: 4,
-    reactionWindow: 1750,
+    reactionWindow: 760,
     attackCooldown: 760,
     attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
     patternWeights: { vulnerable: 0.24, left: 0.28, right: 0.28, high: 0.20 }
@@ -768,7 +830,7 @@ const ENEMY_PROFILES = {
     attackDistance: 3.45,
     keepDistance: 2.85,
     hitsNeeded: 5,
-    reactionWindow: 1200,
+    reactionWindow: 720,
     attackCooldown: 720,
     attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
     patternWeights: { vulnerable: 0.14, left: 0.31, right: 0.31, high: 0.24 }

@@ -48,11 +48,7 @@ function handleTimeout() {
     // play hit sfx if provided by the attacker
     try {
       if (game.pendingAttackSfx && game.pendingAttackSfx.hit) {
-        const sfxEl = document.getElementById(game.pendingAttackSfx.hit);
-        if (sfxEl && typeof sfxEl.play === 'function') {
-          sfxEl.currentTime = 0;
-          sfxEl.play().catch(() => {});
-        }
+        playSfx(game.pendingAttackSfx.hit);
       }
     } catch (e) {
       console.warn('play hit sfx failed', e);
@@ -106,11 +102,7 @@ function receiveAction(action, source = "unknown") {
       // play hit sfx when player responded incorrectly
       try {
         if (game.pendingAttackSfx && game.pendingAttackSfx.hit) {
-          const sfxEl = document.getElementById(game.pendingAttackSfx.hit);
-          if (sfxEl && typeof sfxEl.play === 'function') {
-            sfxEl.currentTime = 0;
-            sfxEl.play().catch(() => {});
-          }
+          playSfx(game.pendingAttackSfx.hit);
         }
       } catch (e) {
         console.warn('play hit sfx failed', e);
@@ -197,8 +189,7 @@ function checkGameStateOrContinue() {
       else if (key === 'adventurer') winId = 'adventure-win';
       else if (key === 'witch') winId = 'witch-win';
       if (winId) {
-        const winEl = document.getElementById(winId);
-        if (winEl && typeof winEl.play === 'function') { winEl.currentTime = 0; winEl.play().catch(() => {}); }
+        playSfx(winId);
       }
     } catch (e) {
       console.warn('play enemy win sfx failed', e);
@@ -247,6 +238,7 @@ function startGame() {
   game.phase = settings.phase;
   game.maxPhases = settings.maxPhases;
   game.lives = settings.lives;
+  game.maxLives = settings.lives;
   game.hits = 0;
   game.misses = 0;
   game.reactionTimes = [];
@@ -294,6 +286,7 @@ function resetGame() {
   game.phase = 1;
   game.maxPhases = 3;
   game.lives = 3;
+  game.maxLives = 3;
   game.hits = 0;
   game.misses = 0;
   game.reactionTimes = [];
@@ -321,6 +314,12 @@ function resetGame() {
 }
 
 function dispatchAction(action, source = "unknown") {
+  const activeProfile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
+  if (action === "duck" && activeProfile && activeProfile.key === "king") {
+    setResult("Contra o Rei, use esquiva lateral ou ataque.");
+    return;
+  }
+
   try {
     if (source === "teclado" && window.animateKeyboardCamera) {
       window.animateKeyboardCamera(action);
@@ -332,8 +331,7 @@ function dispatchAction(action, source = "unknown") {
   // play headbutt sound whenever player attacks
   try {
     if (action === 'attack') {
-      const hb = document.getElementById('headbutt');
-      if (hb && typeof hb.play === 'function') { hb.currentTime = 0; hb.play().catch(() => {}); }
+      playSfx('headbutt');
     }
   } catch (e) {
     console.warn('play headbutt failed', e);

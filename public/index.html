@@ -68,6 +68,16 @@
             </select>
           </div>
 
+          <div class="row">
+            <label for="sfxVolumeSelect">Volume dos efeitos</label>
+            <select id="sfxVolumeSelect">
+              <option value="0">0%</option>
+              <option value="0.25">25%</option>
+              <option value="0.5">50%</option>
+              <option value="1" selected>100%</option>
+            </select>
+          </div>
+
           <div class="hint">As opções são aplicadas ao iniciar a partida.</div>
         </div>
 
@@ -84,7 +94,7 @@
     renderer="antialias: true"
     xr-mode-ui="enabled: true"
     vr-mode-ui="enabled: true"
-    background="color: #1a1a1a"
+    background="color: #7FCBFF"
   >
     <a-assets>
       <audio
@@ -110,14 +120,22 @@
       <a-asset-item id="kingModel" src="models/king.glb"></a-asset-item>
       <a-asset-item id="hoodedAdventurerModel" src="models/hooded-adventurer.glb"></a-asset-item>
       <a-asset-item id="witchModel" src="models/witch.glb"></a-asset-item>
+      <a-asset-item id="torchModel" src="models/torch.glb"></a-asset-item>
+      <img id="sandTexture" src="textures/sand-beige-natural.png">
     </a-assets>
 
     <a-entity
       environment="
         preset: forest;
-        dressingAmount: 120;
-        ground: hills;
-        lighting: dusk;">
+        dressingAmount: 140;
+        dressingScale: 1.6;
+        dressingUniformScale: true;
+        ground: none;
+        lighting: none;
+        fog: 0.08;
+        skyType: gradient;
+        skyColor: #6FC7FF;
+        horizonColor: #DDF7FF;">
     </a-entity>
 
     <a-entity id="rig" position="0 0 0">
@@ -132,10 +150,23 @@
         <a-cursor
           id="gazeCursor"
           color="white"
+          always-on-top="order: 10000"
           fuse="true"
           fuse-timeout="1200"
-          raycaster="objects: .clickable">
+          material="shader: flat; color: #FFFFFF; depthTest: false; transparent: true; opacity: 1; renderOrder: 9999"
+          raycaster="objects: .clickable; far: 8; interval: 40">
         </a-cursor>
+
+        <a-ring
+          id="menuCursorReticle"
+          always-on-top="order: 10001"
+          visible="false"
+          position="0 0 -1"
+          radius-inner="0.012"
+          radius-outer="0.020"
+          color="#FFFFFF"
+          material="shader: flat; depthTest: false; depthWrite: false; transparent: true; opacity: 1; color: #FFFFFF; side: double">
+        </a-ring>
 
         <a-entity id="cameraHudRoot" position="0 -0.46 -1.1" scale="0.28 0.28 0.28">
           <a-plane
@@ -220,34 +251,34 @@
           </a-plane>
 
           <a-plane
-            id="enemyHpBarBg"
-            position="0 0.30 0.01"
-            width="1.78"
-            height="0.16"
-            color="#241219"
-            opacity="0.96"
+            id="playerHpBarBg"
+            position="0 0.34 0.01"
+            width="1.86"
+            height="0.20"
+            color="#102319"
+            opacity="0.98"
             material="shader: flat; depthTest: false"
-            radius="0.04">
+            radius="0.05">
           </a-plane>
 
           <a-plane
-            id="enemyHpFill"
-            position="0 0.30 0.035"
-            width="1.62"
-            height="0.08"
-            color="#D94A3A"
+            id="playerHpFill"
+            position="0 0.34 0.035"
+            width="1.66"
+            height="0.10"
+            color="#2FCA72"
             opacity="0.98"
             material="shader: flat; depthTest: false"
             radius="0.03">
           </a-plane>
 
           <a-plane
-            id="enemyHpText"
-            position="0 0.30 0.045"
-            width="1.55"
-            height="0.10"
+            id="playerHpText"
+            position="0 0.34 0.05"
+            width="1.72"
+            height="0.12"
             material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: HP 3/3; align: center; fontSize: 44; color: #FFFFFF; padding: 8;">
+            canvas-text="value: SEU HP 3/3; align: center; fontSize: 46; color: #FFFFFF; padding: 8;">
           </a-plane>
 
           <a-plane
@@ -295,7 +326,7 @@
 
     <a-entity id="menuOverlay" visible="false" position="0 0 -1.2"></a-entity>
 
-    <a-entity id="menuMainScreen" visible="false" position="0 1.2 -3.0">
+    <a-entity id="menuMainScreen" visible="false" position="0 1.38 -3.25" scale="0.82 0.82 0.82">
       <a-plane width="4.8" height="3.35" color="#07131F" opacity="0.88" radius="0.14" material="shader: flat; depthTest: false; renderOrder: 8"></a-plane>
       <a-plane position="0 1.8 0.01" width="4.5" height="0.5" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: MENU DE PAUSA; align: center; fontSize: 140; color: #FFFFFF; padding: 20;"></a-plane>
 
@@ -315,73 +346,89 @@
       </a-entity>
     </a-entity>
 
-    <a-entity id="menuCustomizeScreen" visible="false" position="0 1.2 -3.0">
-      <a-plane width="5.0" height="4.45" color="#07131F" opacity="0.88" radius="0.14" material="shader: flat; depthTest: false; renderOrder: 8"></a-plane>
-      <a-plane position="0 1.8 0.01" width="4.5" height="0.5" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: PERSONALIZAR PARTIDA; align: center; fontSize: 120; color: #FFFFFF; padding: 20;"></a-plane>
+    <a-entity id="menuCustomizeScreen" visible="false" position="0 1.46 -3.15" scale="0.82 0.82 0.82">
+      <a-plane width="5.45" height="4.55" color="#06111E" opacity="0.94" radius="0.16" material="shader: flat; depthTest: false; side: double; renderOrder: 8"></a-plane>
+      <a-plane position="0 2.02 0.012" width="4.95" height="0.42" color="#10253A" opacity="0.96" radius="0.08" material="shader: flat; depthTest: false; renderOrder: 9"></a-plane>
+      <a-plane position="0 2.02 0.035" width="4.75" height="0.32" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: PERSONALIZAR PARTIDA; align: center; fontSize: 105; color: #FFE8B6; padding: 14;"></a-plane>
 
-      <a-plane position="-1.8 1.2 0.01" width="1.2" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: MODO CUSTOM:; align: center; fontSize: 80; color: #FFFFFF; padding: 10;"></a-plane>
-      <a-entity position="0.2 1.2 0.01">
-        <a-plane id="customModeCheckbox" class="clickable" gaze-button="action: toggle_custom_mode; dwellTime: 400" width="0.45" height="0.35" color="#273242" radius="0.05" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane id="customModeCheckboxText" position="0 0 0.02" width="0.4" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: ☐; align: center; fontSize: 100; color: #FFFFFF; padding: 5;"></a-plane>
-      </a-entity>
-      <a-plane id="customModeStatus" position="0.9 1.2 0.01" width="1.2" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: DESATIVADO; align: center; fontSize: 70; color: #FF6B6B; padding: 10;"></a-plane>
+      <a-plane position="0 1.55 0.015" width="4.7" height="0.28" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: Mire no botão e segure o cursor até confirmar; align: center; fontSize: 44; color: #BFD7EA; padding: 8;"></a-plane>
 
-      <a-plane position="-1.6 0.6 0.01" width="0.6" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: VIDAS:; align: center; fontSize: 70; color: #FFFFFF; padding: 10;"></a-plane>
-      <a-entity position="-0.7 0.6 0.01">
-        <a-plane class="clickable" gaze-button="action: custom_lives_dec; dwellTime: 300" width="0.4" height="0.4" color="#A83F4D" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.35" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: -; align: center; fontSize: 80; color: #FFFFFF; padding: 5;"></a-plane>
-      </a-entity>
-      <a-plane id="customLivesDisplay" position="0.1 0.6 0.01" width="0.5" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: 3; align: center; fontSize: 90; color: #FFFFFF; padding: 5;"></a-plane>
-      <a-entity position="0.9 0.6 0.01">
-        <a-plane class="clickable" gaze-button="action: custom_lives_inc; dwellTime: 300" width="0.4" height="0.4" color="#2F8F6B" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.35" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: +; align: center; fontSize: 80; color: #FFFFFF; padding: 5;"></a-plane>
+      <a-entity position="-1.35 1.12 0.02">
+        <a-plane width="2.35" height="0.52" color="#0B1B2B" opacity="0.96" radius="0.08" material="shader: flat; depthTest: false; renderOrder: 9"></a-plane>
+        <a-plane position="-0.42 0 0.025" width="1.18" height="0.28" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: MODO CUSTOM; align: left; fontSize: 54; color: #FFFFFF; padding: 8;"></a-plane>
+        <a-plane id="customModeCheckbox" class="clickable" gaze-button="action: toggle_custom_mode; dwellTime: 350" position="0.62 0 0.03" width="0.62" height="0.38" color="#273242" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane id="customModeCheckboxText" position="0.62 0 0.06" width="0.52" height="0.30" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: ☐; align: center; fontSize: 78; color: #FFFFFF; padding: 5;"></a-plane>
       </a-entity>
 
-      <a-entity position="1.6 0.6 0.01">
-        <a-plane id="customLivesInfiniteBtn" class="clickable" gaze-button="action: custom_toggle_lives_infinite; dwellTime: 400" width="0.5" height="0.35" color="#273242" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane id="customLivesInfiniteText" position="0 0 0.02" width="0.45" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: ∞; align: center; fontSize: 70; color: #FFFFFF; padding: 5;"></a-plane>
+      <a-entity position="1.35 1.12 0.02">
+        <a-plane width="2.35" height="0.52" color="#0B1B2B" opacity="0.96" radius="0.08" material="shader: flat; depthTest: false; renderOrder: 9"></a-plane>
+        <a-plane position="-0.52 0 0.025" width="0.95" height="0.28" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: STATUS; align: left; fontSize: 54; color: #FFFFFF; padding: 8;"></a-plane>
+        <a-plane id="customModeStatus" position="0.52 0 0.025" width="1.05" height="0.28" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: DESATIVADO; align: center; fontSize: 52; color: #FF6B6B; padding: 8;"></a-plane>
       </a-entity>
 
-      <a-plane position="-1.6 0 0.01" width="0.7" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: ATAQUES:; align: center; fontSize: 70; color: #FFFFFF; padding: 10;"></a-plane>
-      <a-entity position="-0.7 0 0.01">
-        <a-plane class="clickable" gaze-button="action: custom_enemy_dec; dwellTime: 300" width="0.4" height="0.4" color="#A83F4D" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.35" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: -; align: center; fontSize: 80; color: #FFFFFF; padding: 5;"></a-plane>
-      </a-entity>
-      <a-plane id="customEnemyDisplay" position="0.1 0 0.01" width="0.5" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: 3; align: center; fontSize: 90; color: #FFFFFF; padding: 5;"></a-plane>
-      <a-entity position="0.9 0 0.01">
-        <a-plane class="clickable" gaze-button="action: custom_enemy_inc; dwellTime: 300" width="0.4" height="0.4" color="#2F8F6B" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.35" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: +; align: center; fontSize: 80; color: #FFFFFF; padding: 5;"></a-plane>
-      </a-entity>
-
-      <a-entity position="1.6 0 0.01">
-        <a-plane id="customEnemyInfiniteBtn" class="clickable" gaze-button="action: custom_toggle_enemy_infinite; dwellTime: 400" width="0.5" height="0.35" color="#273242" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane id="customEnemyInfiniteText" position="0 0 0.02" width="0.45" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: ∞; align: center; fontSize: 70; color: #FFFFFF; padding: 5;"></a-plane>
+      <a-entity position="-1.35 0.34 0.02">
+        <a-plane width="2.35" height="0.82" color="#0B1B2B" opacity="0.96" radius="0.08" material="shader: flat; depthTest: false; renderOrder: 9"></a-plane>
+        <a-plane position="0 0.24 0.025" width="1.8" height="0.24" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: VIDAS; align: center; fontSize: 58; color: #FFE8B6; padding: 8;"></a-plane>
+        <a-plane class="clickable" gaze-button="action: custom_lives_dec; dwellTime: 300" position="-0.72 -0.12 0.035" width="0.56" height="0.46" color="#A83F4D" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="-0.72 -0.12 0.06" width="0.44" height="0.32" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: -; align: center; fontSize: 82; color: #FFFFFF; padding: 5;"></a-plane>
+        <a-plane id="customLivesDisplay" position="0 -0.12 0.035" width="0.58" height="0.34" color="#15293A" opacity="0.92" radius="0.05" material="shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: 3; align: center; fontSize: 74; color: #FFFFFF; padding: 5;"></a-plane>
+        <a-plane class="clickable" gaze-button="action: custom_lives_inc; dwellTime: 300" position="0.72 -0.12 0.035" width="0.56" height="0.46" color="#2F8F6B" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0.72 -0.12 0.06" width="0.44" height="0.32" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: +; align: center; fontSize: 82; color: #FFFFFF; padding: 5;"></a-plane>
+        <a-plane id="customLivesInfiniteBtn" class="clickable" gaze-button="action: custom_toggle_lives_infinite; dwellTime: 350" position="0 -0.48 0.035" width="1.42" height="0.26" color="#273242" radius="0.05" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane id="customLivesInfiniteText" position="0 -0.48 0.06" width="1.24" height="0.18" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: ∞ VIDAS; align: center; fontSize: 48; color: #FFFFFF; padding: 4;"></a-plane>
       </a-entity>
 
-      <a-plane position="0 -0.5 0.01" width="2.2" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: DIFICULDADE:; align: center; fontSize: 70; color: #FFFFFF; padding: 10;"></a-plane>
-      
-      <a-entity position="-1.0 -1.1 0.01">
-        <a-plane id="difficultyBtn1" class="clickable" gaze-button="action: custom_set_difficulty_1; dwellTime: 300" width="0.55" height="0.45" color="#315D92" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.5" height="0.4" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: REI; align: center; fontSize: 80; color: #FFFFFF; padding: 5;"></a-plane>
-      </a-entity>
-      
-      <a-entity position="0 -1.1 0.01">
-        <a-plane id="difficultyBtn2" class="clickable" gaze-button="action: custom_set_difficulty_2; dwellTime: 300" width="0.55" height="0.45" color="#B58B2B" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.62" height="0.4" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: AVENT.; align: center; fontSize: 80; color: #FFFFFF; padding: 5;"></a-plane>
-      </a-entity>
-      
-      <a-entity position="1.0 -1.1 0.01">
-        <a-plane id="difficultyBtn3" class="clickable" gaze-button="action: custom_set_difficulty_3; dwellTime: 300" width="0.55" height="0.45" color="#8F2F3F" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.5" height="0.4" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: BRUXA; align: center; fontSize: 80; color: #FFFFFF; padding: 5;"></a-plane>
+      <a-entity position="1.35 0.34 0.02">
+        <a-plane width="2.35" height="0.82" color="#0B1B2B" opacity="0.96" radius="0.08" material="shader: flat; depthTest: false; renderOrder: 9"></a-plane>
+        <a-plane position="0 0.24 0.025" width="1.95" height="0.24" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: ATAQUES PARA VENCER; align: center; fontSize: 48; color: #FFE8B6; padding: 8;"></a-plane>
+        <a-plane class="clickable" gaze-button="action: custom_enemy_dec; dwellTime: 300" position="-0.72 -0.12 0.035" width="0.56" height="0.46" color="#A83F4D" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="-0.72 -0.12 0.06" width="0.44" height="0.32" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: -; align: center; fontSize: 82; color: #FFFFFF; padding: 5;"></a-plane>
+        <a-plane id="customEnemyDisplay" position="0 -0.12 0.035" width="0.58" height="0.34" color="#15293A" opacity="0.92" radius="0.05" material="shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: 3; align: center; fontSize: 74; color: #FFFFFF; padding: 5;"></a-plane>
+        <a-plane class="clickable" gaze-button="action: custom_enemy_inc; dwellTime: 300" position="0.72 -0.12 0.035" width="0.56" height="0.46" color="#2F8F6B" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0.72 -0.12 0.06" width="0.44" height="0.32" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: +; align: center; fontSize: 82; color: #FFFFFF; padding: 5;"></a-plane>
+        <a-plane id="customEnemyInfiniteBtn" class="clickable" gaze-button="action: custom_toggle_enemy_infinite; dwellTime: 350" position="0 -0.48 0.035" width="1.42" height="0.26" color="#273242" radius="0.05" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane id="customEnemyInfiniteText" position="0 -0.48 0.06" width="1.24" height="0.18" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: ∞ ATAQUES; align: center; fontSize: 44; color: #FFFFFF; padding: 4;"></a-plane>
       </a-entity>
 
-      <a-entity position="0 -1.75 0.01">
-        <a-plane class="clickable" gaze-button="action: backToMainMenu; dwellTime: 500" width="1.5" height="0.5" color="#9A5B18" radius="0.08" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="1.3" height="0.4" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: VOLTAR; align: center; fontSize: 80; color: #FFFFFF; padding: 10;"></a-plane>
+      <a-plane position="0 -0.54 0.025" width="4.5" height="0.25" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: ESCOLHA O INIMIGO; align: center; fontSize: 58; color: #FFE8B6; padding: 8;"></a-plane>
+      <a-entity position="-1.35 -0.98 0.02">
+        <a-plane id="difficultyBtn1" class="clickable" gaze-button="action: custom_set_difficulty_1; dwellTime: 300" width="1.22" height="0.56" color="#315D92" radius="0.08" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="1.03" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: REI\nFÁCIL; align: center; fontSize: 56; color: #FFFFFF; padding: 4;"></a-plane>
+      </a-entity>
+      <a-entity position="0 -0.98 0.02">
+        <a-plane id="difficultyBtn2" class="clickable" gaze-button="action: custom_set_difficulty_2; dwellTime: 300" width="1.22" height="0.56" color="#B58B2B" radius="0.08" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="1.05" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: AVENT.\nMÉDIO; align: center; fontSize: 50; color: #FFFFFF; padding: 4;"></a-plane>
+      </a-entity>
+      <a-entity position="1.35 -0.98 0.02">
+        <a-plane id="difficultyBtn3" class="clickable" gaze-button="action: custom_set_difficulty_3; dwellTime: 300" width="1.22" height="0.56" color="#8F2F3F" radius="0.08" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="1.03" height="0.35" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: BRUXA\nDIFÍCIL; align: center; fontSize: 50; color: #FFFFFF; padding: 4;"></a-plane>
+      </a-entity>
+
+      <a-plane position="0 -1.45 0.025" width="4.5" height="0.24" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 12" canvas-text="value: VOLUME DOS EFEITOS; align: center; fontSize: 52; color: #FFE8B6; padding: 8;"></a-plane>
+      <a-entity position="-1.5 -1.78 0.02">
+        <a-plane id="sfxVolBtn0" class="clickable" gaze-button="action: sfx_volume_0; dwellTime: 300" width="0.78" height="0.42" color="#273242" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="0.58" height="0.26" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: 0%; align: center; fontSize: 56; color: #FFFFFF; padding: 4;"></a-plane>
+      </a-entity>
+      <a-entity position="-0.5 -1.78 0.02">
+        <a-plane id="sfxVolBtn25" class="clickable" gaze-button="action: sfx_volume_25; dwellTime: 300" width="0.78" height="0.42" color="#273242" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="0.58" height="0.26" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: 25%; align: center; fontSize: 52; color: #FFFFFF; padding: 4;"></a-plane>
+      </a-entity>
+      <a-entity position="0.5 -1.78 0.02">
+        <a-plane id="sfxVolBtn50" class="clickable" gaze-button="action: sfx_volume_50; dwellTime: 300" width="0.78" height="0.42" color="#273242" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="0.58" height="0.26" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: 50%; align: center; fontSize: 52; color: #FFFFFF; padding: 4;"></a-plane>
+      </a-entity>
+      <a-entity position="1.5 -1.78 0.02">
+        <a-plane id="sfxVolBtn100" class="clickable" gaze-button="action: sfx_volume_100; dwellTime: 300" width="0.78" height="0.42" color="#273242" radius="0.07" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="0.58" height="0.26" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: 100%; align: center; fontSize: 48; color: #FFFFFF; padding: 4;"></a-plane>
+      </a-entity>
+
+      <a-entity position="0 -2.18 0.02">
+        <a-plane class="clickable" gaze-button="action: backToMainMenu; dwellTime: 400" width="1.75" height="0.44" color="#9A5B18" radius="0.08" material="shader: flat; depthTest: false; side: double; renderOrder: 20"></a-plane>
+        <a-plane position="0 0 0.035" width="1.4" height="0.28" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 22" canvas-text="value: VOLTAR; align: center; fontSize: 62; color: #FFFFFF; padding: 8;"></a-plane>
       </a-entity>
     </a-entity>
 
-    <a-entity id="menuHistoryScreen" visible="false" position="0 1.2 -3.0">
+    <a-entity id="menuHistoryScreen" visible="false" position="0 1.38 -3.35" scale="0.78 0.78 0.78">
       <a-plane width="5.0" height="4.35" color="#07131F" opacity="0.88" radius="0.14" material="shader: flat; depthTest: false; renderOrder: 8"></a-plane>
       <a-plane position="0 1.8 0.01" width="4.5" height="0.5" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: HISTÓRICO; align: center; fontSize: 140; color: #FFFFFF; padding: 20;"></a-plane>
 
@@ -411,8 +458,8 @@
       <a-plane position="0 0 0.01" width="0.25" height="0.25" material="transparent: true; opacity: 0" canvas-text="value: ⏸; align: center; fontSize: 120; color: #FFFFFF; padding: 5;"></a-plane>
     </a-entity>
 
-    <a-entity id="worldHud" position="0 1.9 -0.7">
-      <a-entity id="vrControlsRoot" position="1.1 -0.05 0" rotation="0 -22 0" scale="0.34 0.34 0.34">
+    <a-entity id="worldHud" position="0 1.75 -1.0">
+      <a-entity id="vrControlsRoot" position="1.55 -0.05 0" rotation="0 -32 0" scale="0.30 0.30 0.30">
         <a-plane
           width="2.8"
           height="3.25"
@@ -434,7 +481,7 @@
           width="2.1"
           height="0.34"
           material="transparent: true; opacity: 0"
-          canvas-text="value: Guia: ataque, esquiva e agachamento pelo teclado ou pela inclinação da cabeça.; align: left; fontSize: 39; color: #FFE8B6; padding: 22;">
+          canvas-text="value: Guia: ataque e esquive pela inclinação da cabeça. Agachar só aparece contra inimigos com golpe alto.; align: left; fontSize: 39; color: #FFE8B6; padding: 22;">
         </a-plane>
 
         <a-plane
@@ -534,6 +581,36 @@
           scale="1.13 1.13 1.13"
           visible="false">
         </a-entity>
+      </a-entity>
+
+      <a-entity id="enemyWorldHpRoot" position="0 2.78 0.18" scale="1 1 1">
+        <a-plane
+          id="enemyHpBarBg"
+          width="2.35"
+          height="0.26"
+          color="#241219"
+          opacity="0.98"
+          material="shader: flat; depthTest: false; side: double; renderOrder: 30"
+          radius="0.06">
+        </a-plane>
+        <a-plane
+          id="enemyHpFill"
+          position="0 0 0.025"
+          width="2.05"
+          height="0.12"
+          color="#D94A3A"
+          opacity="0.99"
+          material="shader: flat; depthTest: false; side: double; renderOrder: 31"
+          radius="0.04">
+        </a-plane>
+        <a-plane
+          id="enemyHpText"
+          position="0 0 0.045"
+          width="2.18"
+          height="0.15"
+          material="transparent: true; opacity: 0; shader: flat; depthTest: false; side: double; renderOrder: 32"
+          canvas-text="value: INIMIGO HP 3/3; align: center; fontSize: 54; color: #FFFFFF; padding: 8;">
+        </a-plane>
       </a-entity>
 
       <a-entity id="swordSlashFx" visible="false" position="0 1.88 0.72" rotation="0 0 -35" scale="0.2 0.2 0.2">

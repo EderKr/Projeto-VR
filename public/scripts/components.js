@@ -159,6 +159,49 @@ AFRAME.registerComponent("canvas-text", {
   }
 });
 
+AFRAME.registerComponent("always-on-top", {
+  schema: {
+    order: { type: "number", default: 10000 }
+  },
+
+  init: function () {
+    this.apply = this.apply.bind(this);
+    this.el.addEventListener("object3dset", this.apply);
+    this.el.addEventListener("loaded", this.apply);
+    this.apply();
+  },
+
+  play: function () {
+    this.apply();
+  },
+
+  update: function () {
+    this.apply();
+  },
+
+  apply: function () {
+    const order = this.data.order;
+    this.el.object3D.renderOrder = order;
+    this.el.object3D.traverse((node) => {
+      node.renderOrder = order;
+      if (!node.material) return;
+      const materials = Array.isArray(node.material) ? node.material : [node.material];
+      materials.forEach((material) => {
+        material.depthTest = false;
+        material.depthWrite = false;
+        material.transparent = true;
+        material.opacity = 1;
+        material.needsUpdate = true;
+      });
+    });
+  },
+
+  remove: function () {
+    this.el.removeEventListener("object3dset", this.apply);
+    this.el.removeEventListener("loaded", this.apply);
+  }
+});
+
 AFRAME.registerComponent("gaze-button", {
   schema: {
     action: { type: "string" },
@@ -245,7 +288,11 @@ AFRAME.registerComponent("gaze-button", {
           "custom_toggle_enemy_infinite",
           "custom_set_difficulty_1",
           "custom_set_difficulty_2",
-          "custom_set_difficulty_3"
+          "custom_set_difficulty_3",
+          "sfx_volume_0",
+          "sfx_volume_25",
+          "sfx_volume_50",
+          "sfx_volume_100"
         ]);
 
         if (vrMenuActions.has(this.data.action)) {
@@ -306,6 +353,14 @@ AFRAME.registerComponent("gaze-button", {
         if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(2);
       } else if (this.data.action === "custom_set_difficulty_3") {
         if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(3);
+      } else if (this.data.action === "sfx_volume_0") {
+        if (typeof setSfxVolume === 'function') setSfxVolume(0);
+      } else if (this.data.action === "sfx_volume_25") {
+        if (typeof setSfxVolume === 'function') setSfxVolume(0.25);
+      } else if (this.data.action === "sfx_volume_50") {
+        if (typeof setSfxVolume === 'function') setSfxVolume(0.5);
+      } else if (this.data.action === "sfx_volume_100") {
+        if (typeof setSfxVolume === 'function') setSfxVolume(1);
       }
     };
 
@@ -354,21 +409,240 @@ AFRAME.registerComponent("arena-circle", {
     const radius = 12;
     const count = 48;
 
+    // Sem piso externo: o chão visível fica restrito à areia da arena e aos props.
+
+    // Gramado e morros fora da arena. Todos começam além dos muros para manter
+    // o piso circular livre e sem conflito visual.
+    const grassRings = [16.5, 21, 26, 31, 36, 41];
+    for (let rIndex = 0; rIndex < grassRings.length; rIndex++) {
+      const ringRadius = grassRings[rIndex];
+      const patches = 28 + rIndex * 4;
+      for (let i = 0; i < patches; i++) {
+        const angle = (i / patches) * Math.PI * 2 + ((i * 17 + rIndex * 11) % 23) * 0.01;
+        const x = Math.cos(angle) * (ringRadius + ((i * 5) % 7) * 0.22);
+        const z = Math.sin(angle) * (ringRadius + ((i * 3) % 5) * 0.24);
+        const grass = document.createElement("a-cone");
+        grass.setAttribute("position", `${x} 0.10 ${z}`);
+        grass.setAttribute("rotation", `0 ${((i * 47) % 360)} 0`);
+        grass.setAttribute("radius-bottom", `${0.10 + (i % 3) * 0.035}`);
+        grass.setAttribute("height", `${0.28 + (i % 4) * 0.045}`);
+        grass.setAttribute("segments-radial", "5");
+        grass.setAttribute("color", i % 2 === 0 ? "#3E8B3E" : "#52A34B");
+        grass.setAttribute("material", "shader: flat; roughness: 1; metalness: 0");
+        this.el.appendChild(grass);
+      }
+    }
+
+    for (let i = 0; i < 14; i++) {
+      const angle = (i / 14) * Math.PI * 2 + (i % 3) * 0.12;
+      const distance = 29 + (i % 5) * 3.4;
+      const x = Math.cos(angle) * distance;
+      const z = Math.sin(angle) * distance;
+      const hill = document.createElement("a-sphere");
+      hill.setAttribute("position", `${x} -0.78 ${z}`);
+      hill.setAttribute("scale", `${5.5 + (i % 4)} ${1.25 + (i % 3) * 0.28} ${4.4 + (i % 5) * 0.7}`);
+      hill.setAttribute("segments-width", "16");
+      hill.setAttribute("segments-height", "8");
+      hill.setAttribute("color", i % 2 === 0 ? "#2F6F35" : "#3F7F3C");
+      hill.setAttribute("material", "roughness: 1; metalness: 0");
+      this.el.appendChild(hill);
+    }
+
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2 + 0.18;
+      const distance = 47 + (i % 4) * 4.2;
+      const x = Math.cos(angle) * distance;
+      const z = Math.sin(angle) * distance;
+      const height = 6.5 + (i % 5) * 1.1;
+      const mountain = document.createElement("a-cone");
+      mountain.setAttribute("position", `${x} ${height / 2 - 0.15} ${z}`);
+      mountain.setAttribute("radius-bottom", `${5.2 + (i % 3) * 1.2}`);
+      mountain.setAttribute("height", `${height}`);
+      mountain.setAttribute("segments-radial", "7");
+      mountain.setAttribute("color", i % 2 === 0 ? "#53614D" : "#647156");
+      mountain.setAttribute("material", "roughness: 1; metalness: 0");
+      this.el.appendChild(mountain);
+
+      const cap = document.createElement("a-cone");
+      cap.setAttribute("position", `${x} ${height - 0.95} ${z}`);
+      cap.setAttribute("radius-bottom", `${1.45 + (i % 2) * 0.35}`);
+      cap.setAttribute("height", "1.35");
+      cap.setAttribute("segments-radial", "7");
+      cap.setAttribute("color", "#DCE8EF");
+      cap.setAttribute("material", "roughness: 1; metalness: 0");
+      this.el.appendChild(cap);
+    }
+
+    // Floresta cênica ao redor da arena. Fica fora dos muros para manter a arena intacta
+    // e usa posições determinísticas para não mudar a cada recarregamento.
+    const forestPalette = ["#1F6B37", "#287A3D", "#2F6F35", "#18532C"];
+    for (let i = 0; i < 72; i++) {
+      const angle = (i / 72) * Math.PI * 2 + ((i % 5) * 0.045);
+      const ring = 18.8 + ((i * 7) % 24);
+      const jitter = ((i * 13) % 9) * 0.18;
+      const distance = ring + jitter;
+      const x = Math.cos(angle) * distance;
+      const z = Math.sin(angle) * distance;
+      const height = 2.7 + ((i * 11) % 12) * 0.16;
+
+      const tree = document.createElement("a-entity");
+      tree.setAttribute("position", `${x} 0 ${z}`);
+      tree.setAttribute("rotation", `0 ${((i * 37) % 360)} 0`);
+
+      const trunk = document.createElement("a-cylinder");
+      trunk.setAttribute("position", `0 ${height * 0.28} 0`);
+      trunk.setAttribute("radius", `${0.11 + ((i % 4) * 0.025)}`);
+      trunk.setAttribute("height", `${height * 0.56}`);
+      trunk.setAttribute("color", i % 3 === 0 ? "#4A2F1B" : "#3A2416");
+      trunk.setAttribute("material", "roughness: 1; metalness: 0");
+      tree.appendChild(trunk);
+
+      const canopy1 = document.createElement("a-cone");
+      canopy1.setAttribute("position", `0 ${height * 0.76} 0`);
+      canopy1.setAttribute("radius-bottom", `${0.85 + ((i % 5) * 0.09)}`);
+      canopy1.setAttribute("height", `${height * 0.58}`);
+      canopy1.setAttribute("segments-radial", "8");
+      canopy1.setAttribute("color", forestPalette[i % forestPalette.length]);
+      canopy1.setAttribute("material", "roughness: 1; metalness: 0");
+      tree.appendChild(canopy1);
+
+      const canopy2 = document.createElement("a-cone");
+      canopy2.setAttribute("position", `0 ${height * 1.03} 0`);
+      canopy2.setAttribute("radius-bottom", `${0.58 + ((i % 4) * 0.08)}`);
+      canopy2.setAttribute("height", `${height * 0.45}`);
+      canopy2.setAttribute("segments-radial", "8");
+      canopy2.setAttribute("color", forestPalette[(i + 1) % forestPalette.length]);
+      canopy2.setAttribute("material", "roughness: 1; metalness: 0");
+      tree.appendChild(canopy2);
+
+      this.el.appendChild(tree);
+    }
+
+    // Chãos externos removidos para não competir com a areia da arena.
+
+    const floor = document.createElement("a-cylinder");
+    floor.setAttribute("position", "0 0.012 0");
+    floor.setAttribute("radius", "12.15");
+    floor.setAttribute("height", "0.045");
+    floor.setAttribute("segments-radial", "96");
+    floor.setAttribute("color", "#E6C98B");
+    floor.setAttribute("material", "src: #sandTexture; repeat: 10 10; roughness: 1; metalness: 0; color: #E8CB91");
+    this.el.appendChild(floor);
+
+    // Marcações, anéis e rúnicas removidos: arena limpa com areia + props.
+
+    const addSwordProp = (x, z, yaw) => {
+      const sword = document.createElement("a-entity");
+      sword.setAttribute("position", `${x} 0.085 ${z}`);
+      sword.setAttribute("rotation", `0 ${yaw} 0`);
+
+      const blade = document.createElement("a-box");
+      blade.setAttribute("position", "0 0 0");
+      blade.setAttribute("width", "0.08");
+      blade.setAttribute("height", "0.035");
+      blade.setAttribute("depth", "1.05");
+      blade.setAttribute("color", "#B9C1C7");
+      blade.setAttribute("material", "roughness: 0.55; metalness: 0.25");
+      sword.appendChild(blade);
+
+      const guard = document.createElement("a-box");
+      guard.setAttribute("position", "0 0.012 0.58");
+      guard.setAttribute("width", "0.42");
+      guard.setAttribute("height", "0.04");
+      guard.setAttribute("depth", "0.08");
+      guard.setAttribute("color", "#8A6A32");
+      sword.appendChild(guard);
+
+      const grip = document.createElement("a-cylinder");
+      grip.setAttribute("position", "0 0.02 0.78");
+      grip.setAttribute("rotation", "90 0 0");
+      grip.setAttribute("radius", "0.045");
+      grip.setAttribute("height", "0.32");
+      grip.setAttribute("color", "#3B2718");
+      sword.appendChild(grip);
+
+      this.el.appendChild(sword);
+    };
+
+    const addShieldProp = (x, z, yaw) => {
+      const shield = document.createElement("a-entity");
+      shield.setAttribute("position", `${x} 0.09 ${z}`);
+      shield.setAttribute("rotation", `78 ${yaw} 0`);
+
+      const body = document.createElement("a-cylinder");
+      body.setAttribute("radius", "0.42");
+      body.setAttribute("height", "0.07");
+      body.setAttribute("segments-radial", "18");
+      body.setAttribute("color", "#6C3A2E");
+      body.setAttribute("material", "roughness: 0.75; metalness: 0.08");
+      shield.appendChild(body);
+
+      const boss = document.createElement("a-sphere");
+      boss.setAttribute("position", "0 0.055 0");
+      boss.setAttribute("radius", "0.16");
+      boss.setAttribute("scale", "1 0.35 1");
+      boss.setAttribute("color", "#B8A36B");
+      boss.setAttribute("material", "roughness: 0.55; metalness: 0.25");
+      shield.appendChild(boss);
+
+      this.el.appendChild(shield);
+    };
+
+    // Caveiras removidas: somente espadas e escudos ficam sobre a areia.
+
+    addSwordProp(-8.4, -2.9, 38);
+    addSwordProp(7.2, 3.8, -52);
+    addSwordProp(-4.2, 7.6, 118);
+    addShieldProp(8.7, -2.8, -22);
+    addShieldProp(-7.4, 4.8, 38);
+    // Caveiras removidas. Mais armas e escudos deixam a arena com detalhes sem pesar o visual.
+    addSwordProp(2.8, -7.8, 92);
+    addSwordProp(-6.6, -6.7, -18);
+    addSwordProp(5.9, 6.2, 142);
+    addSwordProp(-2.2, 8.9, 64);
+    addShieldProp(3.9, 8.1, -74);
+    addShieldProp(-5.8, -8.0, 112);
+    addShieldProp(6.6, -6.5, 24);
+
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
+      const isPillar = i % 6 === 0;
 
       const wall = document.createElement("a-box");
-      wall.setAttribute("position", `${x} 1 ${z}`);
+      wall.setAttribute("position", `${x} ${isPillar ? 1.25 : 0.9} ${z}`);
       wall.setAttribute("rotation", `0 ${(-angle * 180 / Math.PI) + 90} 0`);
-      wall.setAttribute("width", "2");
-      wall.setAttribute("height", "2");
-      wall.setAttribute("depth", "0.3");
-      wall.setAttribute("color", "#8B4513");
-
+      wall.setAttribute("width", isPillar ? "1.25" : "1.9");
+      wall.setAttribute("height", isPillar ? "2.5" : "1.8");
+      wall.setAttribute("depth", isPillar ? "0.55" : "0.34");
+      wall.setAttribute("color", isPillar ? "#4B3A2B" : (i % 2 === 0 ? "#5E4935" : "#6B543E"));
+      wall.setAttribute("material", "roughness: 0.9; metalness: 0.03");
       this.el.appendChild(wall);
+
+      if (isPillar) {
+        const torchGroup = document.createElement("a-entity");
+        const inwardX = Math.cos(angle) * (radius - 0.72);
+        const inwardZ = Math.sin(angle) * (radius - 0.72);
+        torchGroup.setAttribute("position", `${inwardX} 1.46 ${inwardZ}`);
+        torchGroup.setAttribute("rotation", `0 ${(-angle * 180 / Math.PI) + 270} 0`);
+
+        const torchModel = document.createElement("a-entity");
+        torchModel.setAttribute("gltf-model", "#torchModel");
+        torchModel.setAttribute("scale", "0.92 0.92 0.92");
+        torchModel.setAttribute("rotation", "0 0 0");
+        torchGroup.appendChild(torchModel);
+
+        const glow = document.createElement("a-light");
+        glow.setAttribute("type", "point");
+        glow.setAttribute("position", "0 0.9 0");
+        glow.setAttribute("intensity", "0.7");
+        glow.setAttribute("distance", "7.5");
+        glow.setAttribute("color", "#FFB45C");
+        torchGroup.appendChild(glow);
+
+        this.el.appendChild(torchGroup);
+      }
     }
   }
 });
@@ -688,8 +962,7 @@ AFRAME.registerComponent("enemy-ai", {
       else if (key === 'witch') defeatSfxId = 'witch-defeat';
 
       if (defeatSfxId) {
-        const sfxEl = document.getElementById(defeatSfxId);
-        if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+        playSfx(defeatSfxId);
       }
 
       // rare easter-egg chance to play a silly sample on enemy defeat
@@ -697,8 +970,7 @@ AFRAME.registerComponent("enemy-ai", {
       if (Math.random() < easterEggChance) {
         const eggs = ['roblox-oof', 'lego-yoda', 'wilhelm-scream'];
         const pick = eggs[Math.floor(Math.random() * eggs.length)];
-        const eggEl = document.getElementById(pick);
-        if (eggEl && typeof eggEl.play === 'function') { eggEl.currentTime = 0; eggEl.play().catch(() => {}); }
+        playSfx(pick);
       }
     } catch (e) {
       console.warn('play defeat sfx failed', e);
@@ -994,24 +1266,37 @@ AFRAME.registerComponent("enemy-ai", {
 
     if (windupMs > 0 && windupClip) {
       const windupOptions = profile.windupOptions || { timeScale: 0.45 };
-      this.playModelClip(windupClip, "once", true, windupOptions);
+      const holdAndContinue = Boolean(windupOptions.holdAtWindup);
+      const playedWindup = this.playModelClip(windupClip, "once", true, windupOptions);
 
       this.pendingAttackTimeout = setTimeout(() => {
         this.pendingAttackTimeout = null;
         if (!game.running || this.isDefeated) return;
-        if (this.playModelClip(clip, "once", true, options)) {
+
+        let attackStarted = false;
+        // Para o Rei, o wind-up e o soco usam o MESMO clip e a mesma mão.
+        // Em vez de reiniciar outra animação depois do aviso, continuamos o próprio clip em velocidade normal.
+        if (holdAndContinue && windupClip === clip && this.currentAction) {
+          this.currentAction.paused = false;
+          this.currentAction.enabled = true;
+          this.currentAction.clampWhenFinished = true;
+          this.currentAction.timeScale = 1.15;
+          attackStarted = true;
+        } else {
+          attackStarted = this.playModelClip(clip, "once", true, options);
+        }
+
+        if (attackStarted) {
           if (usesSwordFx) this.playSwordSlashFx();
-          // play swing sfx
           try {
             if (attackSwingSfx) {
-              const sfxEl = document.getElementById(attackSwingSfx);
-              if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+              playSfx(attackSwingSfx);
             }
           } catch (e) { console.warn('play swing sfx failed', e); }
         }
       }, windupMs);
 
-      this.scheduleIdleReturn(windupMs + 920);
+      this.scheduleIdleReturn(windupMs + 980);
       return;
     }
 
@@ -1020,8 +1305,7 @@ AFRAME.registerComponent("enemy-ai", {
       // play immediate swing sfx
       try {
         if (attackSwingSfx) {
-          const sfxEl = document.getElementById(attackSwingSfx);
-          if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+          playSfx(attackSwingSfx);
         }
       } catch (e) { console.warn('play swing sfx failed', e); }
       this.scheduleIdleReturn(860);
@@ -1051,8 +1335,7 @@ AFRAME.registerComponent("enemy-ai", {
     // play magic swing sfx
     try {
       if (attackSwingSfx) {
-        const sfxEl = document.getElementById(attackSwingSfx);
-        if (sfxEl && typeof sfxEl.play === 'function') { sfxEl.currentTime = 0; sfxEl.play().catch(() => {}); }
+        playSfx(attackSwingSfx);
       }
     } catch (e) { console.warn('play magic swing sfx failed', e); }
     this.playMagicFx(pattern);
