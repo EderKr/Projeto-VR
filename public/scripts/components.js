@@ -159,6 +159,52 @@ AFRAME.registerComponent("canvas-text", {
   }
 });
 
+// Remove smoothing filter on the sand texture so the image appears unfiltered
+AFRAME.registerComponent('sand-texture-filter', {
+  init: function () {
+    this.applyFix = this.applyFix.bind(this);
+    if (this.el.sceneEl) {
+      this.el.sceneEl.addEventListener('loaded', this.applyFix);
+    } else {
+      window.addEventListener('load', this.applyFix);
+    }
+  },
+
+  applyFix: function () {
+    const img = document.getElementById('sandTexture');
+    if (!img) return;
+
+    const tex = new THREE.Texture(img);
+    tex.needsUpdate = true;
+    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.NearestFilter;
+
+    const candidates = Array.from(document.querySelectorAll('[material]'));
+    candidates.forEach((el) => {
+      const mesh = el.getObject3D && el.getObject3D('mesh');
+      if (!mesh) return;
+      const applyTo = (m) => {
+        if (!m || !m.map || !m.map.image) return;
+        if (m.map.image === img || (m.map.image.src && m.map.image.src.indexOf('sand-beige-natural.png') !== -1)) {
+          m.map = tex;
+          m.needsUpdate = true;
+        }
+      };
+
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(applyTo);
+      } else {
+        applyTo(mesh.material);
+      }
+    });
+  },
+
+  remove: function () {
+    if (this.el.sceneEl) this.el.sceneEl.removeEventListener('loaded', this.applyFix);
+    window.removeEventListener('load', this.applyFix);
+  }
+});
+
 AFRAME.registerComponent("always-on-top", {
   schema: {
     order: { type: "number", default: 10000 }
