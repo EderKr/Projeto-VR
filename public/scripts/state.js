@@ -143,7 +143,11 @@ function getSelectedDifficultyPhase() {
 }
 
 function getActiveDifficultyPhase() {
-  return Math.min(3, Math.max(1, parsePositiveInt(game.difficultyPhase || getSelectedDifficultyPhase(), 2)));
+  if (game && game.customMode) {
+    return Math.min(3, Math.max(1, parsePositiveInt(game.difficultyPhase || getSelectedDifficultyPhase(), 2)));
+  }
+
+  return Math.min(3, Math.max(1, parsePositiveInt(game.phase || 1, 1)));
 }
 
 function getStartSettings() {
@@ -175,7 +179,7 @@ function getStartSettings() {
   return {
     customMode: true,
     phase: 1,
-    maxPhases: 3,
+    maxPhases: 1,
     lives,
     enemyHitsNeeded,
     difficultyPhase
