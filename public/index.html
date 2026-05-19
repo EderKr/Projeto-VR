@@ -658,6 +658,63 @@
 
     <a-entity light="type: ambient; intensity: 0.7"></a-entity>
     <a-entity light="type: directional; intensity: 0.8" position="1 3 2"></a-entity>
+    <!-- Sun -->
+    <a-entity id="sun" position="-6 18 -20">
+      <a-light type="point" color="#FFF2B2" intensity="1.0" distance="120"></a-light>
+      <a-sphere radius="1.8" position="0 0 0" color="#FFF2B2" material="shader: flat; emissive: #FFF2B2; emissiveIntensity: 1; transparent: false"></a-sphere>
+    </a-entity>
+
+    <!-- Clouds (spread across sky with varied Y/Z and diagonal movement) -->
+    <a-entity id="clouds">
+      <a-entity class="cloud" position="-120 20 -40" rotation="0 8 0" scale="1.0 1.0 1.0" animation="property: position; to: 120 18 -36; dur: 220000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="2.2" color="#FFFFFF" material="transparent: true; opacity: 0.96"></a-sphere>
+        <a-sphere position="2.0 0.3 0" radius="1.6" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+        <a-sphere position="-2.0 0.2 0" radius="1.4" color="#FFFFFF" material="transparent: true; opacity: 0.94"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="-80 17 -34" rotation="0 -6 0" scale="0.95 0.95 0.95" animation="property: position; to: 80 19 -30; dur: 200000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="1.8" color="#FFFFFF" material="transparent: true; opacity: 0.96"></a-sphere>
+        <a-sphere position="1.8 0.2 0" radius="1.4" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+        <a-sphere position="-1.6 0.0 0" radius="1.2" color="#FFFFFF" material="transparent: true; opacity: 0.94"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="-60 22 -32" rotation="0 12 0" scale="1.1 1.1 1.1" animation="property: position; to: 60 21 -30; dur: 230000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="2.4" color="#FFFFFF" material="transparent: true; opacity: 0.97"></a-sphere>
+        <a-sphere position="2.6 0.3 0" radius="1.8" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="-40 15 -28" rotation="0 4 0" scale="0.9 0.9 0.9" animation="property: position; to: 40 14 -26; dur: 180000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="1.6" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+        <a-sphere position="1.4 0.15 0" radius="1.2" color="#FFFFFF" material="transparent: true; opacity: 0.94"></a-sphere>
+        <a-sphere position="-1.2 0.1 0" radius="1.1" color="#FFFFFF" material="transparent: true; opacity: 0.93"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="-20 13 -22" rotation="0 -3 0" scale="0.85 0.85 0.85" animation="property: position; to: 20 15 -20; dur: 160000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="1.2" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+        <a-sphere position="1.0 0.1 0" radius="1.0" color="#FFFFFF" material="transparent: true; opacity: 0.94"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="0 21 -30" rotation="0 0 0" scale="1.05 1.05 1.05" animation="property: position; to: 120 20 -28; dur: 260000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="2.0" color="#FFFFFF" material="transparent: true; opacity: 0.97"></a-sphere>
+        <a-sphere position="2.2 0.25 0" radius="1.5" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+        <a-sphere position="-2.2 0.2 0" radius="1.4" color="#FFFFFF" material="transparent: true; opacity: 0.94"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="40 16 -26" rotation="0 10 0" scale="0.95 0.95 0.95" animation="property: position; to: -120 15 -22; dur: 210000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="1.6" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+        <a-sphere position="1.2 0.1 0" radius="1.2" color="#FFFFFF" material="transparent: true; opacity: 0.94"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="80 14 -20" rotation="0 -8 0" scale="0.9 0.9 0.9" animation="property: position; to: -80 16 -18; dur: 190000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="1.4" color="#FFFFFF" material="transparent: true; opacity: 0.94"></a-sphere>
+        <a-sphere position="1.0 0.05 0" radius="1.0" color="#FFFFFF" material="transparent: true; opacity: 0.92"></a-sphere>
+      </a-entity>
+
+      <a-entity class="cloud" position="120 18 -36" rotation="0 6 0" scale="1.15 1.15 1.15" animation="property: position; to: -120 19 -34; dur: 240000; easing: linear; loop: true">
+        <a-sphere position="0 0 0" radius="2.4" color="#FFFFFF" material="transparent: true; opacity: 0.97"></a-sphere>
+        <a-sphere position="2.6 0.3 0" radius="1.8" color="#FFFFFF" material="transparent: true; opacity: 0.95"></a-sphere>
+      </a-entity>
+    </a-entity>
   </a-scene>
 
   <script src="scripts/state.js"></script>
