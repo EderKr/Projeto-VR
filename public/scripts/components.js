@@ -457,6 +457,8 @@ AFRAME.registerComponent("gaze-button", {
 
       if (this.isMenuButton) {
         this.baseColor = this.el.getAttribute("color") || this.baseColor;
+        // store the base color on the element so external updates can be respected
+        this.el.setAttribute('data-base-color', this.baseColor);
         this.el.setAttribute("color", "#FFFFFF");
         if (this.buttonFrame) {
           this.buttonFrame.setAttribute("color", "#FFFFFF");
@@ -476,7 +478,8 @@ AFRAME.registerComponent("gaze-button", {
       this.hasActivated = false;
       this.el.object3D.scale.copy(this.defaultScale);
       if (this.isMenuButton) {
-        this.el.setAttribute("color", this.baseColor);
+        const restoreColor = this.el.getAttribute('data-base-color') || this.baseColor;
+        this.el.setAttribute("color", restoreColor);
         if (this.buttonFrame) {
           this.buttonFrame.setAttribute("color", "#F8D070");
           this.buttonFrame.setAttribute("opacity", "0.42");

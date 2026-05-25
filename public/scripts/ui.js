@@ -545,7 +545,9 @@ function updateSfxVolumeButtons() {
   for (const item of buttons) {
     const btn = document.getElementById(item.id);
     if (!btn) continue;
-    btn.setAttribute("color", currentVolume === item.value ? "#4ECDC4" : "#273242");
+    const volColor = currentVolume === item.value ? "#4ECDC4" : "#273242";
+    btn.setAttribute("color", volColor);
+    btn.setAttribute('data-base-color', volColor);
   }
 }
 
@@ -574,11 +576,15 @@ function updateCustomizeMenuDisplay() {
   const enemyInfiniteBtn = document.getElementById('customEnemyInfiniteBtn');
 
   if (typeof customLivesInfiniteEl !== 'undefined' && customLivesInfiniteEl && livesInfiniteBtn) {
-    livesInfiniteBtn.setAttribute('color', customLivesInfiniteEl.checked ? '#4ECDC4' : '#555');
+    const livesColor = customLivesInfiniteEl.checked ? '#4ECDC4' : '#555';
+    livesInfiniteBtn.setAttribute('color', livesColor);
+    livesInfiniteBtn.setAttribute('data-base-color', livesColor);
   }
 
   if (typeof customEnemyHitsInfiniteEl !== 'undefined' && customEnemyHitsInfiniteEl && enemyInfiniteBtn) {
-    enemyInfiniteBtn.setAttribute('color', customEnemyHitsInfiniteEl.checked ? '#4ECDC4' : '#555');
+    const enemyColor = customEnemyHitsInfiniteEl.checked ? '#4ECDC4' : '#555';
+    enemyInfiniteBtn.setAttribute('color', enemyColor);
+    enemyInfiniteBtn.setAttribute('data-base-color', enemyColor);
   }
 
   const difficultyBtn1 = document.getElementById('difficultyBtn1');
@@ -588,13 +594,19 @@ function updateCustomizeMenuDisplay() {
   const selectedDifficulty = customDifficultyEl ? parseInt(customDifficultyEl.value, 10) : 1;
 
   if (difficultyBtn1) {
-    difficultyBtn1.setAttribute('color', selectedDifficulty === 1 ? '#4ECDC4' : '#2C6CB0');
+    const d1Color = selectedDifficulty === 1 ? '#4ECDC4' : '#2C6CB0';
+    difficultyBtn1.setAttribute('color', d1Color);
+    difficultyBtn1.setAttribute('data-base-color', d1Color);
   }
   if (difficultyBtn2) {
-    difficultyBtn2.setAttribute('color', selectedDifficulty === 2 ? '#4ECDC4' : '#B8A200');
+    const d2Color = selectedDifficulty === 2 ? '#4ECDC4' : '#B8A200';
+    difficultyBtn2.setAttribute('color', d2Color);
+    difficultyBtn2.setAttribute('data-base-color', d2Color);
   }
   if (difficultyBtn3) {
-    difficultyBtn3.setAttribute('color', selectedDifficulty === 3 ? '#4ECDC4' : '#8B0000');
+    const d3Color = selectedDifficulty === 3 ? '#4ECDC4' : '#8B0000';
+    difficultyBtn3.setAttribute('color', d3Color);
+    difficultyBtn3.setAttribute('data-base-color', d3Color);
   }
 
   updateSfxVolumeButtons();
@@ -788,6 +800,8 @@ function selectHistoryTab() {
   if (aiContent) aiContent.setAttribute("visible", "false");
   if (tabHistoryBtn) tabHistoryBtn.setAttribute("color", "#2C5AA0");
   if (tabAIBtn) tabAIBtn.setAttribute("color", "#555555");
+  if (tabHistoryBtn) tabHistoryBtn.setAttribute('data-base-color', '#2C5AA0');
+  if (tabAIBtn) tabAIBtn.setAttribute('data-base-color', '#555555');
   
   updateHistoryMenuDisplay();
 }
@@ -804,6 +818,8 @@ function selectAITab() {
   if (aiContent) aiContent.setAttribute("visible", "true");
   if (tabHistoryBtn) tabHistoryBtn.setAttribute("color", "#555555");
   if (tabAIBtn) tabAIBtn.setAttribute("color", "#2C5AA0");
+  if (tabHistoryBtn) tabHistoryBtn.setAttribute('data-base-color', '#555555');
+  if (tabAIBtn) tabAIBtn.setAttribute('data-base-color', '#2C5AA0');
 
   updateAIAssistantDisplay();
 }
