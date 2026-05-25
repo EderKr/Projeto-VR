@@ -261,6 +261,35 @@ AFRAME.registerComponent("gaze-button", {
     this.hasActivated = false;
     this.raycaster = new THREE.Raycaster();
     this.direction = new THREE.Vector3();
+    this.baseColor = this.el.getAttribute("color") || "#273242";
+
+    // Deixa a própria hitbox do menu visível e com contorno.
+    // Assim o jogador enxerga claramente o que é clicável/selecionável no VR.
+    const menuRoot = this.el.closest && this.el.closest("#menuMainScreen, #menuCustomizeScreen, #menuHistoryScreen");
+    this.isMenuButton = Boolean(menuRoot);
+    this.buttonFrame = null;
+
+    if (this.isMenuButton) {
+      const width = parseFloat(this.el.getAttribute("width")) || 1;
+      const height = parseFloat(this.el.getAttribute("height")) || 0.4;
+
+      this.el.setAttribute(
+        "material",
+        "shader: flat; transparent: true; opacity: 0.97; depthTest: false; depthWrite: false; side: double"
+      );
+
+      this.buttonFrame = document.createElement("a-plane");
+      this.buttonFrame.setAttribute("width", String(width + 0.10));
+      this.buttonFrame.setAttribute("height", String(height + 0.10));
+      this.buttonFrame.setAttribute("position", "0 0 -0.012");
+      this.buttonFrame.setAttribute("color", "#F8D070");
+      this.buttonFrame.setAttribute("opacity", "0.42");
+      this.buttonFrame.setAttribute(
+        "material",
+        "shader: flat; transparent: true; opacity: 0.42; depthTest: false; depthWrite: false; side: double"
+      );
+      this.el.appendChild(this.buttonFrame);
+    }
 
     this.isVisibleInHierarchy = () => {
       let current = this.el;
@@ -426,6 +455,16 @@ AFRAME.registerComponent("gaze-button", {
         this.defaultScale.z * 1.06
       );
 
+      if (this.isMenuButton) {
+        this.baseColor = this.el.getAttribute("color") || this.baseColor;
+        this.el.setAttribute("color", "#FFFFFF");
+        if (this.buttonFrame) {
+          this.buttonFrame.setAttribute("color", "#FFFFFF");
+          this.buttonFrame.setAttribute("opacity", "0.72");
+          this.buttonFrame.setAttribute("material", "shader: flat; transparent: true; opacity: 0.72; depthTest: false; depthWrite: false; side: double");
+        }
+      }
+
       this.clearHoverTimer();
       this.hoverTimeout = setTimeout(() => {
         this.activate();
@@ -436,6 +475,14 @@ AFRAME.registerComponent("gaze-button", {
       this.clearHoverTimer();
       this.hasActivated = false;
       this.el.object3D.scale.copy(this.defaultScale);
+      if (this.isMenuButton) {
+        this.el.setAttribute("color", this.baseColor);
+        if (this.buttonFrame) {
+          this.buttonFrame.setAttribute("color", "#F8D070");
+          this.buttonFrame.setAttribute("opacity", "0.42");
+          this.buttonFrame.setAttribute("material", "shader: flat; transparent: true; opacity: 0.42; depthTest: false; depthWrite: false; side: double");
+        }
+      }
     });
 
     this.el.addEventListener("click", () => {

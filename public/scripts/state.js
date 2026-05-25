@@ -85,12 +85,12 @@ const game = {
   phaseSummaryCommitted: false,
   phaseHistory: [],
   actionHistory: [],
-  sfxVolume: 1
+  sfxVolume: 0.25
 };
 
 function normalizeSfxVolume(value) {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 1;
+  if (!Number.isFinite(parsed)) return 0.25;
   if (parsed <= 0) return 0;
   if (parsed <= 0.25) return 0.25;
   if (parsed <= 0.5) return 0.5;

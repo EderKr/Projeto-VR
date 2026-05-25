@@ -8,7 +8,7 @@ Jogo VR/WebXR de reflexos em que o jogador enfrenta inimigos usando movimentos d
 
 ## 🎮 Conceito
 
-**Headbutt Berserker** é um jogo em realidade virtual no qual o jogador controla um viking sem braços que luta contra inimigos usando cabeçadas, esquivas laterais e agachamentos.
+**Headbutt Berserker** é um jogo em realidade virtual no qual o jogador luta contra inimigos usando cabeçadas, esquivas laterais e agachamentos.
 
 O protótipo atual usa **A-Frame/WebXR** para rastrear a câmera/cabeça do jogador. Também há suporte a teclado para testes no desktop:
 
@@ -18,50 +18,75 @@ O protótipo atual usa **A-Frame/WebXR** para rastrear a câmera/cabeça do joga
 - `↓` agachar;
 - `Esc` abrir/fechar menu de pausa no desktop.
 
-> Observação: a visão computacional aparece como evolução futura do projeto. A versão atual usa rastreamento de cabeça pelo WebXR/A-Frame.
-
-<hr>
-
-## ⚡ Treinamento de reflexos
-
-Durante as partidas, o jogo registra métricas como:
-
-- tempo médio de reação;
-- acertos e erros;
-- precisão por ação;
-- timeouts;
-- desempenho por fase;
-- histórico das últimas partidas.
-
-Essas informações podem ser salvas no `db.json` local ou em um banco **Supabase/PostgreSQL** quando `USE_SUPABASE=true`. O menu de histórico continua usando as mesmas rotas da API.
-
-<hr>
-
-## 🧠 Assistente IA
-
-A aba **Assistente IA** já possui uma primeira versão funcional baseada em regras. Ela analisa o histórico recente e gera recomendações como:
-
-- aumentar dificuldade quando a precisão e o tempo de reação estão bons;
-- reduzir dificuldade quando há muitos erros;
-- treinar ações específicas com menor precisão;
-- ajustar o modo customizado quando há muitos timeouts.
-
-Essa abordagem não usa machine learning ainda, mas já funciona como um assistente inteligente baseado em métricas de desempenho.
-
 <hr>
 
 ## 🧰 Tecnologias utilizadas
 
-- **Node.js** para o servidor HTTP;
-- **A-Frame 1.5.0** para a cena VR/WebXR;
-- **aframe-environment-component** para ambiente 3D;
+- **Node.js** para o servidor/back-end;
+- **A-Frame/WebXR** para o front-end VR;
 - **JavaScript puro** no front-end;
-- **JSON local (`db.json`)** como fallback de desenvolvimento;
-- **Supabase/PostgreSQL** para histórico em produção.
+- **PostgreSQL** via Docker Compose para histórico de desempenho;
+- **JSON local (`db.json`)** como fallback;
+- **Supabase/PostgreSQL** opcional para deploy externo.
+
+> Nesta versão, o front-end é servido pelo próprio servidor Node. Por isso o Docker principal contém front + back no mesmo container, e o banco roda em outro container.
 
 <hr>
 
-## 🚀 Como rodar localmente
+## 🐳 Rodar com Docker Compose
+
+Requisitos:
+
+- Docker;
+- Docker Compose.
+
+Suba a aplicação completa com banco PostgreSQL:
+
+```bash
+docker compose up --build
+```
+
+Acesse:
+
+```text
+http://localhost:3000
+```
+
+A rota de saúde mostra se o banco está conectado:
+
+```text
+http://localhost:3000/api/health
+```
+
+Serviços criados:
+
+```text
+app       -> front + back Node.js, porta 3000
+postgres  -> banco PostgreSQL local
+```
+
+Volumes persistentes:
+
+```text
+postgres-data -> dados do PostgreSQL
+app-data      -> fallback local /data, caso necessário
+```
+
+Para parar:
+
+```bash
+docker compose down
+```
+
+Para apagar também os dados locais do banco:
+
+```bash
+docker compose down -v
+```
+
+<hr>
+
+## 🚀 Rodar sem Docker
 
 Requisitos:
 
@@ -88,54 +113,53 @@ Para validar sintaxe dos arquivos principais:
 npm run check
 ```
 
+Sem Docker/PostgreSQL/Supabase, o projeto usa `db.json` como fallback.
+
 <hr>
 
-## 🌐 Servidor público / deploy
+## 🗄️ Banco de dados
 
-O projeto já está preparado para hospedagem pública com:
+A aplicação suporta três modos, nesta prioridade:
 
-- `HOST=0.0.0.0`;
-- `PORT` por variável de ambiente;
-- rota de saúde em `/api/health`;
-- `Dockerfile`;
-- `render.yaml`;
-- `.env.example`.
+1. **Supabase**, quando `USE_SUPABASE=true`;
+2. **PostgreSQL local**, quando `USE_POSTGRES=true` ou `DATABASE_URL` estiver configurado;
+3. **JSON local**, como fallback.
 
-### Opção rápida: Render
-
-1. Suba este projeto para o GitHub.
-2. Crie um novo **Web Service** no Render.
-3. Selecione o repositório.
-4. Use:
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-5. Configure as variáveis:
-   - `HOST=0.0.0.0`
-   - `NODE_ENV=production`
-   - `CORS_ORIGIN=*`
-6. Abra a URL gerada pelo Render.
-
-### Opção com Docker
-
-```bash
-docker build -t headbutt-berserker .
-docker run -p 3000:3000 -e HOST=0.0.0.0 headbutt-berserker
-```
-
-Depois acesse:
+No Docker Compose, o modo padrão é PostgreSQL local:
 
 ```text
-http://localhost:3000
+USE_POSTGRES=true
+DATABASE_URL=postgres://vruser:vrpassword@postgres:5432/vrgame
 ```
 
-### Banco de dados com Supabase/PostgreSQL
+O schema inicial fica em:
 
-O projeto já vem preparado para usar Supabase. O navegador continua acessando as rotas do servidor, por exemplo `/api/history`; somente o `server.js` conversa com o banco.
+```text
+docker/postgres/init.sql
+```
 
-1. Crie um projeto no Supabase.
-2. Abra **SQL Editor**.
-3. Execute o conteúdo do arquivo `supabase-schema.sql`.
-4. No Render, configure as variáveis:
+Também existe o schema compatível com Supabase:
+
+```text
+supabase-schema.sql
+```
+
+<hr>
+
+## ☁️ Deploy com Render
+
+O projeto ainda pode ser publicado no Render usando `render.yaml`.
+
+Para deploy simples sem banco externo:
+
+```text
+Build Command: npm ci
+Start Command: npm start
+USE_SUPABASE=false
+USE_POSTGRES=false
+```
+
+Para produção real, prefira Supabase/PostgreSQL e configure:
 
 ```text
 USE_SUPABASE=true
@@ -144,49 +168,29 @@ SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
 HISTORY_LIMIT=100
 ```
 
-> Atenção: a `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no servidor/Render. Nunca coloque essa chave em arquivos públicos do front-end.
-
-A rota `/api/health` mostra se o servidor está usando `supabase` ou `json`.
-
-### Persistência em produção
-
-Com Supabase ativado, o histórico fica no PostgreSQL e não depende mais do arquivo local. Sem Supabase, o projeto usa `db.json` como fallback. Em hospedagens gratuitas, arquivos locais podem ser apagados quando o serviço reiniciar.
-
-Para produção real, recomenda-se usar Supabase/PostgreSQL. Como alternativa temporária, use disco persistente e variável `DB_PATH`, por exemplo `/data/db.json`.
+> A `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no servidor. Nunca coloque essa chave no front-end.
 
 <hr>
 
 ## 📁 Estrutura principal
 
 ```text
-server.js
-database.js
-supabase-schema.sql
-package.json
-db.json
-public/
-  index.html
-  style.css
-  scripts/
-    state.js
-    ui.js
-    gameplay.js
-    components.js
+server.js                 -> back-end HTTP/API + servidor estático do front
+database.js               -> camada de persistência JSON/Supabase/PostgreSQL
+docker-compose.yml        -> app + PostgreSQL
+Dockerfile                -> container da aplicação
+docker/postgres/init.sql  -> schema do PostgreSQL local
+public/                   -> front-end VR, modelos, sons e texturas
 ```
 
 <hr>
 
-## 🔮 Melhorias futuras
+## 🔮 Próximas melhorias planejadas
 
-- integrar visão computacional real com câmera;
-- substituir o assistente por modelo de IA/ML;
+- melhorar a IA dos inimigos;
+- melhorar a UI geral;
+- evoluir o assistente IA baseado em desempenho;
 - criar login e salvar usuários separados;
-- criar ranking global usando Supabase;
-- adicionar ranking e estatísticas por sessão;
+- criar ranking global;
+- adicionar estatísticas por sessão;
 - melhorar calibração VR inicial.
-
-<hr>
-
-## Referência
-
-- A-Frame Environment Component: https://github.com/supermedium/aframe-environment-component

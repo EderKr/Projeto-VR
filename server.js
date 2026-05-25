@@ -531,5 +531,5 @@ server.listen(PORT, HOST, () => {
   ensureLocalDbFile();
   console.log(`Headbutt Berserker server running at http://${HOST}:${PORT}`);
   console.log(`Database fallback path: ${DB_PATH}`);
-  console.log(`Database provider: ${process.env.USE_SUPABASE === "true" ? "Supabase/PostgreSQL" : "db.json"}`);
+  console.log(`Database provider: ${process.env.USE_SUPABASE === "true" ? "Supabase" : (process.env.USE_POSTGRES === "true" || process.env.DATABASE_URL ? "PostgreSQL" : "db.json")}`);
 });

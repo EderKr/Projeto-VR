@@ -284,22 +284,20 @@ function setRoundControlsVisibility(isRunning) {
 
   if (isRunning) {
     for (const child of children) {
-      if (pauseOnlyIds.has(child.id)) {
-        child.setAttribute("visible", "false");
-        continue;
-      }
       child.setAttribute("visible", "false");
     }
 
     stopButtonGroup.setAttribute("visible", "true");
   } else {
     for (const child of children) {
-      if (pauseOnlyIds.has(child.id)) {
+      if (pauseOnlyIds.has(child.id) || child.id === "stopButtonGroup") {
         child.setAttribute("visible", "false");
         continue;
       }
       child.setAttribute("visible", "true");
     }
+
+    stopButtonGroup.setAttribute("visible", "false");
   }
 }
 
@@ -358,7 +356,11 @@ window.addEventListener("load", () => {
     });
     setSfxVolume(sfxVolumeSelectEl.value);
   } else if (typeof setSfxVolume === "function") {
-    setSfxVolume(1);
+    setSfxVolume(0.25);
+  }
+
+  if (typeof setRoundControlsVisibility === "function") {
+    setRoundControlsVisibility(false);
   }
 });
 
@@ -381,22 +383,61 @@ function hideAllVRMenus() {
 }
 
 function positionVRMenusInFrontOfPlayer() {
-  // Mantém o menu de pausa fixo no centro da cena principal,
-  // em vez de prendê-lo à direção atual da câmera/jogador.
-  // Assim, ao clicar em pause, o painel aparece sempre no mesmo lugar
-  // do mundo e não acompanha a cabeça.
+  const cam = document.getElementById("playerCamera");
+  if (!cam || typeof THREE === "undefined") return;
+
+  const camWorldPos = new THREE.Vector3();
+  const camWorldQuat = new THREE.Quaternion();
+  cam.object3D.getWorldPosition(camWorldPos);
+  cam.object3D.getWorldQuaternion(camWorldQuat);
+
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camWorldQuat);
+  forward.y = 0;
+  if (forward.lengthSq() < 0.0001) {
+    forward.set(0, 0, -1);
+  } else {
+    forward.normalize();
+  }
+
+  const targetBase = camWorldPos.clone().add(forward.clone().multiplyScalar(2.75));
+  targetBase.y = 1.48;
+
   const fixedMenus = [
-    { id: "menuMainScreen", position: "0 1.38 -3.25", rotation: "0 0 0", scale: "0.82 0.82 0.82" },
-    { id: "menuCustomizeScreen", position: "0 1.46 -3.15", rotation: "0 0 0", scale: "0.82 0.82 0.82" },
-    { id: "menuHistoryScreen", position: "0 1.38 -3.35", rotation: "0 0 0", scale: "0.78 0.78 0.78" }
+    { id: "menuMainScreen", y: 1.42, zOffset: 0, scale: "0.88 0.88 0.88" },
+    { id: "menuCustomizeScreen", y: 1.50, zOffset: 0.04, scale: "0.76 0.76 0.76" },
+    { id: "menuHistoryScreen", y: 1.45, zOffset: -0.04, scale: "0.80 0.80 0.80" }
   ];
 
   for (const item of fixedMenus) {
     const menu = document.getElementById(item.id);
     if (!menu) continue;
-    menu.setAttribute("position", item.position);
-    menu.setAttribute("rotation", item.rotation);
+
+    const pos = targetBase.clone().add(forward.clone().multiplyScalar(item.zOffset || 0));
+    pos.y = item.y;
+    menu.object3D.position.copy(pos);
+
+    const lookTarget = camWorldPos.clone();
+    lookTarget.y = item.y;
+    menu.object3D.lookAt(lookTarget);
+    menu.object3D.rotation.x = 0;
+    menu.object3D.rotation.z = 0;
     menu.setAttribute("scale", item.scale);
+  }
+}
+
+function setMenuOcclusionSafeVisibility(menuOpen) {
+  // Durante o pause VR, estes elementos ficavam cruzando a frente do painel.
+  // Escondemos só enquanto o menu está aberto para manter a leitura limpa.
+  const ids = [
+    "enemyWorldHpRoot",
+    "cameraHudRoot",
+    "clouds"
+  ];
+
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.setAttribute("visible", String(!menuOpen));
   }
 }
 
@@ -410,6 +451,7 @@ function setVRMenuOpen(open) {
 
   vrMenuState.isOpen = open;
   overlay.setAttribute("visible", String(open));
+  setMenuOcclusionSafeVisibility(Boolean(open));
 
   if (pauseButton) pauseButton.setAttribute("visible", String(!open));
   if (menuCursor) {
@@ -440,6 +482,7 @@ function setVRMenuOpen(open) {
 
 function showVRMenu(menuId) {
   if (!vrMenuState.isOpen) return;
+  positionVRMenusInFrontOfPlayer();
   hideAllVRMenus();
 
   const targetMenu = document.getElementById(menuId);

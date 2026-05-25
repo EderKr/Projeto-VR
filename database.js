@@ -6,6 +6,83 @@ const USE_SUPABASE = process.env.USE_SUPABASE === "true";
 const HISTORY_LIMIT = Number(process.env.HISTORY_LIMIT) > 0 ? Number(process.env.HISTORY_LIMIT) : 100;
 
 let supabase = null;
+let postgresPool = null;
+let postgresReady = false;
+
+function shouldUsePostgres() {
+  return process.env.USE_POSTGRES === "true" || Boolean(process.env.DATABASE_URL);
+}
+
+function getPostgresConnectionString() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+
+  const host = process.env.POSTGRES_HOST || "postgres";
+  const port = process.env.POSTGRES_PORT || "5432";
+  const database = process.env.POSTGRES_DB || "vrgame";
+  const user = process.env.POSTGRES_USER || "vruser";
+  const password = process.env.POSTGRES_PASSWORD || "vrpassword";
+
+  return `postgres://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+}
+
+function getPostgresPool() {
+  if (!shouldUsePostgres() || USE_SUPABASE) return null;
+  if (postgresPool) return postgresPool;
+
+  try {
+    const { Pool } = require("pg");
+    postgresPool = new Pool({
+      connectionString: getPostgresConnectionString(),
+      ssl: process.env.POSTGRES_SSL === "true" ? { rejectUnauthorized: false } : false
+    });
+    return postgresPool;
+  } catch (error) {
+    console.warn("Não foi possível carregar pg/PostgreSQL. Usando db.json como fallback.", error.message);
+    return null;
+  }
+}
+
+async function ensurePostgresSchema() {
+  const pool = getPostgresPool();
+  if (!pool) return null;
+  if (postgresReady) return pool;
+
+  await pool.query(`
+    create table if not exists performance_history (
+      id uuid primary key default gen_random_uuid(),
+      created_at timestamptz not null default now(),
+      original_id text,
+      phase integer,
+      custom_mode boolean default false,
+      difficulty_phase integer,
+      status text,
+      lives_left numeric,
+      enemy_hits numeric default 0,
+      enemy_hits_needed numeric,
+      hits integer default 0,
+      misses integer default 0,
+      attempts integer default 0,
+      accuracy numeric default 0,
+      duration numeric default 0,
+      avg_reaction numeric,
+      actions jsonb default '[]'::jsonb,
+      action_breakdown jsonb default '{}'::jsonb,
+      raw_data jsonb default '{}'::jsonb
+    );
+
+    create index if not exists performance_history_created_at_idx
+      on performance_history (created_at desc);
+
+    create index if not exists performance_history_phase_idx
+      on performance_history (phase);
+
+    create index if not exists performance_history_status_idx
+      on performance_history (status);
+  `);
+
+  postgresReady = true;
+  return pool;
+}
 
 function getSupabaseClient() {
   if (!USE_SUPABASE) return null;
@@ -132,6 +209,15 @@ async function getHistory() {
     return (data || []).map(fromSupabaseRow);
   }
 
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    const { rows } = await pool.query(
+      "select * from performance_history order by created_at desc limit $1",
+      [HISTORY_LIMIT]
+    );
+    return rows.map(fromSupabaseRow);
+  }
+
   const db = readLocalDb();
   return db.performanceHistory || [];
 }
@@ -149,6 +235,28 @@ async function saveHistory(entry) {
 
     if (error) throw error;
     return fromSupabaseRow(data);
+  }
+
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    const payload = normalizeForSupabase(entry);
+    const { rows } = await pool.query(
+      `insert into performance_history (
+        original_id, phase, custom_mode, difficulty_phase, status, lives_left,
+        enemy_hits, enemy_hits_needed, hits, misses, attempts, accuracy,
+        duration, avg_reaction, actions, action_breakdown, raw_data, created_at
+      ) values (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10, $11, $12,
+        $13, $14, $15::jsonb, $16::jsonb, $17::jsonb, $18
+      ) returning *`,
+      [
+        payload.original_id, payload.phase, payload.custom_mode, payload.difficulty_phase, payload.status, payload.lives_left,
+        payload.enemy_hits, payload.enemy_hits_needed, payload.hits, payload.misses, payload.attempts, payload.accuracy,
+        payload.duration, payload.avg_reaction, JSON.stringify(payload.actions), JSON.stringify(payload.action_breakdown), JSON.stringify(payload.raw_data), payload.created_at
+      ]
+    );
+    return fromSupabaseRow(rows[0]);
   }
 
   const db = readLocalDb();
@@ -181,6 +289,45 @@ async function replaceHistory(entries) {
     return (data || []).map(fromSupabaseRow);
   }
 
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      await client.query("delete from performance_history");
+
+      const savedRows = [];
+      for (const entry of entries) {
+        const payload = normalizeForSupabase(entry);
+        const { rows } = await client.query(
+          `insert into performance_history (
+            original_id, phase, custom_mode, difficulty_phase, status, lives_left,
+            enemy_hits, enemy_hits_needed, hits, misses, attempts, accuracy,
+            duration, avg_reaction, actions, action_breakdown, raw_data, created_at
+          ) values (
+            $1, $2, $3, $4, $5, $6,
+            $7, $8, $9, $10, $11, $12,
+            $13, $14, $15::jsonb, $16::jsonb, $17::jsonb, $18
+          ) returning *`,
+          [
+            payload.original_id, payload.phase, payload.custom_mode, payload.difficulty_phase, payload.status, payload.lives_left,
+            payload.enemy_hits, payload.enemy_hits_needed, payload.hits, payload.misses, payload.attempts, payload.accuracy,
+            payload.duration, payload.avg_reaction, JSON.stringify(payload.actions), JSON.stringify(payload.action_breakdown), JSON.stringify(payload.raw_data), payload.created_at
+          ]
+        );
+        savedRows.push(rows[0]);
+      }
+
+      await client.query("commit");
+      return savedRows.map(fromSupabaseRow).slice(0, HISTORY_LIMIT);
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   const db = readLocalDb();
   db.performanceHistory = entries.slice(0, HISTORY_LIMIT);
   writeLocalDb(db);
@@ -190,23 +337,43 @@ async function replaceHistory(entries) {
 async function getDatabaseStatus() {
   const client = getSupabaseClient();
 
-  if (!client) {
+  if (client) {
+    const { error } = await client
+      .from("performance_history")
+      .select("id", { count: "exact", head: true });
+
     return {
-      provider: "json",
-      usingSupabase: false,
-      dbPath: DB_PATH
+      provider: "supabase",
+      usingSupabase: true,
+      connected: !error,
+      error: error ? error.message : null
     };
   }
 
-  const { error } = await client
-    .from("performance_history")
-    .select("id", { count: "exact", head: true });
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    try {
+      await pool.query("select 1");
+      return {
+        provider: "postgres",
+        usingPostgres: true,
+        connected: true
+      };
+    } catch (error) {
+      return {
+        provider: "postgres",
+        usingPostgres: true,
+        connected: false,
+        error: error.message
+      };
+    }
+  }
 
   return {
-    provider: "supabase",
-    usingSupabase: true,
-    connected: !error,
-    error: error ? error.message : null
+    provider: "json",
+    usingSupabase: false,
+    usingPostgres: false,
+    dbPath: DB_PATH
   };
 }
 
