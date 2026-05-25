@@ -564,12 +564,33 @@ function updateCustomizeMenuDisplay() {
   const livesDisplay = document.getElementById("customLivesDisplay");
   const enemyDisplay = document.getElementById("customEnemyDisplay");
 
-  if (typeof customLivesEl !== 'undefined' && customLivesEl && livesDisplay) {
-    setCanvasText(livesDisplay, String(customLivesEl.value || 3));
+  // If the digit lock elements exist, render each digit separately.
+  const ld0 = document.getElementById('customLivesDigit0');
+  const ld1 = document.getElementById('customLivesDigit1');
+  const ld2 = document.getElementById('customLivesDigit2');
+  if (typeof customLivesEl !== 'undefined' && customLivesEl) {
+    const val = String(Math.max(1, parseInt(customLivesEl.value, 10) || 1)).padStart(3, '0');
+    if (ld0 && ld1 && ld2) {
+      setCanvasText(ld0, val[0]);
+      setCanvasText(ld1, val[1]);
+      setCanvasText(ld2, val[2]);
+    } else if (livesDisplay) {
+      setCanvasText(livesDisplay, String(customLivesEl.value || 3));
+    }
   }
 
-  if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl && enemyDisplay) {
-    setCanvasText(enemyDisplay, String(customEnemyHitsEl.value || 3));
+  const ed0 = document.getElementById('customEnemyDigit0');
+  const ed1 = document.getElementById('customEnemyDigit1');
+  const ed2 = document.getElementById('customEnemyDigit2');
+  if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl) {
+    const valE = String(Math.max(1, parseInt(customEnemyHitsEl.value, 10) || 1)).padStart(3, '0');
+    if (ed0 && ed1 && ed2) {
+      setCanvasText(ed0, valE[0]);
+      setCanvasText(ed1, valE[1]);
+      setCanvasText(ed2, valE[2]);
+    } else if (enemyDisplay) {
+      setCanvasText(enemyDisplay, String(customEnemyHitsEl.value || 3));
+    }
   }
 
   const livesInfiniteBtn = document.getElementById('customLivesInfiniteBtn');

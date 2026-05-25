@@ -372,11 +372,28 @@
       <a-entity position="-1.65 0.67 0.02">
         <a-plane width="2.85" height="1.08" color="#0B1B2B" opacity="0.98" radius="0.10" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
         <a-plane position="0 0.36 0.035" width="2.25" height="0.25" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: VIDAS; align: center; fontSize: 62; color: #FFE8B6; padding: 6;"></a-plane>
-        <a-plane class="clickable" gaze-button="action: custom_lives_dec; dwellTime: 260" position="-0.88 -0.03 0.04" width="0.74" height="0.58" color="#A83F4D" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-        <a-plane position="-0.88 -0.03 0.075" width="0.54" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: -; align: center; fontSize: 94; color: #FFFFFF; padding: 4;"></a-plane>
-        <a-plane id="customLivesDisplay" position="0 -0.03 0.04" width="0.72" height="0.48" color="#15293A" opacity="0.98" radius="0.06" material="shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: 3; align: center; fontSize: 86; color: #FFFFFF; padding: 5;"></a-plane>
-        <a-plane class="clickable" gaze-button="action: custom_lives_inc; dwellTime: 260" position="0.88 -0.03 0.04" width="0.74" height="0.58" color="#2F8F6B" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-        <a-plane position="0.88 -0.03 0.075" width="0.54" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: +; align: center; fontSize: 94; color: #FFFFFF; padding: 4;"></a-plane>
+
+        <!-- Cadeado de três dígitos para VIDAS -->
+        <a-entity id="customLivesLock" position="0 -0.03 0.04">
+          <a-entity position="-0.36 0 0">
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_0; dwellTime: 220" position="0 0.12 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane id="customLivesDigit0" position="0 0 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 86; color: #FFFFFF; padding: 6;"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_0; dwellTime: 220" position="0 -0.12 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+          </a-entity>
+
+          <a-entity position="0 0 0">
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_1; dwellTime: 220" position="0 0.12 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane id="customLivesDigit1" position="0 0 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 86; color: #FFFFFF; padding: 6;"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_1; dwellTime: 220" position="0 -0.12 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+          </a-entity>
+
+          <a-entity position="0.36 0 0">
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_2; dwellTime: 220" position="0 0.12 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane id="customLivesDigit2" position="0 0 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 3; align: center; fontSize: 86; color: #FFFFFF; padding: 6;"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_2; dwellTime: 220" position="0 -0.12 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+          </a-entity>
+        </a-entity>
+
         <a-plane id="customLivesInfiniteBtn" class="clickable" gaze-button="action: custom_toggle_lives_infinite; dwellTime: 300" position="0 -0.43 0.04" width="1.90" height="0.36" color="#273242" radius="0.07" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
         <a-plane id="customLivesInfiniteText" position="0 -0.43 0.075" width="1.62" height="0.22" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: ∞ VIDAS; align: center; fontSize: 54; color: #FFFFFF; padding: 4;"></a-plane>
       </a-entity>
@@ -384,11 +401,28 @@
       <a-entity position="1.65 0.67 0.02">
         <a-plane width="2.85" height="1.08" color="#0B1B2B" opacity="0.98" radius="0.10" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
         <a-plane position="0 0.36 0.035" width="2.50" height="0.25" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: ATAQUES PARA VENCER; align: center; fontSize: 48; color: #FFE8B6; padding: 6;"></a-plane>
-        <a-plane class="clickable" gaze-button="action: custom_enemy_dec; dwellTime: 260" position="-0.88 -0.03 0.04" width="0.74" height="0.58" color="#A83F4D" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-        <a-plane position="-0.88 -0.03 0.075" width="0.54" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: -; align: center; fontSize: 94; color: #FFFFFF; padding: 4;"></a-plane>
-        <a-plane id="customEnemyDisplay" position="0 -0.03 0.04" width="0.72" height="0.48" color="#15293A" opacity="0.98" radius="0.06" material="shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: 3; align: center; fontSize: 86; color: #FFFFFF; padding: 5;"></a-plane>
-        <a-plane class="clickable" gaze-button="action: custom_enemy_inc; dwellTime: 260" position="0.88 -0.03 0.04" width="0.74" height="0.58" color="#2F8F6B" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-        <a-plane position="0.88 -0.03 0.075" width="0.54" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: +; align: center; fontSize: 94; color: #FFFFFF; padding: 4;"></a-plane>
+
+        <!-- Cadeado de três dígitos para ATAQUES -->
+        <a-entity id="customEnemyLock" position="0 -0.03 0.04">
+          <a-entity position="-0.36 0 0">
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_0; dwellTime: 220" position="0 0.12 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane id="customEnemyDigit0" position="0 0 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 86; color: #FFFFFF; padding: 6;"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_0; dwellTime: 220" position="0 -0.12 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+          </a-entity>
+
+          <a-entity position="0 0 0">
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_1; dwellTime: 220" position="0 0.12 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane id="customEnemyDigit1" position="0 0 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 86; color: #FFFFFF; padding: 6;"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_1; dwellTime: 220" position="0 -0.12 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+          </a-entity>
+
+          <a-entity position="0.36 0 0">
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_2; dwellTime: 220" position="0 0.12 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane id="customEnemyDigit2" position="0 0 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 3; align: center; fontSize: 86; color: #FFFFFF; padding: 6;"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_2; dwellTime: 220" position="0 -0.12 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+          </a-entity>
+        </a-entity>
+
         <a-plane id="customEnemyInfiniteBtn" class="clickable" gaze-button="action: custom_toggle_enemy_infinite; dwellTime: 300" position="0 -0.43 0.04" width="1.90" height="0.36" color="#273242" radius="0.07" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
         <a-plane id="customEnemyInfiniteText" position="0 -0.43 0.075" width="1.62" height="0.22" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: ∞ ATAQUES; align: center; fontSize: 50; color: #FFFFFF; padding: 4;"></a-plane>
       </a-entity>

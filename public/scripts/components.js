@@ -405,6 +405,26 @@ AFRAME.registerComponent("gaze-button", {
           customLivesEl.value = Math.max(1, (parseInt(customLivesEl.value, 10) || 3) - 1);
         }
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action && this.data.action.indexOf && this.data.action.indexOf('custom_lives_digit_') === 0) {
+        // actions: custom_lives_digit_inc_X or custom_lives_digit_dec_X where X is 0,1,2
+        if (typeof customLivesEl !== 'undefined' && customLivesEl) {
+          const parts = this.data.action.split('_');
+          const op = parts[3]; // inc or dec
+          const idx = parseInt(parts[4], 10);
+          const current = String(Math.max(0, parseInt(customLivesEl.value, 10) || 0)).padStart(3, '0');
+          const digits = current.split('').map(d => parseInt(d, 10));
+          if (Number.isFinite(idx) && idx >= 0 && idx <= 2) {
+            if (op === 'inc') {
+              digits[idx] = (digits[idx] + 1) % 10;
+            } else {
+              digits[idx] = (digits[idx] + 9) % 10;
+            }
+          }
+          let combined = Number(digits.join(''));
+          if (combined === 0) combined = 1; // restrição: não permitir 000
+          customLivesEl.value = String(combined);
+        }
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
       } else if (this.data.action === "custom_toggle_lives_infinite") {
         if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof customLivesInfiniteEl !== 'undefined' && customLivesInfiniteEl) {
           customLivesInfiniteEl.checked = !customLivesInfiniteEl.checked;
@@ -413,6 +433,26 @@ AFRAME.registerComponent("gaze-button", {
       } else if (this.data.action === "custom_enemy_inc") {
         if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl) {
           customEnemyHitsEl.value = Math.max(1, (parseInt(customEnemyHitsEl.value, 10) || 3) + 1);
+        }
+        if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
+      } else if (this.data.action && this.data.action.indexOf && this.data.action.indexOf('custom_enemy_digit_') === 0) {
+        // actions: custom_enemy_digit_inc_X or custom_enemy_digit_dec_X where X is 0,1,2
+        if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl) {
+          const partsE = this.data.action.split('_');
+          const opE = partsE[3];
+          const idxE = parseInt(partsE[4], 10);
+          const currentE = String(Math.max(0, parseInt(customEnemyHitsEl.value, 10) || 0)).padStart(3, '0');
+          const digitsE = currentE.split('').map(d => parseInt(d, 10));
+          if (Number.isFinite(idxE) && idxE >= 0 && idxE <= 2) {
+            if (opE === 'inc') {
+              digitsE[idxE] = (digitsE[idxE] + 1) % 10;
+            } else {
+              digitsE[idxE] = (digitsE[idxE] + 9) % 10;
+            }
+          }
+          let combinedE = Number(digitsE.join(''));
+          if (combinedE === 0) combinedE = 1; // restrição: não permitir 000
+          customEnemyHitsEl.value = String(combinedE);
         }
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
       } else if (this.data.action === "custom_toggle_enemy_infinite") {
