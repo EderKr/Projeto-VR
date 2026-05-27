@@ -159,7 +159,6 @@ AFRAME.registerComponent("canvas-text", {
   }
 });
 
-// Remove smoothing filter on the sand texture so the image appears unfiltered
 AFRAME.registerComponent('sand-texture-filter', {
   init: function () {
     this.applyFix = this.applyFix.bind(this);
@@ -263,8 +262,6 @@ AFRAME.registerComponent("gaze-button", {
     this.direction = new THREE.Vector3();
     this.baseColor = this.el.getAttribute("color") || "#273242";
 
-    // Deixa a própria hitbox do menu visível e com contorno.
-    // Assim o jogador enxerga claramente o que é clicável/selecionável no VR.
     const menuRoot = this.el.closest && this.el.closest("#menuMainScreen, #menuCustomizeScreen, #menuHistoryScreen");
     this.isMenuButton = Boolean(menuRoot);
     this.buttonFrame = null;
@@ -406,10 +403,8 @@ AFRAME.registerComponent("gaze-button", {
         }
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
       } else if (this.data.action && this.data.action.indexOf && this.data.action.indexOf('custom_lives_digit_') === 0) {
-        // actions: custom_lives_digit_inc_X or custom_lives_digit_dec_X where X is 0,1,2
         if (typeof customLivesEl !== 'undefined' && customLivesEl) {
           const parts = this.data.action.split('_');
-          const op = parts[3]; // inc or dec
           const idx = parseInt(parts[4], 10);
           const current = String(Math.max(0, parseInt(customLivesEl.value, 10) || 0)).padStart(3, '0');
           const digits = current.split('').map(d => parseInt(d, 10));
@@ -421,7 +416,6 @@ AFRAME.registerComponent("gaze-button", {
             }
           }
           let combined = Number(digits.join(''));
-          if (combined === 0) combined = 1; // restrição: não permitir 000
           customLivesEl.value = String(combined);
         }
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
@@ -436,7 +430,6 @@ AFRAME.registerComponent("gaze-button", {
         }
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
       } else if (this.data.action && this.data.action.indexOf && this.data.action.indexOf('custom_enemy_digit_') === 0) {
-        // actions: custom_enemy_digit_inc_X or custom_enemy_digit_dec_X where X is 0,1,2
         if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl) {
           const partsE = this.data.action.split('_');
           const opE = partsE[3];
@@ -451,7 +444,6 @@ AFRAME.registerComponent("gaze-button", {
             }
           }
           let combinedE = Number(digitsE.join(''));
-          if (combinedE === 0) combinedE = 1; // restrição: não permitir 000
           customEnemyHitsEl.value = String(combinedE);
         }
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
@@ -497,7 +489,6 @@ AFRAME.registerComponent("gaze-button", {
 
       if (this.isMenuButton) {
         this.baseColor = this.el.getAttribute("color") || this.baseColor;
-        // store the base color on the element so external updates can be respected
         this.el.setAttribute('data-base-color', this.baseColor);
         this.el.setAttribute("color", "#FFFFFF");
         if (this.buttonFrame) {
@@ -545,10 +536,7 @@ AFRAME.registerComponent("arena-circle", {
     const radius = 12;
     const count = 48;
 
-    // Sem piso externo: o chão visível fica restrito à areia da arena e aos props.
 
-    // Gramado e morros fora da arena. Todos começam além dos muros para manter
-    // o piso circular livre e sem conflito visual.
     const grassRings = [16.5, 21, 26, 31, 36, 41];
     for (let rIndex = 0; rIndex < grassRings.length; rIndex++) {
       const ringRadius = grassRings[rIndex];
@@ -609,8 +597,6 @@ AFRAME.registerComponent("arena-circle", {
       this.el.appendChild(cap);
     }
 
-    // Floresta cênica ao redor da arena. Fica fora dos muros para manter a arena intacta
-    // e usa posições determinísticas para não mudar a cada recarregamento.
     const forestPalette = ["#1F6B37", "#287A3D", "#2F6F35", "#18532C"];
     for (let i = 0; i < 72; i++) {
       const angle = (i / 72) * Math.PI * 2 + ((i % 5) * 0.045);
@@ -654,7 +640,6 @@ AFRAME.registerComponent("arena-circle", {
       this.el.appendChild(tree);
     }
 
-    // Chãos externos removidos para não competir com a areia da arena.
 
     const floor = document.createElement("a-cylinder");
     floor.setAttribute("position", "0 0.012 0");
@@ -665,7 +650,6 @@ AFRAME.registerComponent("arena-circle", {
     floor.setAttribute("material", "src: #sandTexture; repeat: 10 10; roughness: 1; metalness: 0; color: #E8CB91");
     this.el.appendChild(floor);
 
-    // Marcações, anéis e rúnicas removidos: arena limpa com areia + props.
 
     const addSwordProp = (x, z, yaw) => {
       const sword = document.createElement("a-entity");
@@ -724,14 +708,12 @@ AFRAME.registerComponent("arena-circle", {
       this.el.appendChild(shield);
     };
 
-    // Caveiras removidas: somente espadas e escudos ficam sobre a areia.
 
     addSwordProp(-8.4, -2.9, 38);
     addSwordProp(7.2, 3.8, -52);
     addSwordProp(-4.2, 7.6, 118);
     addShieldProp(8.7, -2.8, -22);
     addShieldProp(-7.4, 4.8, 38);
-    // Caveiras removidas. Mais armas e escudos deixam a arena com detalhes sem pesar o visual.
     addSwordProp(2.8, -7.8, 92);
     addSwordProp(-6.6, -6.7, -18);
     addSwordProp(5.9, 6.2, 142);
@@ -1089,7 +1071,6 @@ AFRAME.registerComponent("enemy-ai", {
     const deathClip = profile && profile.deathClip ? profile.deathClip : "CharacterArmature|Death";
     this.playModelClip(deathClip, "once", true);
 
-    // play defeat sfx specific to this enemy
     try {
       const key = profile && profile.key ? profile.key : null;
       let defeatSfxId = null;
@@ -1101,8 +1082,6 @@ AFRAME.registerComponent("enemy-ai", {
         playSfx(defeatSfxId);
       }
 
-      // rare easter-egg chance to play a silly sample on enemy defeat
-      const easterEggChance = 0.05; // 5% chance
       if (Math.random() < easterEggChance) {
         const eggs = ['roblox-oof', 'lego-yoda', 'wilhelm-scream'];
         const pick = eggs[Math.floor(Math.random() * eggs.length)];
@@ -1286,11 +1265,8 @@ AFRAME.registerComponent("enemy-ai", {
     };
 
     const startMap = {
-      // A magia nasce claramente no lado do ataque para permitir leitura antecipada:
-      // energia à esquerda do jogador => desvie para a direita; energia à direita => desvie para a esquerda.
       left: new THREE.Vector3(-0.95, 1.82, 0.72),
       right: new THREE.Vector3(0.95, 1.82, 0.72),
-      // Ataque alto: a magia passa por cima da cabeça, em linha horizontal, para pedir AGACHAR.
       high: new THREE.Vector3(0, 2.34, 0.52)
     };
     const endMap = {
@@ -1377,7 +1353,6 @@ AFRAME.registerComponent("enemy-ai", {
       ? windupClips[pattern]
       : (profile && profile.windupClip ? profile.windupClip : null);
 
-    // Determine SFX for this attack and open defense window accordingly.
     let attackSwingSfx = null;
     let attackHitSfx = null;
     if (profile && profile.key === 'king') {
@@ -1396,8 +1371,6 @@ AFRAME.registerComponent("enemy-ai", {
       attackHitSfx = 'magic-hit';
     }
 
-    // A janela abre assim que o movimento começa. No Rei, primeiro vem um wind-up lento e claro;
-    // se o jogador ler o golpe cedo, ele já pode desviar antes do soco sair.
     this.openDefenseWindow(pattern, "attack", attackSwingSfx, attackHitSfx);
 
     if (windupMs > 0 && windupClip) {
@@ -1410,8 +1383,6 @@ AFRAME.registerComponent("enemy-ai", {
         if (!game.running || this.isDefeated) return;
 
         let attackStarted = false;
-        // Para o Rei, o wind-up e o soco usam o MESMO clip e a mesma mão.
-        // Em vez de reiniciar outra animação depois do aviso, continuamos o próprio clip em velocidade normal.
         if (holdAndContinue && windupClip === clip && this.currentAction) {
           this.currentAction.paused = false;
           this.currentAction.enabled = true;
@@ -1438,7 +1409,6 @@ AFRAME.registerComponent("enemy-ai", {
 
     if (this.playModelClip(clip, "once", true, options)) {
       if (usesSwordFx) this.playSwordSlashFx();
-      // play immediate swing sfx
       try {
         if (attackSwingSfx) {
           playSfx(attackSwingSfx);
@@ -1456,9 +1426,6 @@ AFRAME.registerComponent("enemy-ai", {
     const clips = profile && profile.attacks ? profile.attacks : {};
     const clip = clips[pattern] || "CharacterArmature|Gun_Shoot";
 
-    // A Bruxa também abre a janela no começo do telegraph. O efeito visual indica o lado,
-    // mas a UI não entrega qual ação fazer.
-    // determine sfx for magic attacks
     let attackSwingSfx = null;
     let attackHitSfx = null;
     if (profile && profile.key === 'witch') {
@@ -1468,7 +1435,6 @@ AFRAME.registerComponent("enemy-ai", {
 
     this.openDefenseWindow(pattern, "magic", attackSwingSfx, attackHitSfx);
     this.playModelClip(clip, "once", true);
-    // play magic swing sfx
     try {
       if (attackSwingSfx) {
         playSfx(attackSwingSfx);
