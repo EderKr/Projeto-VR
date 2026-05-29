@@ -1,9 +1,13 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const {
   DB_PATH,
   ensureLocalDbFile,
+  authenticateUser,
+  createUser,
+  getUserById,
   getDatabaseStatus,
   getHistory,
   saveHistory,
@@ -17,6 +21,79 @@ const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const HISTORY_LIMIT = 12;
 const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
+
+const AUTH_SECRET = process.env.AUTH_SECRET || "headbutt-berserker-dev-secret-change-me";
+const TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
+
+function toBase64Url(value) {
+  return Buffer.from(value).toString("base64url");
+}
+
+function fromBase64Url(value) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function signTokenPayload(payloadBase64) {
+  return crypto.createHmac("sha256", AUTH_SECRET).update(payloadBase64).digest("base64url");
+}
+
+function createAuthToken(user) {
+  const payload = toBase64Url(JSON.stringify({
+    sub: String(user.id),
+    username: user.username,
+    displayName: user.displayName,
+    iat: Date.now()
+  }));
+  return `${payload}.${signTokenPayload(payload)}`;
+}
+
+function verifyAuthToken(token) {
+  if (!token || typeof token !== "string" || !token.includes(".")) return null;
+  const [payloadBase64, signature] = token.split(".");
+  if (!payloadBase64 || !signature) return null;
+  const expected = signTokenPayload(payloadBase64);
+  const a = Buffer.from(signature);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+
+  try {
+    const payload = JSON.parse(fromBase64Url(payloadBase64));
+    if (!payload || !payload.sub || !payload.iat) return null;
+    if (Date.now() - Number(payload.iat) > TOKEN_MAX_AGE_MS) return null;
+    return payload;
+  } catch (error) {
+    return null;
+  }
+}
+
+function readBearerToken(req) {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.toLowerCase().startsWith("bearer ")) return null;
+  return authHeader.slice(7).trim();
+}
+
+async function getAuthenticatedUser(req) {
+  const payload = verifyAuthToken(readBearerToken(req));
+  if (!payload) return null;
+  return getUserById(payload.sub);
+}
+
+async function requireAuthenticatedUser(req, res) {
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    sendJson(res, 401, { error: "Login obrigatório para acessar este recurso." });
+    return null;
+  }
+  return user;
+}
+
+function sendAuthResponse(res, user) {
+  sendJson(res, 200, {
+    token: createAuthToken(user),
+    user
+  });
+}
+
 
 function getBaseHeaders(extraHeaders = {}) {
   return {
@@ -230,6 +307,8 @@ function normalizeHistoryItem(rawItem) {
 function serializeActionItem(item) {
   return {
     id: item.id,
+    userId: item.userId || item.user_id || null,
+    playerName: item.playerName || item.player_name || null,
     phase: item.phase,
     expectedAction: item.expectedAction,
     actualAction: item.actualAction,
@@ -263,6 +342,8 @@ function serializeActionBreakdown(breakdown) {
 function serializeHistoryItem(item) {
   return {
     id: item.id,
+    userId: item.userId || item.user_id || null,
+    playerName: item.playerName || item.player_name || null,
     phase: item.phase,
     customMode: item.customMode,
     difficultyPhase: item.difficultyPhase,
@@ -410,37 +491,64 @@ function collectRequestBody(req) {
   });
 }
 
-async function handleHistoryGet(res) {
-  const entries = await getHistory();
+async function handleHistoryGet(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const entries = await getHistory(user.id);
   sendJson(res, 200, entries.map((item) => normalizeHistoryItem(item)).filter(Boolean));
 }
 
-async function handleHistoryInsightsGet(res) {
-  const entries = await getHistory();
+async function handleHistoryInsightsGet(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const entries = await getHistory(user.id);
   const normalizedEntries = entries.map((item) => normalizeHistoryItem(item)).filter(Boolean);
   sendJson(res, 200, buildHistoryInsights(normalizedEntries));
 }
 
 async function handleHistoryPost(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
   const body = await collectRequestBody(req);
-  const entry = normalizeHistoryItem(body);
+  const entry = normalizeHistoryItem({ ...body, userId: user.id, playerName: user.displayName });
 
   if (!entry) {
     sendJson(res, 400, { error: "Invalid history entry" });
     return;
   }
 
-  const savedEntry = await saveHistory(entry);
+  const savedEntry = await saveHistory(entry, user);
   sendJson(res, 201, normalizeHistoryItem(savedEntry) || entry);
 }
 
 async function handleHistoryImport(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
   const body = await collectRequestBody(req);
   const entries = Array.isArray(body.entries) ? body.entries : [];
 
   const normalizedEntries = entries.map((item) => normalizeHistoryItem(item)).filter(Boolean).slice(0, HISTORY_LIMIT);
-  const savedEntries = await replaceHistory(normalizedEntries);
+  const savedEntries = await replaceHistory(normalizedEntries, user);
   sendJson(res, 200, savedEntries.map((item) => normalizeHistoryItem(item)).filter(Boolean));
+}
+
+
+async function handleRegister(req, res) {
+  const body = await collectRequestBody(req);
+  const user = await createUser(body.username, body.password);
+  sendAuthResponse(res, user);
+}
+
+async function handleLogin(req, res) {
+  const body = await collectRequestBody(req);
+  const user = await authenticateUser(body.username, body.password);
+  sendAuthResponse(res, user);
+}
+
+async function handleMe(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  sendJson(res, 200, { user });
 }
 
 function serveStaticFile(res, filePath) {
@@ -478,13 +586,28 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/auth/register" && req.method === "POST") {
+    handleRegister(req, res).catch((error) => sendJson(res, 400, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/login" && req.method === "POST") {
+    handleLogin(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/me" && req.method === "GET") {
+    handleMe(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
+    return;
+  }
+
   if (requestUrl.pathname === "/api/history" && req.method === "GET") {
-    handleHistoryGet(res).catch((error) => sendJson(res, 500, { error: error.message }));
+    handleHistoryGet(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 
   if (requestUrl.pathname === "/api/history/insights" && req.method === "GET") {
-    handleHistoryInsightsGet(res).catch((error) => sendJson(res, 500, { error: error.message }));
+    handleHistoryInsightsGet(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 

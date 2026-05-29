@@ -351,6 +351,8 @@ function normalizeHistoryItem(rawItem) {
 
   return {
     id: String(rawItem.id || `${Date.now()}-${phase}`).slice(0, 80),
+    userId: rawItem.userId || rawItem.user_id || null,
+    playerName: rawItem.playerName || rawItem.player_name || null,
     phase,
     customMode: Boolean(rawItem.customMode),
     difficultyPhase,
@@ -373,6 +375,8 @@ function normalizeHistoryItem(rawItem) {
 function serializeActionItem(item) {
   return {
     id: item.id,
+    userId: item.userId || null,
+    playerName: item.playerName || null,
     phase: item.phase,
     expectedAction: item.expectedAction,
     actualAction: item.actualAction,
@@ -406,6 +410,8 @@ function serializeActionBreakdown(breakdown) {
 function serializeHistoryItem(item) {
   return {
     id: item.id,
+    userId: item.userId || null,
+    playerName: item.playerName || null,
     phase: item.phase,
     customMode: item.customMode,
     difficultyPhase: item.difficultyPhase,
@@ -427,7 +433,11 @@ function serializeHistoryItem(item) {
 
 async function fetchPerformanceHistoryFromDb() {
   try {
-    const response = await fetch(HISTORY_API_URL, { cache: "no-store" });
+    if (typeof isLoggedIn === "function" && !isLoggedIn()) return [];
+    const response = await fetch(HISTORY_API_URL, {
+      cache: "no-store",
+      headers: typeof getAuthHeaders === "function" ? getAuthHeaders() : {}
+    });
     if (!response.ok) return [];
 
     const parsed = await response.json();
@@ -469,9 +479,9 @@ async function importLegacyPerformanceHistory(entries) {
   try {
     const response = await fetch(HISTORY_IMPORT_API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: typeof getAuthHeaders === "function"
+        ? getAuthHeaders({ "Content-Type": "application/json" })
+        : { "Content-Type": "application/json" },
       body: JSON.stringify({ entries: entries.map((item) => serializeHistoryItem(item)) })
     });
 
@@ -497,10 +507,14 @@ async function persistPerformanceHistory() {
   try {
     const response = await fetch(HISTORY_API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(serializeHistoryItem(latestItem))
+      headers: typeof getAuthHeaders === "function"
+        ? getAuthHeaders({ "Content-Type": "application/json" })
+        : { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...serializeHistoryItem(latestItem),
+        userId: window.authState && window.authState.user ? window.authState.user.id : null,
+        playerName: window.authState && window.authState.user ? window.authState.user.displayName : null
+      })
     });
 
     if (!response.ok) return null;
@@ -742,7 +756,13 @@ function renderPerformanceHistory() {
   }
 }
 
-void initializePerformanceHistory();
+window.initializePerformanceHistory = initializePerformanceHistory;
+if (typeof isLoggedIn === "function" && isLoggedIn()) {
+  void initializePerformanceHistory();
+} else {
+  game.phaseHistory = [];
+  renderPerformanceHistory();
+}
 
 function getEnemyName(phase) {
   if (phase === 1) return "o rei";

@@ -317,3 +317,143 @@ html, body {
   .pause-menu-grid { grid-template-columns: 1fr; }
   .history-panel { max-height: min(40vh, 320px); }
 }
+
+/* Login obrigatório para histórico por usuário */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 232, 182, 0.16), transparent 38%),
+    linear-gradient(145deg, rgba(7, 19, 31, 0.88), rgba(25, 14, 5, 0.92));
+  backdrop-filter: blur(8px) saturate(120%);
+}
+
+.login-overlay.hidden {
+  display: none;
+}
+
+.login-card {
+  width: min(420px, calc(100vw - 32px));
+  border: 1px solid rgba(255, 232, 182, 0.28);
+  border-radius: 26px;
+  padding: 24px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 232, 182, 0.18), transparent 34%),
+    linear-gradient(160deg, rgba(7, 19, 31, 0.98), rgba(40, 23, 9, 0.98));
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.login-kicker {
+  color: var(--gold-2);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.login-card h1 {
+  margin: 8px 0 8px;
+  color: var(--gold);
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.login-subtitle {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.login-card label {
+  display: block;
+  margin: 14px 0 7px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.login-card input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 232, 182, 0.28);
+  border-radius: 14px;
+  padding: 13px 14px;
+  background: rgba(7, 19, 31, 0.78);
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+}
+
+.login-card input:focus {
+  border-color: rgba(255, 232, 182, 0.78);
+  box-shadow: 0 0 0 3px rgba(255, 232, 182, 0.12);
+}
+
+.login-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.login-actions button,
+.logout-button {
+  border: 1px solid rgba(255, 232, 182, 0.36);
+  border-radius: 999px;
+  padding: 12px 14px;
+  background: linear-gradient(145deg, rgba(201, 143, 55, 0.95), rgba(101, 57, 19, 0.95));
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255,255,255,0.16);
+}
+
+.login-actions button[type="button"] {
+  background: rgba(255, 232, 182, 0.1);
+}
+
+.login-message {
+  min-height: 20px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.login-message[data-type="error"] { color: #ffb3a8; }
+.login-message[data-type="success"] { color: #9ff5cf; }
+
+.user-badge {
+  position: fixed;
+  top: 72px;
+  right: 14px;
+  z-index: 18;
+  display: none;
+  max-width: 240px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 232, 182, 0.28);
+  border-radius: 999px;
+  color: var(--gold);
+  background: rgba(7, 19, 31, 0.78);
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.32);
+  pointer-events: none;
+}
+
+.logout-button {
+  position: fixed;
+  top: 12px;
+  right: 70px;
+  z-index: 20;
+  display: block;
+  padding: 13px 15px;
+  font-size: 12px;
+}

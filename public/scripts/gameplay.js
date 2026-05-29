@@ -212,6 +212,10 @@ function checkGameStateOrContinue() {
 }
 
 function startGame() {
+  if (typeof requireAuthBeforeStart === "function" && !requireAuthBeforeStart()) {
+    return;
+  }
+
   clearTimers();
 
   if (typeof closeVRPauseMenu === 'function') {

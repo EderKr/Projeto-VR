@@ -258,6 +258,8 @@ function repositionWorldHud() {
   right.y = 0;
   if (right.lengthSq() > 0.0001) right.normalize();
 
+  // Mantém o guia fora do centro da mira. Assim ele não cobre o cursor,
+  // mas continua acompanhando a direção geral do jogador.
   const targetPos = camWorldPos.clone()
     .add(forward.multiplyScalar(2.45))
     .add(right.multiplyScalar(1.25));
@@ -424,6 +426,8 @@ function positionVRMenusInFrontOfPlayer() {
 }
 
 function setMenuOcclusionSafeVisibility(menuOpen) {
+  // Durante o pause VR, estes elementos ficavam cruzando a frente do painel.
+  // Escondemos só enquanto o menu está aberto para manter a leitura limpa.
   const ids = [
     "enemyWorldHpRoot",
     "cameraHudRoot",
@@ -560,6 +564,7 @@ function updateCustomizeMenuDisplay() {
   const livesDisplay = document.getElementById("customLivesDisplay");
   const enemyDisplay = document.getElementById("customEnemyDisplay");
 
+  // If the digit lock elements exist, render each digit separately.
   const ld0 = document.getElementById('customLivesDigit0');
   const ld1 = document.getElementById('customLivesDigit1');
   const ld2 = document.getElementById('customLivesDigit2');

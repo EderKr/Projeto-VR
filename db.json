@@ -1,40 +1,4 @@
 {
-  "users": [
-    {
-      "name": "Ana",
-      "age": 22,
-      "weight": 55.0,
-      "height": 1.65,
-      "id": 1
-    },
-    {
-      "name": "Marina",
-      "age": 28,
-      "weight": 62.0,
-      "height": 1.7,
-      "id": 3
-    },
-    {
-      "name": "Ana",
-      "age": 22,
-      "weight": 62.0,
-      "height": 1.65,
-      "id": 4
-    },
-    {
-      "name": "Marina",
-      "age": 28,
-      "weight": 62.0,
-      "height": 1.7,
-      "id": 5
-    },
-    {
-      "name": "Carlos",
-      "age": 30,
-      "weight": 75.0,
-      "height": 1.8,
-      "id": 6
-    }
-  ],
+  "users": [],
   "performanceHistory": []
 }

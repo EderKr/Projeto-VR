@@ -18,6 +18,31 @@
   </div>
 
   <button id="pauseMenuDesktopToggle" class="pause-icon-button" type="button" aria-label="Abrir menu de pausa">II</button>
+  <button id="logoutButton" class="logout-button" type="button">Sair</button>
+
+  <div id="userBadge" class="user-badge" aria-live="polite"></div>
+
+  <div id="loginOverlay" class="login-overlay" aria-hidden="false">
+    <form id="loginForm" class="login-card">
+      <div class="login-kicker">Headbutt Berserker</div>
+      <h1>Entrar no jogo</h1>
+      <p id="loginStartHint" class="login-subtitle">Faça login ou crie uma conta para iniciar e salvar seu histórico.</p>
+
+      <label for="loginUsername">Usuário</label>
+      <input id="loginUsername" name="username" type="text" minlength="3" maxlength="32" autocomplete="username" placeholder="ex: joana" required />
+
+      <label for="loginPassword">Senha</label>
+      <input id="loginPassword" name="password" type="password" minlength="4" autocomplete="current-password" placeholder="mínimo 4 caracteres" required />
+
+      <div class="login-actions">
+        <button id="loginButton" type="submit">Entrar</button>
+        <button id="registerButton" type="button">Criar conta</button>
+      </div>
+
+      <p id="loginMessage" class="login-message" data-type="info">O histórico será salvo separadamente para cada usuário.</p>
+    </form>
+  </div>
+
 
   <div id="pauseMenuDesktop" class="pause-menu-overlay" aria-hidden="true">
     <div class="pause-menu-card">
@@ -756,6 +781,7 @@
     </a-entity>
   </a-scene>
 
+  <script src="scripts/auth.js"></script>
   <script src="scripts/state.js"></script>
   <script src="scripts/ui.js"></script>
   <script src="scripts/gameplay.js"></script>

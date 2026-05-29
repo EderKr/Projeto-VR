@@ -1,8 +1,19 @@
 create extension if not exists pgcrypto;
 
+create table if not exists app_users (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  username text not null unique,
+  display_name text not null,
+  password_hash text not null,
+  password_salt text not null
+);
+
 create table if not exists performance_history (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  user_id uuid references app_users(id) on delete cascade,
+  player_name text,
   original_id text,
   phase integer,
   custom_mode boolean default false,
@@ -21,6 +32,12 @@ create table if not exists performance_history (
   action_breakdown jsonb default '{}'::jsonb,
   raw_data jsonb default '{}'::jsonb
 );
+
+create index if not exists app_users_username_idx
+  on app_users (lower(username));
+
+create index if not exists performance_history_user_created_at_idx
+  on performance_history (user_id, created_at desc);
 
 create index if not exists performance_history_created_at_idx
   on performance_history (created_at desc);
