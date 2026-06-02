@@ -17,9 +17,6 @@ services:
       HOST: ${HOST:-0.0.0.0}
       PORT: ${PORT:-3000}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
-      USE_SUPABASE: ${USE_SUPABASE:-false}
-      SUPABASE_URL: ${SUPABASE_URL:-}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       AUTH_SECRET: ${AUTH_SECRET:-troque-por-uma-frase-grande-e-secreta}
       USE_POSTGRES: ${USE_POSTGRES:-true}
       DATABASE_URL: ${DATABASE_URL:-postgres://vruser:vrpassword@postgres:5432/vrgame}
