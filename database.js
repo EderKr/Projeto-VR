@@ -3,10 +3,8 @@ const path = require("path");
 const crypto = require("crypto");
 
 const DB_PATH = process.env.DB_PATH ? path.resolve(process.env.DB_PATH) : path.join(__dirname, "db.json");
-const USE_SUPABASE = process.env.USE_SUPABASE === "true";
 const HISTORY_LIMIT = Number(process.env.HISTORY_LIMIT) > 0 ? Number(process.env.HISTORY_LIMIT) : 100;
 
-let supabase = null;
 let postgresPool = null;
 let postgresReady = false;
 
@@ -27,7 +25,7 @@ function getPostgresConnectionString() {
 }
 
 function getPostgresPool() {
-  if (!shouldUsePostgres() || USE_SUPABASE) return null;
+  if (!shouldUsePostgres()) return null;
   if (postgresPool) return postgresPool;
 
   try {
@@ -107,33 +105,6 @@ async function ensurePostgresSchema() {
   return pool;
 }
 
-function getSupabaseClient() {
-  if (!USE_SUPABASE) return null;
-  if (supabase) return supabase;
-
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    console.warn("USE_SUPABASE=true, mas SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não foram configurados. Usando db.json como fallback.");
-    return null;
-  }
-
-  try {
-    const { createClient } = require("@supabase/supabase-js");
-    supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
-    });
-    return supabase;
-  } catch (error) {
-    console.warn("Não foi possível carregar @supabase/supabase-js. Usando db.json como fallback.", error.message);
-    return null;
-  }
-}
-
 function ensureLocalDbFile() {
   const dbDir = path.dirname(DB_PATH);
   if (!fs.existsSync(dbDir)) {
@@ -211,17 +182,6 @@ async function findUserByUsername(username) {
   const normalizedUsername = normalizeUsername(username);
   if (!normalizedUsername) return null;
 
-  const client = getSupabaseClient();
-  if (client) {
-    const { data, error } = await client
-      .from("app_users")
-      .select("*")
-      .eq("username", normalizedUsername)
-      .maybeSingle();
-    if (error) throw error;
-    return data || null;
-  }
-
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query("select * from app_users where username = $1 limit 1", [normalizedUsername]);
@@ -235,17 +195,6 @@ async function findUserByUsername(username) {
 async function getUserById(userId) {
   if (!userId) return null;
   const id = String(userId);
-
-  const client = getSupabaseClient();
-  if (client) {
-    const { data, error } = await client
-      .from("app_users")
-      .select("id, username, display_name, created_at")
-      .eq("id", id)
-      .maybeSingle();
-    if (error) throw error;
-    return safeUser(data);
-  }
 
   const pool = await ensurePostgresSchema();
   if (pool) {
@@ -266,23 +215,6 @@ async function createUser(username, password) {
   }
 
   const { hash, salt } = createPasswordHash(valid.password);
-
-  const client = getSupabaseClient();
-  if (client) {
-    const { data, error } = await client
-      .from("app_users")
-      .insert({
-        username: valid.username,
-        display_name: valid.displayName,
-        password_hash: hash,
-        password_salt: salt
-      })
-      .select("id, username, display_name, created_at")
-      .single();
-    if (error) throw error;
-    return safeUser(data);
-  }
-
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(
@@ -327,7 +259,7 @@ async function authenticateUser(username, password) {
   return safeUser(user);
 }
 
-function normalizeForSupabase(entry = {}) {
+function normalizeForDatabase(entry = {}) {
   return {
     user_id: entry.userId || entry.user_id || null,
     player_name: entry.playerName || entry.player_name || null,
@@ -352,7 +284,7 @@ function normalizeForSupabase(entry = {}) {
   };
 }
 
-function fromSupabaseRow(row = {}) {
+function fromDatabaseRow(row = {}) {
   const raw = row.raw_data && typeof row.raw_data === "object" ? row.raw_data : {};
 
   return {
@@ -380,27 +312,13 @@ function fromSupabaseRow(row = {}) {
 }
 
 async function getHistory(userId = null) {
-  const client = getSupabaseClient();
-
-  if (client) {
-    const { data, error } = await client
-      .from("performance_history")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(HISTORY_LIMIT);
-
-    if (error) throw error;
-    return (data || []).map(fromSupabaseRow);
-  }
-
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(
       "select * from performance_history where user_id = $1 order by created_at desc limit $2",
       [userId, HISTORY_LIMIT]
     );
-    return rows.map(fromSupabaseRow);
+    return rows.map(fromDatabaseRow);
   }
 
   const db = readLocalDb();
@@ -408,27 +326,9 @@ async function getHistory(userId = null) {
 }
 
 async function saveHistory(entry, user = null) {
-  const client = getSupabaseClient();
-
-  if (client) {
-    const payload = normalizeForSupabase({
-      ...entry,
-      userId: user ? user.id : entry.userId,
-      playerName: user ? user.displayName : entry.playerName
-    });
-    const { data, error } = await client
-      .from("performance_history")
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (error) throw error;
-    return fromSupabaseRow(data);
-  }
-
   const pool = await ensurePostgresSchema();
   if (pool) {
-    const payload = normalizeForSupabase({
+    const payload = normalizeForDatabase({
       ...entry,
       userId: user ? user.id : entry.userId,
       playerName: user ? user.displayName : entry.playerName
@@ -449,7 +349,7 @@ async function saveHistory(entry, user = null) {
         payload.duration, payload.avg_reaction, JSON.stringify(payload.actions), JSON.stringify(payload.action_breakdown), JSON.stringify(payload.raw_data), payload.created_at
       ]
     );
-    return fromSupabaseRow(rows[0]);
+    return fromDatabaseRow(rows[0]);
   }
 
   const db = readLocalDb();
@@ -464,33 +364,6 @@ async function saveHistory(entry, user = null) {
 }
 
 async function replaceHistory(entries, user = null) {
-  const client = getSupabaseClient();
-
-  if (client) {
-    const { error: deleteError } = await client
-      .from("performance_history")
-      .delete()
-      .eq("user_id", user ? user.id : null);
-
-    if (deleteError) throw deleteError;
-
-    if (!entries.length) return [];
-
-    const payload = entries.map((entry) => normalizeForSupabase({
-      ...entry,
-      userId: user ? user.id : entry.userId,
-      playerName: user ? user.displayName : entry.playerName
-    }));
-    const { data, error } = await client
-      .from("performance_history")
-      .insert(payload)
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return (data || []).map(fromSupabaseRow);
-  }
-
   const pool = await ensurePostgresSchema();
   if (pool) {
     const client = await pool.connect();
@@ -500,7 +373,7 @@ async function replaceHistory(entries, user = null) {
 
       const savedRows = [];
       for (const entry of entries) {
-        const payload = normalizeForSupabase({
+        const payload = normalizeForDatabase({
           ...entry,
           userId: user ? user.id : entry.userId,
           playerName: user ? user.displayName : entry.playerName
@@ -525,7 +398,7 @@ async function replaceHistory(entries, user = null) {
       }
 
       await client.query("commit");
-      return savedRows.map(fromSupabaseRow).slice(0, HISTORY_LIMIT);
+      return savedRows.map(fromDatabaseRow).slice(0, HISTORY_LIMIT);
     } catch (error) {
       await client.query("rollback");
       throw error;
@@ -550,21 +423,6 @@ async function replaceHistory(entries, user = null) {
 }
 
 async function getDatabaseStatus() {
-  const client = getSupabaseClient();
-
-  if (client) {
-    const { error } = await client
-      .from("performance_history")
-      .select("id", { count: "exact", head: true });
-
-    return {
-      provider: "supabase",
-      usingSupabase: true,
-      connected: !error,
-      error: error ? error.message : null
-    };
-  }
-
   const pool = await ensurePostgresSchema();
   if (pool) {
     try {
@@ -586,7 +444,6 @@ async function getDatabaseStatus() {
 
   return {
     provider: "json",
-    usingSupabase: false,
     usingPostgres: false,
     dbPath: DB_PATH
   };
