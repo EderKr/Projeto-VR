@@ -15,6 +15,7 @@ services:
       NODE_ENV: production
       HOST: "0.0.0.0"
       PORT: "3000"
+      DB_PATH: "/data/db.json"
       CORS_ORIGIN: "${CORS_ORIGIN:-*}"
       AUTH_SECRET: "${AUTH_SECRET:-reflex-trainer-development-secret}"
       USE_POSTGRES: "true"

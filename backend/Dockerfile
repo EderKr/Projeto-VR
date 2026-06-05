@@ -1,8 +1,8 @@
 # ---- deps stage ----
 FROM node:20-alpine AS deps
-WORKDIR /app
-COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm ci --omit=dev
 
 # ---- final stage ----
 FROM node:20-alpine AS final

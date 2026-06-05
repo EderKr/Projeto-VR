@@ -19,7 +19,7 @@ const HOST = process.env.HOST || "0.0.0.0";
 const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.resolve(ROOT_DIR, "..", "frontend");
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
-const HISTORY_LIMIT = 12;
+const HISTORY_LIMIT = Number(process.env.HISTORY_LIMIT) > 0 ? Number(process.env.HISTORY_LIMIT) : 100;
 const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
 
 const AUTH_SECRET = process.env.AUTH_SECRET || "headbutt-berserker-dev-secret-change-me";
