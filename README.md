@@ -138,12 +138,14 @@ docker/postgres/init.sql
 ## 📁 Estrutura principal
 
 ```text
-server.js                 -> back-end HTTP/API + servidor estático do front
-database.js               -> camada de persistência JSON/PostgreSQL
+backend/                  -> back-end Node.js, API e persistência
+backend/server.js         -> servidor HTTP + API
+backend/database.js       -> camada de persistência JSON/PostgreSQL
+backend/package.json      -> dependências e scripts do back-end
+backend/Dockerfile        -> container da aplicação back-end
+frontend/                 -> front-end VR, modelos, sons e texturas
 docker-compose.yml        -> app + PostgreSQL
-Dockerfile                -> container da aplicação
 docker/postgres/init.sql  -> schema do PostgreSQL local
-public/                   -> front-end VR, modelos, sons e texturas
 ```
 
 <hr>
@@ -157,3 +159,24 @@ public/                   -> front-end VR, modelos, sons e texturas
 - criar ranking global;
 - adicionar estatísticas por sessão;
 - melhorar calibração VR inicial.
+
+
+velocidade_angular_cefálica: O quão rápido o usuário moveu a cabeça para desviar (m/s ou rad/s).
+
+amplitude_movimento_vertical: Distância percorrida no agachamento para avaliar a profundidade do movimento corporal.
+
+latência_resposta_motora: O tempo exato entre o estímulo visual da IA e o início do movimento físico (milissegundos).
+
+assimetria_lateral: Se o usuário tem preferência ou maior facilidade de desviar para a esquerda ou para a direita (útil para detectar desequilíbrios musculares).
+
+Na Interface WebXR (A-Frame)
+Painel de Telemetria em Tempo Real: Criar uma interface dentro do VR (usando texto ou gráficos em planos 3D) que mostre ao usuário vetores de movimento ou gráficos de linhas com o desempenho físico dele durante a sessão.
+
+Avatares de Referência / Fantasmas (Visualização Corporal): Permitir que o usuário veja um modelo 3D estilizado que replica o movimento correto que ele deveria ter feito, servindo como um guia visual cinestésico.
+
+Na Inteligência Artificial (O Assistente Baseado em Regras)
+O seu assistente inteligente deixa de ser um "gerador de inimigos" e passa a ser um Sistema Especialista de Carga Adaptativa:
+
+Se o banco de dados detectar que a velocidade angular do usuário caiu 20% nas últimas sessões (sinal de fadiga), a IA adapta o simulador, diminuindo a frequência dos estímulos ou sugerindo uma pausa.
+
+Se o usuário desvia com menos amplitude para a esquerda do que para a direita, a IA foca em gerar estímulos para o lado deficitário para promover o reequilíbrio corporal.

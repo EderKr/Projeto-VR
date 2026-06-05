@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: projeto-vr-app
     restart: unless-stopped
@@ -11,7 +11,7 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - .env
+      - backend/.env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       HOST: ${HOST:-0.0.0.0}
