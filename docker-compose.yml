@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   app:
     build:
@@ -14,7 +16,7 @@ services:
       HOST: "0.0.0.0"
       PORT: "3000"
       CORS_ORIGIN: "${CORS_ORIGIN:-*}"
-      AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET é obrigatório}"
+      AUTH_SECRET: "${AUTH_SECRET:-reflex-trainer-development-secret}"
       USE_POSTGRES: "true"
       DATABASE_URL: "postgres://${POSTGRES_USER:-vruser}:${POSTGRES_PASSWORD:-vrpassword}@postgres:5432/${POSTGRES_DB:-vrgame}"
       HISTORY_LIMIT: "${HISTORY_LIMIT:-100}"

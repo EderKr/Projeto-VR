@@ -47,7 +47,7 @@ No painel **Environment Variables**, adicione:
 
 | Variável | Descrição | Exemplo |
 |----------|-----------|---------|
-| `AUTH_SECRET` | **Obrigatório.** Chave secreta para tokens JWT | `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+| `AUTH_SECRET` | **Obrigatório em produção.** Chave secreta para tokens JWT | `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
 | `POSTGRES_PASSWORD` | Senha do banco | string aleatória forte |
 | `CORS_ORIGIN` | Origens permitidas | `https://meu-jogo.com` |
 | `HISTORY_LIMIT` | Máximo de partidas no histórico | `100` |
