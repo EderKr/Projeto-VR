@@ -1,0 +1,10 @@
+{
+  "name": "headbutt-berserker-root",
+  "private": true,
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up --build"
+  }
+}
