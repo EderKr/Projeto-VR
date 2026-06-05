@@ -1,0 +1,26 @@
+# Controle de versão
+.git
+.gitignore
+
+# Dependências (reinstaladas no build)
+node_modules
+backend/node_modules
+
+# Arquivos de ambiente (nunca entram na imagem)
+.env
+.env.*
+!.env.example
+
+# Docs e configs de dev
+README*.md
+*.local.md
+.npmrc
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+docker/
+
+# Misc
+.DS_Store
+npm-debug.log*
