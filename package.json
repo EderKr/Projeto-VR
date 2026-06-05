@@ -1,10 +1,17 @@
 {
-  "name": "headbutt-berserker-root",
+  "name": "projeto-vr-main",
+  "version": "1.2.0",
   "private": true,
+  "description": "Atalhos para rodar o projeto Headbutt Berserker a partir da raiz.",
+  "workspaces": [
+    "backend"
+  ],
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "node backend/server.js",
-    "docker:build": "docker compose build",
-    "docker:up": "docker compose up --build"
+    "start": "npm --workspace backend start",
+    "dev": "npm --workspace backend run dev",
+    "check": "npm --workspace backend run check"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

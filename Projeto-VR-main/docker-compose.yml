@@ -1,0 +1,52 @@
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: projeto-vr-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    env_file:
+      - backend/.env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      AUTH_SECRET: ${AUTH_SECRET:-troque-por-uma-frase-grande-e-secreta}
+      USE_POSTGRES: ${USE_POSTGRES:-true}
+      DATABASE_URL: ${DATABASE_URL:-postgres://vruser:vrpassword@postgres:5432/vrgame}
+      HISTORY_LIMIT: ${HISTORY_LIMIT:-100}
+    volumes:
+      - app-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: projeto-vr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vrgame
+      POSTGRES_USER: vruser
+      POSTGRES_PASSWORD: vrpassword
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vruser -d vrgame"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  app-data:

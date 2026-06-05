@@ -5,5 +5,6 @@ npm-debug.log
 .env
 .env.*
 !.env.example
+Dockerfile*
 docker-compose.override.yml
 README.local.md

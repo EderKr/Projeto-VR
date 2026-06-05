@@ -39,7 +39,7 @@ Requisitos:
 - Docker;
 - Docker Compose.
 
-Suba a aplicação completa com banco PostgreSQL:
+O arquivo `backend/.env` já acompanha valores locais de desenvolvimento. Suba a aplicação completa com banco PostgreSQL:
 
 ```bash
 docker compose up --build
@@ -93,9 +93,17 @@ Requisitos:
 - navegador moderno;
 - headset compatível com WebXR para jogar em VR, ou teclado para teste em desktop.
 
-Instale e rode:
+Instale e rode pela raiz do projeto:
 
 ```bash
+npm install
+npm start
+```
+
+Ou, se preferir rodar diretamente pela pasta do servidor:
+
+```bash
+cd backend
 npm install
 npm start
 ```

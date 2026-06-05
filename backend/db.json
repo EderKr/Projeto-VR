@@ -1,13 +1,4 @@
 {
-  "users": [
-    {
-      "id": 1,
-      "username": "eder",
-      "display_name": "eder",
-      "password_hash": "f0d43ab35f36bd6a726aad25641ea056d94f813c4c6c8039a4f0d24fba4d9bad",
-      "password_salt": "5e69a825100e1f2c89fbb5fcce3a2498",
-      "created_at": "2026-06-05T23:05:54.181Z"
-    }
-  ],
+  "users": [],
   "performanceHistory": []
 }
