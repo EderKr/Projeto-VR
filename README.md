@@ -1,4 +1,4 @@
-<h1 align="center">Headbutt Berserker</h1>
+<h1 align="center">Fisio Trainer VR</h1>
 
 <p align="center">
 Jogo VR/WebXR de reflexos em que o jogador enfrenta inimigos usando movimentos de cabeça, com histórico de desempenho e assistente inteligente baseado em regras.
@@ -8,7 +8,7 @@ Jogo VR/WebXR de reflexos em que o jogador enfrenta inimigos usando movimentos d
 
 ## 🎮 Conceito
 
-**Headbutt Berserker** é um jogo em realidade virtual no qual o jogador luta contra inimigos usando cabeçadas, esquivas laterais e agachamentos, com A-Frame/WebXR rastreando a câmera/cabeça do jogador.
+**Fisio Trainer VR** é um jogo em realidade virtual no qual o jogador luta contra inimigos usando cabeçadas, esquivas laterais e agachamentos, com A-Frame/WebXR rastreando a câmera/cabeça do jogador.
 
 Controles de teclado para testes no desktop:
 

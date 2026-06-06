@@ -2,7 +2,7 @@
   "name": "projeto-vr-main",
   "version": "1.2.0",
   "private": true,
-  "description": "Atalhos para rodar o projeto Headbutt Berserker a partir da raiz.",
+  "description": "Atalhos para rodar o projeto Fisio Trainer VR a partir da raiz.",
   "workspaces": [
     "backend"
   ],
