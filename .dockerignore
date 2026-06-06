@@ -17,8 +17,6 @@ README*.md
 .npmrc
 
 # Docker
-Dockerfile*
-docker-compose*.yml
 docker/
 
 # Misc
