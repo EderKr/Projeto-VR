@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: /Dockerfile
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:
