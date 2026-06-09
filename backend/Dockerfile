@@ -6,7 +6,7 @@ COPY backend ./
 COPY frontend /app/frontend
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV FRONTEND_DIR=/app/frontend/public
+ENV FRONTEND_DIR=/app/frontend
 ENV DB_PATH=/data/db.json
 EXPOSE 3000
 CMD ["npm", "start"]

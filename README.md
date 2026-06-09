@@ -1,4 +1,4 @@
-<h1 align="center">Corpus VR</h1>
+<h1 align="center">Fisio Trainer VR</h1>
 
 <p align="center">
 Projeto WebXR com jogo, espelho corporal por visao computacional, salas PC/celular, historico de desempenho e assistente baseado em regras.
@@ -8,7 +8,7 @@ Projeto WebXR com jogo, espelho corporal por visao computacional, salas PC/celul
 
 ## 🎮 Conceito
 
-**Corpus VR** e um projeto WebXR com jogo, espelho corporal e visao computacional para observar movimento em tempo real.
+**Fisio Trainer VR** e um projeto WebXR com jogo, espelho corporal e visao computacional para observar movimento em tempo real.
 
 O prototipo atual usa **A-Frame/WebXR** para a arena VR e **MediaPipe Pose** para registrar pontos do corpo pela camera. Tambem ha suporte a teclado para testes no desktop:
 
@@ -28,10 +28,9 @@ O prototipo atual usa **A-Frame/WebXR** para a arena VR e **MediaPipe Pose** par
 - **MediaPipe Pose** para o controle corporal experimental;
 - **WebSocket (`ws`)** para salas PC/celular;
 - **PostgreSQL** via Docker Compose para histórico de desempenho;
-- **JSON local (`db.json`)** como fallback;
-- **Supabase/PostgreSQL** opcional para deploy externo.
+- **JSON local (`db.json`)** como fallback.
 
-> Nesta versao, o projeto esta separado em `backend/` e `frontend/`. O servidor Node fica no backend e serve os arquivos estaticos de `frontend/public`.
+> Nesta versao, o projeto esta separado em `backend/` e `frontend/`. O servidor Node fica no backend e serve os arquivos estaticos do `frontend`.
 
 Estrutura principal:
 
@@ -81,8 +80,8 @@ Nesta versao modificada:
 Na criacao de conta, o campo de genero escolhe o personagem do espelho:
 
 ```text
-Masculino -> frontend/public/models/adventurer-male.glb
-Feminino  -> frontend/public/models/adventurer-female.glb
+Masculino -> frontend/models/adventurer-male.glb
+Feminino  -> frontend/models/adventurer-female.glb
 ```
 
 O chat da landing usa a rota local:
@@ -213,17 +212,16 @@ Para validar sintaxe dos arquivos principais:
 npm run check
 ```
 
-Sem Docker/PostgreSQL/Supabase, o projeto usa `db.json` como fallback.
+Sem Docker/PostgreSQL, o projeto usa `db.json` como fallback.
 
 <hr>
 
 ## 🗄️ Banco de dados
 
-A aplicação suporta três modos, nesta prioridade:
+A aplicação suporta dois modos, nesta prioridade:
 
-1. **Supabase**, quando `USE_SUPABASE=true`;
-2. **PostgreSQL local**, quando `USE_POSTGRES=true` ou `DATABASE_URL` estiver configurado;
-3. **JSON local**, como fallback.
+1. **PostgreSQL local**, quando `USE_POSTGRES=true` ou `DATABASE_URL` estiver configurado;
+2. **JSON local**, como fallback.
 
 No Docker Compose, o modo padrão é PostgreSQL local:
 
@@ -238,45 +236,13 @@ O schema inicial fica em:
 docker/postgres/init.sql
 ```
 
-Também existe o schema compatível com Supabase:
-
-```text
-supabase-schema.sql
-```
-
-<hr>
-
-## ☁️ Deploy com Render
-
-O projeto ainda pode ser publicado no Render usando `render.yaml`.
-
-Para deploy simples sem banco externo:
-
-```text
-Build Command: npm ci
-Start Command: npm start
-USE_SUPABASE=false
-USE_POSTGRES=false
-```
-
-Para produção real, prefira Supabase/PostgreSQL e configure:
-
-```text
-USE_SUPABASE=true
-SUPABASE_URL=https://SEU-PROJETO.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
-HISTORY_LIMIT=100
-```
-
-> A `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no servidor. Nunca coloque essa chave no front-end.
-
 <hr>
 
 ## 📁 Estrutura principal
 
 ```text
 server.js                 -> back-end HTTP/API + servidor estático do front
-database.js               -> camada de persistência JSON/Supabase/PostgreSQL
+database.js               -> camada de persistência JSON/PostgreSQL
 docker-compose.yml        -> app + PostgreSQL
 Dockerfile                -> container da aplicação
 docker/postgres/init.sql  -> schema do PostgreSQL local

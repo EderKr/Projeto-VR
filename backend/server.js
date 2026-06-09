@@ -22,7 +22,7 @@ const HOST = process.env.HOST || "0.0.0.0";
 const ROOT_DIR = __dirname;
 const PUBLIC_DIR = process.env.FRONTEND_DIR
   ? path.resolve(process.env.FRONTEND_DIR)
-  : path.resolve(ROOT_DIR, "..", "frontend", "public");
+  : path.resolve(ROOT_DIR, "..", "frontend");
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const HISTORY_LIMIT = 12;
 const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
@@ -942,7 +942,7 @@ server.on("upgrade", (req, socket, head) => {
 
 server.listen(PORT, HOST, () => {
   ensureLocalDbFile();
-  console.log(`Corpus VR server running at http://${HOST}:${PORT}`);
+  console.log(`Fisio Trainer VR server running at http://${HOST}:${PORT}`);
   console.log(`Database fallback path: ${DB_PATH}`);
-  console.log(`Database provider: ${process.env.USE_SUPABASE === "true" ? "Supabase" : (process.env.USE_POSTGRES === "true" || process.env.DATABASE_URL ? "PostgreSQL" : "db.json")}`);
+  console.log(`Database provider: ${process.env.USE_POSTGRES === "true" || process.env.DATABASE_URL ? "PostgreSQL" : "db.json"}`);
 });

@@ -1,8 +1,8 @@
 {
-  "name": "corpus-vr-workspace",
+  "name": "fisio-trainer-vr-workspace",
   "version": "1.2.0",
   "private": true,
-  "description": "Workspace do Corpus VR com backend e frontend separados.",
+  "description": "Workspace do Fisio Trainer VR com backend e frontend separados.",
   "scripts": {
     "start": "npm --prefix backend start",
     "dev": "npm --prefix backend run dev",
