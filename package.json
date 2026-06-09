@@ -1,28 +1,11 @@
 {
-  "name": "corpus-vr",
+  "name": "corpus-vr-workspace",
   "version": "1.2.0",
-  "description": "Projeto VR/WebXR com visao computacional, espelho corporal e historico de desempenho.",
-  "main": "server.js",
+  "private": true,
+  "description": "Workspace do Corpus VR com backend e frontend separados.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "check": "node --check server.js && node --check database.js && node --check public/scripts/auth.js && node --check public/scripts/state.js && node --check public/scripts/ui.js && node --check public/scripts/gameplay.js && node --check public/scripts/components.js && node --check public/scripts/landing.js && node --check public/scripts/game-pose-controller.js"
-  },
-  "keywords": [
-    "aframe",
-    "webxr",
-    "vr",
-    "game",
-    "node"
-  ],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@supabase/supabase-js": "2.49.4",
-    "pg": "^8.16.3",
-    "ws": "^8.20.1"
-  },
-  "engines": {
-    "node": ">=18"
+    "start": "npm --prefix backend start",
+    "dev": "npm --prefix backend run dev",
+    "check": "npm --prefix backend run check"
   }
 }

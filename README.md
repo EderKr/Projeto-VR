@@ -31,7 +31,24 @@ O prototipo atual usa **A-Frame/WebXR** para a arena VR e **MediaPipe Pose** par
 - **JSON local (`db.json`)** como fallback;
 - **Supabase/PostgreSQL** opcional para deploy externo.
 
-> Nesta versão, o front-end é servido pelo próprio servidor Node. Por isso o Docker principal contém front + back no mesmo container, e o banco roda em outro container.
+> Nesta versao, o projeto esta separado em `backend/` e `frontend/`. O servidor Node fica no backend e serve os arquivos estaticos de `frontend/public`.
+
+Estrutura principal:
+
+```text
+backend/
+  server.js
+  database.js
+  package.json
+  Dockerfile
+  docker/postgres/init.sql
+frontend/
+  public/
+    index.html
+    game.html
+    scripts/
+    models/
+```
 
 <hr>
 
@@ -64,8 +81,8 @@ Nesta versao modificada:
 Na criacao de conta, o campo de genero escolhe o personagem do espelho:
 
 ```text
-Masculino -> public/models/adventurer-male.glb
-Feminino  -> public/models/adventurer-female.glb
+Masculino -> frontend/public/models/adventurer-male.glb
+Feminino  -> frontend/public/models/adventurer-female.glb
 ```
 
 O chat da landing usa a rota local:
@@ -82,6 +99,7 @@ Tambem existe um controle corporal experimental em `/game`:
 - `Ativar` tambem entra no modo Espelho IA: inimigo, HUD e menus somem.
 - O jogador ve o personagem 3D no jogo, nao o video cru da camera.
 - O modelo tenta mapear ossos nomeados do GLB para cabeca, tronco, bracos, pulsos, pernas e pes.
+- O retargeting tambem aceita aliases comuns de esqueletos Mixamo/Ready Player Me, como `mixamorigLeftArm`, `LeftArm`, `LeftForeArm`, `LeftUpLeg` e equivalentes.
 - O registro corporal usa suavizacao e pontuacao de corpo inteiro antes de considerar o tracking estavel.
 - `Calibrar` salva a posicao neutra do corpo.
 - Inclinar para esquerda/direita aciona esquiva.
@@ -89,6 +107,28 @@ Tambem existe um controle corporal experimental em `/game`:
 - Aproximar/avancar o corpo aciona ataque.
 
 As leituras sao de controle e observacao de movimento, nao diagnostico medico.
+
+### Modelos 3D externos
+
+Para um rig mais previsivel, use um avatar full-body com esqueleto humanoide padronizado. O caminho recomendado e Ready Player Me full-body, porque os GLBs sao rigados, skinned e usam estrutura Mixamo-compatible.
+
+Abra o jogo com um avatar Ready Player Me assim:
+
+```text
+/game?room=SALA&mirror=1&rpm=ID_DO_AVATAR
+```
+
+Ou passe uma URL GLB direta:
+
+```text
+/game?room=SALA&mirror=1&modelUrl=https%3A%2F%2Fexemplo.com%2Favatar.glb
+```
+
+Para voltar aos modelos Adventurer locais, rode no console do navegador:
+
+```js
+__corpusVRRigDebug.clearModel()
+```
 
 Na landing, o botao `Ativar espelho IA` tambem usa a camera e MediaPipe Pose, mas mostra apenas skeleton, qualidade de registro e metricas corporais. O espelho 3D simulado continua apenas no jogo.
 

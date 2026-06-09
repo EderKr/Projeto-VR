@@ -2,16 +2,14 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: projeto-vr-app
+      dockerfile: backend/Dockerfile
+    container_name: corpus-vr-app
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "3000:3000"
-    env_file:
-      - .env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       HOST: ${HOST:-0.0.0.0}
@@ -24,6 +22,8 @@ services:
       USE_POSTGRES: ${USE_POSTGRES:-true}
       DATABASE_URL: ${DATABASE_URL:-postgres://vruser:vrpassword@postgres:5432/vrgame}
       HISTORY_LIMIT: ${HISTORY_LIMIT:-100}
+      FRONTEND_DIR: ${FRONTEND_DIR:-/app/frontend/public}
+      DB_PATH: ${DB_PATH:-/data/db.json}
     volumes:
       - app-data:/data
     healthcheck:
@@ -35,7 +35,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: projeto-vr-postgres
+    container_name: corpus-vr-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: vrgame
@@ -43,7 +43,7 @@ services:
       POSTGRES_PASSWORD: vrpassword
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./backend/docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vruser -d vrgame"]
       interval: 10s

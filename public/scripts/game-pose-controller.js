@@ -22,6 +22,8 @@
 
   const params = new URLSearchParams(window.location.search);
   const ROOM_STORAGE_KEY = "hb_room_code";
+  const AXIS_STORAGE_KEY = "corpus_vr_rig_axes";
+  const MODEL_URL_STORAGE_KEY = "corpus_vr_model_url";
   const SMOOTHING = 0.38;
   const MIN_FULL_BODY_QUALITY = 0.78;
   const LOCAL_POSE_SEND_MS = 80;
@@ -43,23 +45,69 @@
   ];
   const HIDDEN_DOM_IDS = ["pauseMenuDesktopToggle", "logoutButton", "userBadge", "pauseMenuDesktop"];
   const BONE_ALIASES = {
-    hips: ["Hips"],
-    neck: ["Neck"],
-    head: ["Head"],
-    shoulderL: ["Shoulder.L"],
-    upperArmL: ["UpperArm.L"],
-    lowerArmL: ["LowerArm.L"],
-    wristL: ["Wrist.L"],
-    shoulderR: ["Shoulder.R"],
-    upperArmR: ["UpperArm.R"],
-    lowerArmR: ["LowerArm.R"],
-    wristR: ["Wrist.R"],
-    upperLegL: ["UpperLeg.L"],
-    lowerLegL: ["LowerLeg.L"],
-    footL: ["Foot.L"],
-    upperLegR: ["UpperLeg.R"],
-    lowerLegR: ["LowerLeg.R"],
-    footR: ["Foot.R"]
+    hips: ["Hips", "mixamorigHips"],
+    neck: ["Neck", "mixamorigNeck"],
+    head: ["Head", "mixamorigHead"],
+    shoulderL: ["Shoulder.L", "LeftShoulder", "mixamorigLeftShoulder"],
+    upperArmL: ["UpperArm.L", "LeftArm", "LeftUpperArm", "mixamorigLeftArm"],
+    lowerArmL: ["LowerArm.L", "LeftForeArm", "LeftLowerArm", "mixamorigLeftForeArm"],
+    wristL: ["Wrist.L", "LeftHand", "mixamorigLeftHand"],
+    shoulderR: ["Shoulder.R", "RightShoulder", "mixamorigRightShoulder"],
+    upperArmR: ["UpperArm.R", "RightArm", "RightUpperArm", "mixamorigRightArm"],
+    lowerArmR: ["LowerArm.R", "RightForeArm", "RightLowerArm", "mixamorigRightForeArm"],
+    wristR: ["Wrist.R", "RightHand", "mixamorigRightHand"],
+    upperLegL: ["UpperLeg.L", "LeftUpLeg", "LeftUpperLeg", "mixamorigLeftUpLeg"],
+    lowerLegL: ["LowerLeg.L", "LeftLeg", "LeftLowerLeg", "mixamorigLeftLeg"],
+    footL: ["Foot.L", "LeftFoot", "mixamorigLeftFoot"],
+    upperLegR: ["UpperLeg.R", "RightUpLeg", "RightUpperLeg", "mixamorigRightUpLeg"],
+    lowerLegR: ["LowerLeg.R", "RightLeg", "RightLowerLeg", "mixamorigRightLeg"],
+    footR: ["Foot.R", "RightFoot", "mixamorigRightFoot"]
+  };
+  const RIG_AXIS_PRESETS = {
+    male: {
+      global: { x: 1, y: 1, z: 1, xScale: 1, yScale: 1.25, zScale: 0.75, amount: 0.9 },
+      segments: {
+        neck: { x: 1, y: 1, z: 1, amount: 0.65 },
+        head: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.62 },
+        hips: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        shoulderL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        shoulderR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        upperArmL: { x: 1, y: 1, z: 1, amount: 0.95 },
+        lowerArmL: { x: 1, y: 1, z: 1, amount: 0.95 },
+        wristL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.65 },
+        upperArmR: { x: 1, y: 1, z: 1, amount: 0.95 },
+        lowerArmR: { x: 1, y: 1, z: 1, amount: 0.95 },
+        wristR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.65 },
+        upperLegL: { x: 1, y: 1, z: 1, amount: 0.82 },
+        lowerLegL: { x: 1, y: 1, z: 1, amount: 0.82 },
+        footL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.52 },
+        upperLegR: { x: 1, y: 1, z: 1, amount: 0.82 },
+        lowerLegR: { x: 1, y: 1, z: 1, amount: 0.82 },
+        footR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.52 }
+      }
+    },
+    female: {
+      global: { x: 1, y: 1, z: 1, xScale: 1, yScale: 1.18, zScale: 0.75, amount: 0.9 },
+      segments: {
+        neck: { x: 1, y: 1, z: 1, amount: 0.66 },
+        head: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.62 },
+        hips: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        shoulderL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        shoulderR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        upperArmL: { x: 1, y: 1, z: 1, amount: 0.96 },
+        lowerArmL: { x: 1, y: 1, z: 1, amount: 0.96 },
+        wristL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.65 },
+        upperArmR: { x: 1, y: 1, z: 1, amount: 0.96 },
+        lowerArmR: { x: 1, y: 1, z: 1, amount: 0.96 },
+        wristR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.65 },
+        upperLegL: { x: 1, y: 1, z: 1, amount: 0.82 },
+        lowerLegL: { x: 1, y: 1, z: 1, amount: 0.82 },
+        footL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.52 },
+        upperLegR: { x: 1, y: 1, z: 1, amount: 0.82 },
+        lowerLegR: { x: 1, y: 1, z: 1, amount: 0.82 },
+        footR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.52 }
+      }
+    }
   };
 
   let enabled = false;
@@ -74,6 +122,7 @@
   let lastActionName = "--";
   let lastPoseSentAt = 0;
   let smoothedLandmarks = null;
+  let smoothedWorldLandmarks = null;
   let stableRegistrationFrames = 0;
   let roomSocket = null;
   let roomReconnectTimer = 0;
@@ -83,6 +132,7 @@
   let rigBaseRotations = {};
   let rigBaseQuaternions = {};
   let rigSegments = {};
+  let rigAxisOverrides = loadAxisOverrides();
   const hiddenState = new Map();
 
   function sanitizeRoomCode(value) {
@@ -147,9 +197,118 @@
     return user && user.gender === "female" ? "female" : "male";
   }
 
+  function loadAxisOverrides() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(AXIS_STORAGE_KEY) || "{}");
+      return saved && typeof saved === "object" ? saved : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveAxisOverrides() {
+    localStorage.setItem(AXIS_STORAGE_KEY, JSON.stringify(rigAxisOverrides));
+  }
+
+  function clonePlain(value) {
+    return JSON.parse(JSON.stringify(value || {}));
+  }
+
+  function normalizeModelKey(value) {
+    const key = String(value || "").toLowerCase();
+    return key === "female" || key === "mulher" || key === "feminino" ? "female" : "male";
+  }
+
+  function mergePlain(base, override) {
+    return { ...(base || {}), ...(override || {}) };
+  }
+
+  function getAxisPreset(modelKey = getUserGender()) {
+    const key = normalizeModelKey(modelKey);
+    const base = clonePlain(RIG_AXIS_PRESETS[key] || RIG_AXIS_PRESETS.male);
+    const override = rigAxisOverrides[key] || {};
+    base.global = mergePlain(base.global, override.global);
+    base.segments = base.segments || {};
+
+    for (const [name, config] of Object.entries(override.segments || {})) {
+      base.segments[name] = mergePlain(base.segments[name], config);
+    }
+
+    return base;
+  }
+
+  function getSegmentAxis(name) {
+    const preset = getAxisPreset();
+    return mergePlain(preset.global, preset.segments && preset.segments[name]);
+  }
+
+  function toFiniteNumber(value, fallback = 1) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function setAxisOverride(modelKey, segmentName, config) {
+    const model = normalizeModelKey(modelKey || getUserGender());
+    const segment = String(segmentName || "global");
+    const cleaned = {};
+
+    for (const [key, value] of Object.entries(config || {})) {
+      if ([
+        "x", "y", "z", "xScale", "yScale", "zScale",
+        "rotX", "rotY", "rotZ", "amount"
+      ].includes(key)) {
+        cleaned[key] = toFiniteNumber(value, key === "amount" ? 0.9 : 1);
+      }
+    }
+
+    rigAxisOverrides[model] = rigAxisOverrides[model] || { segments: {} };
+    if (segment === "global") {
+      rigAxisOverrides[model].global = mergePlain(rigAxisOverrides[model].global, cleaned);
+    } else {
+      rigAxisOverrides[model].segments = rigAxisOverrides[model].segments || {};
+      rigAxisOverrides[model].segments[segment] = mergePlain(rigAxisOverrides[model].segments[segment], cleaned);
+    }
+
+    saveAxisOverrides();
+    resetRigPose();
+    return getAxisPreset(model);
+  }
+
+  function sanitizeModelUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+
+    try {
+      const url = new URL(raw, window.location.href);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+      if (!url.pathname.toLowerCase().endsWith(".glb")) return "";
+      return url.href;
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function resolveRemoteModelAsset() {
+    const rpmId = String(params.get("rpm") || "").trim();
+    if (/^[a-zA-Z0-9_-]{8,80}$/.test(rpmId)) {
+      const url = `https://models.readyplayer.me/${rpmId}.glb?pose=T&quality=medium&textureAtlas=512`;
+      localStorage.setItem(MODEL_URL_STORAGE_KEY, url);
+      return url;
+    }
+
+    const fromQuery = sanitizeModelUrl(params.get("modelUrl"));
+    if (fromQuery) {
+      localStorage.setItem(MODEL_URL_STORAGE_KEY, fromQuery);
+      return fromQuery;
+    }
+
+    return sanitizeModelUrl(localStorage.getItem(MODEL_URL_STORAGE_KEY));
+  }
+
   function applyCharacterModel() {
     if (!characterModel) return;
-    const model = getUserGender() === "female" ? "#adventurerFemaleModel" : "#adventurerMaleModel";
+    const model = resolveRemoteModelAsset()
+      || (getUserGender() === "female" ? "#adventurerFemaleModel" : "#adventurerMaleModel");
     if (currentModelAsset === model) return;
     currentModelAsset = model;
     rigBones = {};
@@ -162,6 +321,25 @@
 
   function getThree() {
     return window.THREE || (window.AFRAME && window.AFRAME.THREE) || null;
+  }
+
+  function normalizeBoneName(name) {
+    return String(name || "")
+      .replace(/^.*:/, "")
+      .replace(/[^a-z0-9]/gi, "")
+      .toLowerCase();
+  }
+
+  function findBoneByAlias(byName, byNormalizedName, aliases) {
+    for (const alias of aliases) {
+      const exact = byName.get(alias);
+      if (exact) return exact;
+
+      const normalized = byNormalizedName.get(normalizeBoneName(alias));
+      if (normalized) return normalized;
+    }
+
+    return null;
   }
 
   function cacheRigBones() {
@@ -183,12 +361,17 @@
     if (!allBones.length) return 0;
 
     const byName = new Map(allBones.map((bone) => [bone.name, bone]));
+    const byNormalizedName = new Map();
+    for (const bone of allBones) {
+      const normalized = normalizeBoneName(bone.name);
+      if (normalized && !byNormalizedName.has(normalized)) byNormalizedName.set(normalized, bone);
+    }
     const nextBones = {};
     const nextBase = {};
     const nextQuaternions = {};
 
     for (const [key, aliases] of Object.entries(BONE_ALIASES)) {
-      const bone = aliases.map((name) => byName.get(name)).find(Boolean);
+      const bone = findBoneByAlias(byName, byNormalizedName, aliases);
       if (!bone) continue;
       nextBones[key] = bone;
       nextBase[key] = {
@@ -235,6 +418,10 @@
         baseQuat: baseQuat.clone(),
         restParentDir: restParentDir.clone(),
         targetDir: new THREE.Vector3(),
+        targetWorldDir: new THREE.Vector3(),
+        targetParentDir: new THREE.Vector3(),
+        rootWorldQuat: new THREE.Quaternion(),
+        parentWorldQuat: new THREE.Quaternion(),
         deltaQuat: new THREE.Quaternion(),
         targetQuat: new THREE.Quaternion()
       };
@@ -261,6 +448,17 @@
     bone.updateMatrixWorld(true);
   }
 
+  function rotateBoneMapped(name, x = 0, y = 0, z = 0, amount = 0.5) {
+    const axis = getSegmentAxis(name);
+    rotateBone(
+      name,
+      x * toFiniteNumber(axis.rotX, 1),
+      y * toFiniteNumber(axis.rotY, 1),
+      z * toFiniteNumber(axis.rotZ, 1),
+      toFiniteNumber(axis.amount, amount)
+    );
+  }
+
   function resetRigPose() {
     for (const [name, bone] of Object.entries(rigBones)) {
       const base = rigBaseQuaternions[name];
@@ -271,29 +469,66 @@
     }
   }
 
-  function vectorFromPosePoints(from, to, scaleX = 1) {
+  function vectorFromPosePoints(from, to, axis = {}) {
     const THREE = getThree();
     if (!THREE || !from || !to) return null;
+    const rigSpace = from.space === "rig" && to.space === "rig";
+    const dx = to.x - from.x;
+    const dy = rigSpace ? to.y - from.y : from.y - to.y;
+    const dz = rigSpace ? (to.z || 0) - (from.z || 0) : (from.z || 0) - (to.z || 0);
     const vector = new THREE.Vector3(
-      (to.x - from.x) * scaleX,
-      (from.y - to.y) * 1.25,
-      ((from.z || 0) - (to.z || 0)) * 0.85
+      dx * toFiniteNumber(axis.x, 1) * toFiniteNumber(axis.xScale, 1),
+      dy * toFiniteNumber(axis.y, 1) * toFiniteNumber(axis.yScale, 1.25),
+      dz * toFiniteNumber(axis.z, 1) * toFiniteNumber(axis.zScale, 0.85)
     );
     if (!Number.isFinite(vector.lengthSq()) || vector.lengthSq() < 0.0001) return null;
     return vector.normalize();
   }
 
-  function aimSegment(name, from, to, amount = 0.82, scaleX = 1) {
+  function getRigRootObject() {
+    return avatar && avatar.object3D
+      ? avatar.object3D
+      : (characterModel && characterModel.object3D ? characterModel.object3D : null);
+  }
+
+  function directionToBoneParentSpace(segment, localDirection) {
+    if (!segment || !localDirection) return null;
+
+    const root = getRigRootObject();
+    if (root) {
+      root.updateMatrixWorld(true);
+      root.getWorldQuaternion(segment.rootWorldQuat);
+      segment.targetWorldDir.copy(localDirection).applyQuaternion(segment.rootWorldQuat).normalize();
+    } else {
+      segment.targetWorldDir.copy(localDirection).normalize();
+    }
+
+    const parent = segment.bone && segment.bone.parent;
+    if (parent) {
+      parent.updateMatrixWorld(true);
+      parent.getWorldQuaternion(segment.parentWorldQuat).invert();
+      segment.targetParentDir.copy(segment.targetWorldDir).applyQuaternion(segment.parentWorldQuat).normalize();
+      return segment.targetParentDir;
+    }
+
+    return segment.targetWorldDir;
+  }
+
+  function aimSegment(name, from, to, amount = 0.82) {
     const segment = rigSegments[name];
     if (!segment || !landmarkOk(from, 0.3) || !landmarkOk(to, 0.3)) return false;
 
-    const target = vectorFromPosePoints(from, to, scaleX);
+    const axis = getSegmentAxis(name);
+    const target = vectorFromPosePoints(from, to, axis);
     if (!target) return false;
 
-    segment.targetDir.copy(target);
+    const parentTarget = directionToBoneParentSpace(segment, target);
+    if (!parentTarget) return false;
+
+    segment.targetDir.copy(parentTarget);
     segment.deltaQuat.setFromUnitVectors(segment.restParentDir, segment.targetDir);
     segment.targetQuat.copy(segment.deltaQuat).multiply(segment.baseQuat);
-    segment.bone.quaternion.slerp(segment.targetQuat, amount);
+    segment.bone.quaternion.slerp(segment.targetQuat, toFiniteNumber(axis.amount, amount));
     segment.bone.updateMatrix();
     segment.bone.updateMatrixWorld(true);
     return true;
@@ -583,8 +818,8 @@
       const b = landmarks[to];
       if (!landmarkOk(a) || !landmarkOk(b)) continue;
       ctx.beginPath();
-      ctx.moveTo((1 - a.x) * canvas.width, a.y * canvas.height);
-      ctx.lineTo((1 - b.x) * canvas.width, b.y * canvas.height);
+      ctx.moveTo(a.x * canvas.width, a.y * canvas.height);
+      ctx.lineTo(b.x * canvas.width, b.y * canvas.height);
       ctx.stroke();
     }
 
@@ -592,28 +827,28 @@
       const point = landmarks[index];
       if (!landmarkOk(point)) continue;
       ctx.beginPath();
-      ctx.arc((1 - point.x) * canvas.width, point.y * canvas.height, index === 0 ? 4 : 3, 0, Math.PI * 2);
+      ctx.arc(point.x * canvas.width, point.y * canvas.height, index === 0 ? 4 : 3, 0, Math.PI * 2);
       ctx.fill();
     }
 
     ctx.restore();
   }
 
-  function smoothLandmarks(landmarks) {
+  function smoothLandmarkSet(landmarks, previousSet) {
     if (!Array.isArray(landmarks)) return null;
-    if (!smoothedLandmarks || smoothedLandmarks.length !== landmarks.length) {
-      smoothedLandmarks = landmarks.map((point) => ({ ...point }));
-      return smoothedLandmarks;
+    if (!previousSet || previousSet.length !== landmarks.length) {
+      return landmarks.map((point) => ({ ...point }));
     }
 
+    const nextSet = previousSet.slice();
     for (let index = 0; index < landmarks.length; index += 1) {
       const next = landmarks[index];
-      const previous = smoothedLandmarks[index] || next;
+      const previous = previousSet[index] || next;
       if (!next) {
-        smoothedLandmarks[index] = previous;
+        nextSet[index] = previous;
         continue;
       }
-      smoothedLandmarks[index] = {
+      nextSet[index] = {
         ...next,
         x: lerp(previous.x || 0, next.x || 0, SMOOTHING),
         y: lerp(previous.y || 0, next.y || 0, SMOOTHING),
@@ -622,17 +857,30 @@
       };
     }
 
+    return nextSet;
+  }
+
+  function smoothLandmarks(landmarks) {
+    smoothedLandmarks = smoothLandmarkSet(landmarks, smoothedLandmarks);
     return smoothedLandmarks;
+  }
+
+  function smoothWorldLandmarks(landmarks) {
+    smoothedWorldLandmarks = smoothLandmarkSet(landmarks, smoothedWorldLandmarks);
+    return smoothedWorldLandmarks;
   }
 
   function pointPayload(point) {
     if (!point) return null;
-    return {
+    const payload = {
       x: Number(point.x.toFixed(4)),
       y: Number(point.y.toFixed(4)),
       z: Number((point.z || 0).toFixed(4)),
       visibility: point.visibility == null ? 1 : Number(point.visibility.toFixed(3))
     };
+    if (point.space) payload.space = point.space;
+    if (point.source) payload.source = point.source;
+    return payload;
   }
 
   function compactFeatures(features) {
@@ -650,11 +898,68 @@
       ...points,
       bodyCenter: pointPayload(features.bodyCenter),
       shoulderCenter: pointPayload(features.shoulderCenter),
-      hipCenter: pointPayload(features.hipCenter)
+      hipCenter: pointPayload(features.hipCenter),
+      rig: features.rig
     };
   }
 
-  function readPoseFeatures(landmarks) {
+  function finitePoint(point) {
+    return point
+      && Number.isFinite(point.x)
+      && Number.isFinite(point.y)
+      && (point.z == null || Number.isFinite(point.z));
+  }
+
+  function resolveWorldRigTransform(landmarks, worldLandmarks) {
+    if (!Array.isArray(landmarks) || !Array.isArray(worldLandmarks)) return null;
+
+    const screenLeftShoulder = landmarks[11];
+    const screenRightShoulder = landmarks[12];
+    const worldNose = worldLandmarks[0];
+    const worldLeftShoulder = worldLandmarks[11];
+    const worldRightShoulder = worldLandmarks[12];
+    const worldLeftHip = worldLandmarks[23];
+    const worldRightHip = worldLandmarks[24];
+    if (![screenLeftShoulder, screenRightShoulder, worldNose, worldLeftShoulder, worldRightShoulder, worldLeftHip, worldRightHip].every(finitePoint)) {
+      return null;
+    }
+
+    const screenShoulderDx = screenLeftShoulder.x - screenRightShoulder.x;
+    const worldShoulderDx = worldLeftShoulder.x - worldRightShoulder.x;
+    const hipY = (worldLeftHip.y + worldRightHip.y) / 2;
+
+    return {
+      xSign: Math.sign(screenShoulderDx || 1) === Math.sign(worldShoulderDx || 1) ? 1 : -1,
+      ySign: worldNose.y >= hipY ? 1 : -1,
+      zSign: -1
+    };
+  }
+
+  function makeRigPoint(screenPoint, worldPoint, transform = null) {
+    if (!screenPoint) return null;
+    if (transform && finitePoint(worldPoint)) {
+      return {
+        space: "rig",
+        source: "world",
+        x: worldPoint.x * transform.xSign,
+        y: worldPoint.y * transform.ySign,
+        z: worldPoint.z * transform.zSign,
+        visibility: screenPoint.visibility == null ? 1 : screenPoint.visibility
+      };
+    }
+
+    const worldZ = worldPoint && Number.isFinite(worldPoint.z) ? -worldPoint.z : -(screenPoint.z || 0);
+    return {
+      space: "rig",
+      source: "screen",
+      x: screenPoint.x - 0.5,
+      y: 0.5 - screenPoint.y,
+      z: worldZ,
+      visibility: screenPoint.visibility == null ? 1 : screenPoint.visibility
+    };
+  }
+
+  function readPoseFeatures(landmarks, worldLandmarks = null) {
     const nose = landmarks[0];
     const leftShoulder = landmarks[11];
     const rightShoulder = landmarks[12];
@@ -670,6 +975,23 @@
     const rightAnkle = landmarks[28];
 
     if (![leftShoulder, rightShoulder, leftHip, rightHip, nose].every(landmarkOk)) return null;
+
+    const worldTransform = resolveWorldRigTransform(landmarks, worldLandmarks);
+    const rig = {
+      nose: makeRigPoint(nose, worldLandmarks && worldLandmarks[0], worldTransform),
+      leftShoulder: makeRigPoint(leftShoulder, worldLandmarks && worldLandmarks[11], worldTransform),
+      rightShoulder: makeRigPoint(rightShoulder, worldLandmarks && worldLandmarks[12], worldTransform),
+      leftElbow: makeRigPoint(leftElbow, worldLandmarks && worldLandmarks[13], worldTransform),
+      rightElbow: makeRigPoint(rightElbow, worldLandmarks && worldLandmarks[14], worldTransform),
+      leftWrist: makeRigPoint(leftWrist, worldLandmarks && worldLandmarks[15], worldTransform),
+      rightWrist: makeRigPoint(rightWrist, worldLandmarks && worldLandmarks[16], worldTransform),
+      leftHip: makeRigPoint(leftHip, worldLandmarks && worldLandmarks[23], worldTransform),
+      rightHip: makeRigPoint(rightHip, worldLandmarks && worldLandmarks[24], worldTransform),
+      leftKnee: makeRigPoint(leftKnee, worldLandmarks && worldLandmarks[25], worldTransform),
+      rightKnee: makeRigPoint(rightKnee, worldLandmarks && worldLandmarks[26], worldTransform),
+      leftAnkle: makeRigPoint(leftAnkle, worldLandmarks && worldLandmarks[27], worldTransform),
+      rightAnkle: makeRigPoint(rightAnkle, worldLandmarks && worldLandmarks[28], worldTransform)
+    };
 
     const shoulderCenter = {
       x: (leftShoulder.x + rightShoulder.x) / 2,
@@ -706,6 +1028,8 @@
       rightKnee,
       leftAnkle,
       rightAnkle,
+      rig,
+      rigSource: worldTransform ? "world" : "screen",
       bodyCenter,
       shoulderCenter,
       hipCenter,
@@ -791,21 +1115,22 @@
     const headYaw = clamp(features.headOffsetX * -2.4, -0.55, 0.55);
     const torsoCrouch = baseline ? clamp((features.shoulderCenter.y - baseline.shoulderY) * 2.8, 0, 0.38) : 0;
 
-    rotateBone("hips", torsoCrouch, yaw * 0.25, -hipTilt * 0.45, 0.42);
-    rotateBone("neck", 0, headYaw * 0.45, -shoulderTilt * 0.35, 0.48);
-    rotateBone("head", 0, headYaw, -shoulderTilt * 0.58, 0.54);
-    rotateBone("shoulderL", 0, 0, -shoulderTilt * 0.35, 0.44);
-    rotateBone("shoulderR", 0, 0, -shoulderTilt * 0.35, 0.44);
+    rotateBoneMapped("hips", torsoCrouch, yaw * 0.25, -hipTilt * 0.45, 0.42);
+    rotateBoneMapped("neck", 0, headYaw * 0.45, -shoulderTilt * 0.35, 0.48);
+    rotateBoneMapped("head", 0, headYaw, -shoulderTilt * 0.58, 0.54);
+    rotateBoneMapped("shoulderL", 0, 0, -shoulderTilt * 0.35, 0.44);
+    rotateBoneMapped("shoulderR", 0, 0, -shoulderTilt * 0.35, 0.44);
 
+    const rig = features.rig || features;
     const aimed = {
-      upperArmL: aimSegment("upperArmL", features.leftShoulder, features.leftElbow, 0.92),
-      lowerArmL: aimSegment("lowerArmL", features.leftElbow, features.leftWrist, 0.92),
-      upperArmR: aimSegment("upperArmR", features.rightShoulder, features.rightElbow, 0.92),
-      lowerArmR: aimSegment("lowerArmR", features.rightElbow, features.rightWrist, 0.92),
-      upperLegL: aimSegment("upperLegL", features.leftHip, features.leftKnee, 0.78),
-      lowerLegL: aimSegment("lowerLegL", features.leftKnee, features.leftAnkle, 0.78),
-      upperLegR: aimSegment("upperLegR", features.rightHip, features.rightKnee, 0.78),
-      lowerLegR: aimSegment("lowerLegR", features.rightKnee, features.rightAnkle, 0.78)
+      upperArmL: aimSegment("upperArmL", rig.leftShoulder, rig.leftElbow, 0.92),
+      lowerArmL: aimSegment("lowerArmL", rig.leftElbow, rig.leftWrist, 0.92),
+      upperArmR: aimSegment("upperArmR", rig.rightShoulder, rig.rightElbow, 0.92),
+      lowerArmR: aimSegment("lowerArmR", rig.rightElbow, rig.rightWrist, 0.92),
+      upperLegL: aimSegment("upperLegL", rig.leftHip, rig.leftKnee, 0.78),
+      lowerLegL: aimSegment("lowerLegL", rig.leftKnee, rig.leftAnkle, 0.78),
+      upperLegR: aimSegment("upperLegR", rig.rightHip, rig.rightKnee, 0.78),
+      lowerLegR: aimSegment("lowerLegR", rig.rightKnee, rig.rightAnkle, 0.78)
     };
 
     const leftLowerArm = clamp(normalizeAngle(features.lowerArmAngleL - Math.PI / 2), -1.45, 1.45);
@@ -813,17 +1138,17 @@
     const leftLowerLeg = clamp(normalizeAngle(features.lowerLegAngleL - Math.PI / 2), -0.95, 0.95);
     const rightLowerLeg = clamp(normalizeAngle(features.lowerLegAngleR - Math.PI / 2), -0.95, 0.95);
 
-    if (!aimed.upperArmL) rotateBone("upperArmL", 0, 0, clamp(normalizeAngle(features.upperArmAngleL - Math.PI / 2), -1.25, 1.25), 0.72);
-    if (!aimed.lowerArmL) rotateBone("lowerArmL", 0, 0, leftLowerArm, 0.72);
-    if (!aimed.upperArmR) rotateBone("upperArmR", 0, 0, clamp(normalizeAngle(features.upperArmAngleR - Math.PI / 2), -1.25, 1.25), 0.72);
-    if (!aimed.lowerArmR) rotateBone("lowerArmR", 0, 0, rightLowerArm, 0.72);
-    if (!aimed.upperLegL) rotateBone("upperLegL", leftLowerLeg * 0.35, 0, leftLowerLeg * 0.25, 0.58);
-    if (!aimed.upperLegR) rotateBone("upperLegR", rightLowerLeg * 0.35, 0, rightLowerLeg * 0.25, 0.58);
+    if (!aimed.upperArmL) rotateBoneMapped("upperArmL", 0, 0, clamp(normalizeAngle(features.upperArmAngleL - Math.PI / 2), -1.25, 1.25), 0.72);
+    if (!aimed.lowerArmL) rotateBoneMapped("lowerArmL", 0, 0, leftLowerArm, 0.72);
+    if (!aimed.upperArmR) rotateBoneMapped("upperArmR", 0, 0, clamp(normalizeAngle(features.upperArmAngleR - Math.PI / 2), -1.25, 1.25), 0.72);
+    if (!aimed.lowerArmR) rotateBoneMapped("lowerArmR", 0, 0, rightLowerArm, 0.72);
+    if (!aimed.upperLegL) rotateBoneMapped("upperLegL", leftLowerLeg * 0.35, 0, leftLowerLeg * 0.25, 0.58);
+    if (!aimed.upperLegR) rotateBoneMapped("upperLegR", rightLowerLeg * 0.35, 0, rightLowerLeg * 0.25, 0.58);
 
-    rotateBone("wristL", leftLowerArm * 0.18, 0, leftLowerArm * 0.45, 0.62);
-    rotateBone("wristR", rightLowerArm * 0.18, 0, rightLowerArm * 0.45, 0.62);
-    rotateBone("footL", leftLowerLeg * 0.28, 0, 0, 0.5);
-    rotateBone("footR", rightLowerLeg * 0.28, 0, 0, 0.5);
+    rotateBoneMapped("wristL", leftLowerArm * 0.18, 0, leftLowerArm * 0.45, 0.62);
+    rotateBoneMapped("wristR", rightLowerArm * 0.18, 0, rightLowerArm * 0.45, 0.62);
+    rotateBoneMapped("footL", leftLowerLeg * 0.28, 0, 0, 0.5);
+    rotateBoneMapped("footR", rightLowerLeg * 0.28, 0, 0, 0.5);
 
     if (characterModel) characterModel.object3D.updateMatrixWorld(true);
   }
@@ -888,7 +1213,8 @@
   }
 
   function updateHint(features, action, quality = features ? features.quality : 0) {
-    const rigLabel = Object.keys(rigBones).length ? "rig ok" : "rig aguardando";
+    const sourceLabel = features && features.rigSource ? `/${features.rigSource}` : "";
+    const rigLabel = Object.keys(rigBones).length ? `rig ok${sourceLabel}` : "rig aguardando";
     const registration = updateRegistrationQuality(quality);
     if (mirrorMode) {
       if (quality < MIN_FULL_BODY_QUALITY) {
@@ -956,8 +1282,10 @@
     updateAvatar(features);
     setHint(`${raised ? "teste rig: bracos altos" : "teste rig: bracos baixos"} - ${Object.keys(rigBones).length ? "rig ok" : "rig aguardando"}`);
     return {
+      model: getUserGender(),
       boneCount: Object.keys(rigBones).length,
       segmentCount: Object.keys(rigSegments).length,
+      axis: getAxisPreset(),
       raised,
       upperArmL: rigBones.upperArmL ? {
         x: Number(rigBones.upperArmL.rotation.x.toFixed(3)),
@@ -992,11 +1320,13 @@
       lastVideoTime = video.currentTime;
       const result = poseLandmarker.detectForVideo(video, performance.now());
       const rawLandmarks = result && result.landmarks && result.landmarks[0];
+      const rawWorldLandmarks = result && result.worldLandmarks && result.worldLandmarks[0];
       const landmarks = smoothLandmarks(rawLandmarks);
+      const worldLandmarks = smoothWorldLandmarks(rawWorldLandmarks);
 
       if (landmarks) {
         drawSimulationFrame(landmarks);
-        const features = readPoseFeatures(landmarks);
+        const features = readPoseFeatures(landmarks, worldLandmarks);
         if (features) {
           const action = chooseAction(features);
           updateAvatar(features);
@@ -1069,8 +1399,29 @@
     cache: cacheRigBones,
     bones: () => Object.keys(rigBones),
     segments: () => Object.keys(rigSegments),
+    model: () => currentModelAsset,
+    clearModel: () => {
+      localStorage.removeItem(MODEL_URL_STORAGE_KEY);
+      currentModelAsset = "";
+      applyCharacterModel();
+      return currentModelAsset;
+    },
     neutral: () => applyDebugPose(false),
-    raised: () => applyDebugPose(true)
+    raised: () => applyDebugPose(true),
+    axis: (model) => getAxisPreset(model),
+    setAxis: (model, segment, config) => {
+      if (segment && typeof segment === "object") {
+        return setAxisOverride(getUserGender(), model, segment);
+      }
+      return setAxisOverride(model, segment, config);
+    },
+    resetAxis: (model) => {
+      const key = normalizeModelKey(model || getUserGender());
+      delete rigAxisOverrides[key];
+      saveAxisOverrides();
+      resetRigPose();
+      return getAxisPreset(key);
+    }
   };
 
   if (params.get("mirror") === "1") {

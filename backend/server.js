@@ -1,0 +1,948 @@
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const os = require("os");
+const WebSocket = require("ws");
+const { WebSocketServer } = WebSocket;
+const {
+  DB_PATH,
+  ensureLocalDbFile,
+  authenticateUser,
+  createUser,
+  getUserById,
+  getDatabaseStatus,
+  getHistory,
+  saveHistory,
+  replaceHistory
+} = require("./database");
+
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
+const ROOT_DIR = __dirname;
+const PUBLIC_DIR = process.env.FRONTEND_DIR
+  ? path.resolve(process.env.FRONTEND_DIR)
+  : path.resolve(ROOT_DIR, "..", "frontend", "public");
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+const HISTORY_LIMIT = 12;
+const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
+
+const AUTH_SECRET = process.env.AUTH_SECRET || "headbutt-berserker-dev-secret-change-me";
+const TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
+
+function toBase64Url(value) {
+  return Buffer.from(value).toString("base64url");
+}
+
+function fromBase64Url(value) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function signTokenPayload(payloadBase64) {
+  return crypto.createHmac("sha256", AUTH_SECRET).update(payloadBase64).digest("base64url");
+}
+
+function createAuthToken(user) {
+  const payload = toBase64Url(JSON.stringify({
+    sub: String(user.id),
+    username: user.username,
+    displayName: user.displayName,
+    gender: user.gender || "male",
+    iat: Date.now()
+  }));
+  return `${payload}.${signTokenPayload(payload)}`;
+}
+
+function verifyAuthToken(token) {
+  if (!token || typeof token !== "string" || !token.includes(".")) return null;
+  const [payloadBase64, signature] = token.split(".");
+  if (!payloadBase64 || !signature) return null;
+  const expected = signTokenPayload(payloadBase64);
+  const a = Buffer.from(signature);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+
+  try {
+    const payload = JSON.parse(fromBase64Url(payloadBase64));
+    if (!payload || !payload.sub || !payload.iat) return null;
+    if (Date.now() - Number(payload.iat) > TOKEN_MAX_AGE_MS) return null;
+    return payload;
+  } catch (error) {
+    return null;
+  }
+}
+
+function readBearerToken(req) {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.toLowerCase().startsWith("bearer ")) return null;
+  return authHeader.slice(7).trim();
+}
+
+async function getAuthenticatedUser(req) {
+  const payload = verifyAuthToken(readBearerToken(req));
+  if (!payload) return null;
+  return getUserById(payload.sub);
+}
+
+async function requireAuthenticatedUser(req, res) {
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    sendJson(res, 401, { error: "Login obrigatório para acessar este recurso." });
+    return null;
+  }
+  return user;
+}
+
+function sendAuthResponse(res, user) {
+  sendJson(res, 200, {
+    token: createAuthToken(user),
+    user
+  });
+}
+
+
+function getBaseHeaders(extraHeaders = {}) {
+  return {
+    "Access-Control-Allow-Origin": CORS_ORIGIN,
+    "Access-Control-Allow-Methods": "GET,POST,HEAD,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer-when-downgrade",
+    ...extraHeaders
+  };
+}
+
+function sendJson(res, statusCode, payload) {
+  res.writeHead(statusCode, getBaseHeaders({
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store"
+  }));
+  res.end(JSON.stringify(payload));
+}
+
+function sendText(res, statusCode, payload, contentType) {
+  res.writeHead(statusCode, getBaseHeaders({
+    "Content-Type": contentType,
+    "Cache-Control": contentType.includes("text/html") ? "no-cache" : "public, max-age=3600"
+  }));
+  if (res.req && res.req.method === "HEAD") {
+    res.end();
+    return;
+  }
+  res.end(payload);
+}
+
+function getMimeType(filePath) {
+  switch (path.extname(filePath).toLowerCase()) {
+    case ".html": return "text/html; charset=utf-8";
+    case ".css": return "text/css; charset=utf-8";
+    case ".js": return "application/javascript; charset=utf-8";
+    case ".json": return "application/json; charset=utf-8";
+    case ".svg": return "image/svg+xml";
+    case ".png": return "image/png";
+    case ".jpg":
+    case ".jpeg": return "image/jpeg";
+    case ".webp": return "image/webp";
+    case ".glb": return "model/gltf-binary";
+    case ".gltf": return "model/gltf+json";
+    case ".mp3": return "audio/mpeg";
+    case ".ico": return "image/x-icon";
+    default: return "application/octet-stream";
+  }
+}
+
+function safePublicPath(requestPath) {
+  const relativePath = requestPath === "/" ? "index.html" : requestPath.replace(/^\/+/, "");
+  const absolutePath = path.join(PUBLIC_DIR, relativePath);
+  const normalizedRoot = path.resolve(PUBLIC_DIR) + path.sep;
+  const normalizedFile = path.resolve(absolutePath);
+
+  if (!normalizedFile.startsWith(normalizedRoot)) return null;
+  return normalizedFile;
+}
+
+function parseMaybeInfinite(value) {
+  if (value === "INF" || value === Infinity) return Infinity;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function createEmptyActionStats() {
+  return {
+    attempts: 0,
+    hits: 0,
+    misses: 0,
+    timeouts: 0,
+    wrongActions: 0,
+    accuracy: 0,
+    avgReaction: null
+  };
+}
+
+function normalizeActionItem(rawItem, phaseFallback = 1, index = 0) {
+  if (!rawItem || typeof rawItem !== "object") return null;
+
+  const expectedAction = ACTION_TYPES.includes(rawItem.expectedAction) ? rawItem.expectedAction : "attack";
+  const actualAction = rawItem.actualAction == null ? null : String(rawItem.actualAction).slice(0, 40);
+  const reactionTimeValue = rawItem.reactionTime == null ? null : Number(rawItem.reactionTime);
+  const createdAt = new Date(rawItem.createdAt);
+  const outcome = rawItem.outcome === "success" || rawItem.outcome === "miss" || rawItem.outcome === "timeout"
+    ? rawItem.outcome
+    : (rawItem.correct ? "success" : (actualAction == null ? "timeout" : "miss"));
+
+  return {
+    id: String(rawItem.id || `${Date.now()}-${phaseFallback}-${index}`).slice(0, 80),
+    phase: Number.isFinite(Number(rawItem.phase)) && Number(rawItem.phase) > 0 ? Number(rawItem.phase) : phaseFallback,
+    expectedAction,
+    actualAction,
+    source: String(rawItem.source || "unknown").slice(0, 40),
+    outcome,
+    correct: outcome === "success",
+    reactionTime: Number.isFinite(reactionTimeValue) && reactionTimeValue >= 0 ? reactionTimeValue : null,
+    createdAt: Number.isFinite(createdAt.getTime()) ? createdAt.toISOString() : new Date().toISOString()
+  };
+}
+
+function buildActionBreakdown(actions) {
+  const breakdown = {};
+
+  for (const actionType of ACTION_TYPES) {
+    breakdown[actionType] = createEmptyActionStats();
+  }
+
+  for (const action of actions) {
+    const actionType = ACTION_TYPES.includes(action.expectedAction) ? action.expectedAction : "attack";
+    const bucket = breakdown[actionType];
+
+    bucket.attempts += 1;
+
+    if (action.outcome === "success") {
+      bucket.hits += 1;
+      if (Number.isFinite(action.reactionTime)) {
+        bucket.avgReaction = bucket.avgReaction == null
+          ? action.reactionTime
+          : bucket.avgReaction + action.reactionTime;
+      }
+      continue;
+    }
+
+    bucket.misses += 1;
+    if (action.outcome === "timeout") {
+      bucket.timeouts += 1;
+    } else {
+      bucket.wrongActions += 1;
+    }
+  }
+
+  for (const actionType of ACTION_TYPES) {
+    const bucket = breakdown[actionType];
+    if (bucket.hits > 0 && bucket.avgReaction != null) {
+      bucket.avgReaction = bucket.avgReaction / bucket.hits;
+    } else {
+      bucket.avgReaction = null;
+    }
+
+    bucket.accuracy = bucket.attempts > 0 ? (bucket.hits / bucket.attempts) * 100 : 0;
+  }
+
+  return breakdown;
+}
+
+function normalizeActionBreakdown(rawBreakdown) {
+  const normalized = {};
+
+  for (const actionType of ACTION_TYPES) {
+    const rawStats = rawBreakdown && typeof rawBreakdown === "object" ? rawBreakdown[actionType] : null;
+    const attempts = Math.max(0, Number(rawStats && rawStats.attempts) || 0);
+    const hits = Math.max(0, Number(rawStats && rawStats.hits) || 0);
+    const misses = Math.max(0, Number(rawStats && rawStats.misses) || 0);
+    const timeouts = Math.max(0, Number(rawStats && rawStats.timeouts) || 0);
+    const wrongActions = Math.max(0, Number(rawStats && rawStats.wrongActions) || 0);
+    const avgReactionValue = rawStats && rawStats.avgReaction == null ? null : Number(rawStats && rawStats.avgReaction);
+
+    normalized[actionType] = {
+      attempts,
+      hits,
+      misses,
+      timeouts,
+      wrongActions,
+      accuracy: attempts > 0 ? (hits / attempts) * 100 : 0,
+      avgReaction: Number.isFinite(avgReactionValue) && avgReactionValue >= 0 ? avgReactionValue : null
+    };
+  }
+
+  return normalized;
+}
+
+function normalizeHistoryItem(rawItem) {
+  if (!rawItem || typeof rawItem !== "object") return null;
+
+  const phase = Number.isFinite(Number(rawItem.phase)) && Number(rawItem.phase) > 0 ? Number(rawItem.phase) : 1;
+  const difficultyPhase = Number.isFinite(Number(rawItem.difficultyPhase)) && Number(rawItem.difficultyPhase) > 0
+    ? Number(rawItem.difficultyPhase)
+    : phase;
+  const status = rawItem.status === "concluida" || rawItem.status === "derrota" || rawItem.status === "interrompida"
+    ? rawItem.status
+    : "interrompida";
+  const livesLeft = parseMaybeInfinite(rawItem.livesLeft);
+  const enemyHitsNeeded = parseMaybeInfinite(rawItem.enemyHitsNeeded);
+  const parsedCreatedAt = new Date(rawItem.createdAt);
+  const actions = Array.isArray(rawItem.actions)
+    ? rawItem.actions.map((item, index) => normalizeActionItem(item, phase, index)).filter(Boolean)
+    : [];
+
+  return {
+    id: String(rawItem.id || `${Date.now()}-${phase}`).slice(0, 80),
+    phase,
+    customMode: Boolean(rawItem.customMode),
+    difficultyPhase,
+    status,
+    livesLeft: Number.isFinite(livesLeft) ? livesLeft : Infinity,
+    enemyHits: Math.max(0, Number(rawItem.enemyHits) || 0),
+    enemyHitsNeeded: Number.isFinite(enemyHitsNeeded) ? Math.max(1, enemyHitsNeeded) : Infinity,
+    hits: Math.max(0, Number(rawItem.hits) || 0),
+    misses: Math.max(0, Number(rawItem.misses) || 0),
+    attempts: Math.max(0, Number(rawItem.attempts) || 0),
+    accuracy: Math.max(0, Math.min(100, Number(rawItem.accuracy) || 0)),
+    duration: Math.max(0, Number(rawItem.duration) || 0),
+    avgReaction: rawItem.avgReaction == null ? null : Math.max(0, Number(rawItem.avgReaction) || 0),
+    actions,
+    actionBreakdown: actions.length > 0 ? buildActionBreakdown(actions) : normalizeActionBreakdown(rawItem.actionBreakdown),
+    createdAt: Number.isFinite(parsedCreatedAt.getTime()) ? parsedCreatedAt.toISOString() : new Date().toISOString()
+  };
+}
+
+function serializeActionItem(item) {
+  return {
+    id: item.id,
+    userId: item.userId || item.user_id || null,
+    playerName: item.playerName || item.player_name || null,
+    phase: item.phase,
+    expectedAction: item.expectedAction,
+    actualAction: item.actualAction,
+    source: item.source,
+    outcome: item.outcome,
+    correct: Boolean(item.correct),
+    reactionTime: item.reactionTime == null ? null : Number(item.reactionTime.toFixed(3)),
+    createdAt: item.createdAt
+  };
+}
+
+function serializeActionBreakdown(breakdown) {
+  const result = {};
+
+  for (const actionType of ACTION_TYPES) {
+    const stats = breakdown && breakdown[actionType] ? breakdown[actionType] : createEmptyActionStats();
+    result[actionType] = {
+      attempts: stats.attempts,
+      hits: stats.hits,
+      misses: stats.misses,
+      timeouts: stats.timeouts,
+      wrongActions: stats.wrongActions,
+      accuracy: Number((stats.accuracy || 0).toFixed(2)),
+      avgReaction: stats.avgReaction == null ? null : Number(stats.avgReaction.toFixed(3))
+    };
+  }
+
+  return result;
+}
+
+function serializeHistoryItem(item) {
+  return {
+    id: item.id,
+    userId: item.userId || item.user_id || null,
+    playerName: item.playerName || item.player_name || null,
+    phase: item.phase,
+    customMode: item.customMode,
+    difficultyPhase: item.difficultyPhase,
+    status: item.status,
+    livesLeft: item.livesLeft === Infinity ? "INF" : item.livesLeft,
+    enemyHits: item.enemyHits,
+    enemyHitsNeeded: item.enemyHitsNeeded === Infinity ? "INF" : item.enemyHitsNeeded,
+    hits: item.hits,
+    misses: item.misses,
+    attempts: item.attempts,
+    accuracy: Number(item.accuracy.toFixed(2)),
+    duration: Number(item.duration.toFixed(2)),
+    avgReaction: item.avgReaction == null ? null : Number(item.avgReaction.toFixed(3)),
+    actions: Array.isArray(item.actions) ? item.actions.map(serializeActionItem) : [],
+    actionBreakdown: serializeActionBreakdown(item.actionBreakdown),
+    createdAt: item.createdAt
+  };
+}
+
+function createAggregateActionStats() {
+  return {
+    attempts: 0,
+    hits: 0,
+    misses: 0,
+    timeouts: 0,
+    wrongActions: 0,
+    reactionSamples: 0,
+    reactionTotal: 0,
+    accuracy: 0,
+    avgReaction: null,
+    timeoutRate: 0,
+    missRate: 0
+  };
+}
+
+function buildHistoryInsights(entries) {
+  const byAction = {};
+  let totalAttempts = 0;
+  let totalHits = 0;
+  let totalMisses = 0;
+  let totalTimeouts = 0;
+  let reactionSamples = 0;
+  let reactionTotal = 0;
+
+  for (const actionType of ACTION_TYPES) {
+    byAction[actionType] = createAggregateActionStats();
+  }
+
+  const latest = entries.length > 0 ? entries[0] : null;
+
+  for (const entry of entries) {
+    if (!Array.isArray(entry.actions)) continue;
+
+    for (const action of entry.actions) {
+      const actionType = ACTION_TYPES.includes(action.expectedAction) ? action.expectedAction : "attack";
+      const bucket = byAction[actionType];
+
+      bucket.attempts += 1;
+      totalAttempts += 1;
+
+      if (action.outcome === "success") {
+        bucket.hits += 1;
+        totalHits += 1;
+
+        if (Number.isFinite(action.reactionTime)) {
+          bucket.reactionSamples += 1;
+          bucket.reactionTotal += action.reactionTime;
+          reactionSamples += 1;
+          reactionTotal += action.reactionTime;
+        }
+      } else {
+        bucket.misses += 1;
+        totalMisses += 1;
+
+        if (action.outcome === "timeout") {
+          bucket.timeouts += 1;
+          totalTimeouts += 1;
+        } else {
+          bucket.wrongActions += 1;
+        }
+      }
+    }
+  }
+
+  for (const actionType of ACTION_TYPES) {
+    const bucket = byAction[actionType];
+    bucket.accuracy = bucket.attempts > 0 ? (bucket.hits / bucket.attempts) * 100 : 0;
+    bucket.timeoutRate = bucket.attempts > 0 ? (bucket.timeouts / bucket.attempts) * 100 : 0;
+    bucket.missRate = bucket.attempts > 0 ? (bucket.misses / bucket.attempts) * 100 : 0;
+    bucket.avgReaction = bucket.reactionSamples > 0 ? bucket.reactionTotal / bucket.reactionSamples : null;
+
+    delete bucket.reactionSamples;
+    delete bucket.reactionTotal;
+  }
+
+  return {
+    sampleSize: entries.length,
+    totals: {
+      attempts: totalAttempts,
+      hits: totalHits,
+      misses: totalMisses,
+      timeouts: totalTimeouts,
+      overallAccuracy: totalAttempts > 0 ? (totalHits / totalAttempts) * 100 : 0,
+      overallAvgReaction: reactionSamples > 0 ? reactionTotal / reactionSamples : null
+    },
+    byAction,
+    latestEntry: latest ? {
+      id: latest.id,
+      phase: latest.phase,
+      status: latest.status,
+      createdAt: latest.createdAt,
+      accuracy: latest.accuracy,
+      avgReaction: latest.avgReaction,
+      actionBreakdown: latest.actionBreakdown
+    } : null
+  };
+}
+
+function normalizeQuestionText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function formatPercent(value) {
+  return `${Number(value || 0).toFixed(1)}%`;
+}
+
+function formatSeconds(value) {
+  return value == null || !Number.isFinite(Number(value)) ? "--" : `${Number(value).toFixed(2)}s`;
+}
+
+function getActionLabel(actionType) {
+  const labels = {
+    attack: "ataque",
+    dodgeLeft: "desvio para a esquerda",
+    dodgeRight: "desvio para a direita",
+    duck: "agachar"
+  };
+  return labels[actionType] || actionType;
+}
+
+function rankActionsByMetric(insights, metric, direction = "asc") {
+  return Object.entries(insights.byAction || {})
+    .filter(([, stats]) => stats && stats.attempts > 0)
+    .sort((a, b) => {
+      const av = Number(a[1][metric]) || 0;
+      const bv = Number(b[1][metric]) || 0;
+      return direction === "desc" ? bv - av : av - bv;
+    });
+}
+
+function createAssistantAnswer(question, insights, user) {
+  const text = normalizeQuestionText(question);
+  const totals = insights.totals || {};
+  const sampleSize = insights.sampleSize || 0;
+
+  if (sampleSize === 0 || !totals.attempts) {
+    return `${user.displayName || user.username}, ainda nao tenho partidas suficientes para analisar. Jogue uma fase e volte aqui para eu ler precisao, reacao e erros por movimento.`;
+  }
+
+  const weakest = rankActionsByMetric(insights, "accuracy", "asc")[0];
+  const mostTimeouts = rankActionsByMetric(insights, "timeoutRate", "desc")[0];
+  const slowest = rankActionsByMetric(insights, "avgReaction", "desc")
+    .find(([, stats]) => stats.avgReaction != null);
+
+  if (text.includes("erro") || text.includes("pior") || text.includes("fraco") || text.includes("dificuldade")) {
+    if (!weakest) return "Nao encontrei um movimento fraco ainda.";
+    const [action, stats] = weakest;
+    return `Seu ponto mais fraco agora e ${getActionLabel(action)}: ${formatPercent(stats.accuracy)} de precisao em ${stats.attempts} tentativas. Treine esse movimento em ritmo lento antes de subir a dificuldade.`;
+  }
+
+  if (text.includes("reacao") || text.includes("tempo") || text.includes("rapido") || text.includes("lento")) {
+    const reaction = formatSeconds(totals.overallAvgReaction);
+    if (!slowest) return `Sua reacao media geral esta em ${reaction}. Ainda faltam amostras por movimento para dizer qual e o mais lento.`;
+    const [action, stats] = slowest;
+    return `Sua reacao media geral esta em ${reaction}. O movimento mais lento foi ${getActionLabel(action)}, com media de ${formatSeconds(stats.avgReaction)}.`;
+  }
+
+  if (text.includes("precisao") || text.includes("acerto") || text.includes("acertos")) {
+    return `Sua precisao geral esta em ${formatPercent(totals.overallAccuracy)}: ${totals.hits} acertos em ${totals.attempts} tentativas registradas.`;
+  }
+
+  if (text.includes("tempo esgotado") || text.includes("timeout") || text.includes("demoro")) {
+    if (!mostTimeouts) return "Ainda nao ha tentativas suficientes para comparar tempo esgotado.";
+    const [action, stats] = mostTimeouts;
+    return `O maior indice de tempo esgotado apareceu em ${getActionLabel(action)}: ${formatPercent(stats.timeoutRate)} das tentativas desse movimento.`;
+  }
+
+  if (text.includes("ultima") || text.includes("recente") || text.includes("sessao")) {
+    const latest = insights.latestEntry;
+    if (!latest) return "Nao encontrei sessao recente.";
+    return `Sua ultima sessao ficou como ${latest.status}, fase ${latest.phase}, com ${formatPercent(latest.accuracy)} de precisao e reacao media de ${formatSeconds(latest.avgReaction)}.`;
+  }
+
+  const weakText = weakest
+    ? `${getActionLabel(weakest[0])} (${formatPercent(weakest[1].accuracy)})`
+    : "sem ponto fraco definido";
+  return `Resumo: ${sampleSize} sessoes, ${totals.attempts} tentativas, ${formatPercent(totals.overallAccuracy)} de precisao e reacao media de ${formatSeconds(totals.overallAvgReaction)}. Ponto de atencao: ${weakText}.`;
+}
+
+function collectRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+      if (Buffer.concat(chunks).length > 1e6) {
+        reject(new Error("Request body too large"));
+        req.destroy();
+      }
+    });
+
+    req.on("end", () => {
+      if (chunks.length === 0) {
+        resolve({});
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    req.on("error", reject);
+  });
+}
+
+async function handleHistoryGet(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const entries = await getHistory(user.id);
+  sendJson(res, 200, entries.map((item) => normalizeHistoryItem(item)).filter(Boolean));
+}
+
+async function handleHistoryInsightsGet(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const entries = await getHistory(user.id);
+  const normalizedEntries = entries.map((item) => normalizeHistoryItem(item)).filter(Boolean);
+  sendJson(res, 200, buildHistoryInsights(normalizedEntries));
+}
+
+async function handleAssistantChat(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+
+  const body = await collectRequestBody(req);
+  const question = String(body.question || "").trim().slice(0, 800);
+
+  if (!question) {
+    sendJson(res, 400, { error: "Pergunta obrigatoria." });
+    return;
+  }
+
+  const entries = await getHistory(user.id);
+  const normalizedEntries = entries.map((item) => normalizeHistoryItem(item)).filter(Boolean);
+  const insights = buildHistoryInsights(normalizedEntries);
+  const answer = createAssistantAnswer(question, insights, user);
+
+  sendJson(res, 200, {
+    answer,
+    insights
+  });
+}
+
+async function handleHistoryPost(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const body = await collectRequestBody(req);
+  const entry = normalizeHistoryItem({ ...body, userId: user.id, playerName: user.displayName });
+
+  if (!entry) {
+    sendJson(res, 400, { error: "Invalid history entry" });
+    return;
+  }
+
+  const savedEntry = await saveHistory(entry, user);
+  sendJson(res, 201, normalizeHistoryItem(savedEntry) || entry);
+}
+
+async function handleHistoryImport(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const body = await collectRequestBody(req);
+  const entries = Array.isArray(body.entries) ? body.entries : [];
+
+  const normalizedEntries = entries.map((item) => normalizeHistoryItem(item)).filter(Boolean).slice(0, HISTORY_LIMIT);
+  const savedEntries = await replaceHistory(normalizedEntries, user);
+  sendJson(res, 200, savedEntries.map((item) => normalizeHistoryItem(item)).filter(Boolean));
+}
+
+
+async function handleRegister(req, res) {
+  const body = await collectRequestBody(req);
+  const user = await createUser(body.username, body.password, body.gender);
+  sendAuthResponse(res, user);
+}
+
+async function handleLogin(req, res) {
+  const body = await collectRequestBody(req);
+  const user = await authenticateUser(body.username, body.password);
+  sendAuthResponse(res, user);
+}
+
+async function handleMe(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  sendJson(res, 200, { user });
+}
+
+function serveStaticFile(res, filePath) {
+  try {
+    const data = fs.readFileSync(filePath);
+    sendText(res, 200, data, getMimeType(filePath));
+  } catch (error) {
+    sendText(res, 404, "Not found", "text/plain; charset=utf-8");
+  }
+}
+
+function normalizeRoomCode(value) {
+  const room = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "")
+    .slice(0, 18);
+  return room || crypto.randomBytes(3).toString("hex").toUpperCase();
+}
+
+function normalizeClientRole(value) {
+  const role = String(value || "").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 20);
+  return role || "player";
+}
+
+function getNetworkHosts(req) {
+  const hosts = new Set();
+  const hostHeader = req.headers.host || `localhost:${PORT}`;
+  hosts.add(hostHeader);
+  hosts.add(`localhost:${PORT}`);
+
+  for (const addresses of Object.values(os.networkInterfaces())) {
+    for (const address of addresses || []) {
+      if (!address || address.internal || address.family !== "IPv4") continue;
+      hosts.add(`${address.address}:${PORT}`);
+    }
+  }
+
+  return Array.from(hosts);
+}
+
+function buildRoomLinks(req, room) {
+  const roomCode = normalizeRoomCode(room);
+  return {
+    room: roomCode,
+    links: getNetworkHosts(req).map((host) => ({
+      host,
+      landing: `http://${host}/?room=${encodeURIComponent(roomCode)}`,
+      game: `http://${host}/game?room=${encodeURIComponent(roomCode)}`,
+      mirror: `http://${host}/game?room=${encodeURIComponent(roomCode)}&mirror=1`
+    }))
+  };
+}
+
+function handleRoomGet(req, res, requestUrl) {
+  sendJson(res, 200, buildRoomLinks(req, requestUrl.searchParams.get("room")));
+}
+
+const server = http.createServer((req, res) => {
+  const requestUrl = new URL(req.url, `http://${req.headers.host}`);
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, getBaseHeaders());
+    res.end();
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/health" && (req.method === "GET" || req.method === "HEAD")) {
+    getDatabaseStatus()
+      .then((database) => sendJson(res, 200, {
+        ok: true,
+        service: "corpus-vr",
+        timestamp: new Date().toISOString(),
+        database
+      }))
+      .catch((error) => sendJson(res, 200, {
+        ok: true,
+        service: "corpus-vr",
+        timestamp: new Date().toISOString(),
+        database: { connected: false, error: error.message }
+      }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/room" && (req.method === "GET" || req.method === "HEAD")) {
+    handleRoomGet(req, res, requestUrl);
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/register" && req.method === "POST") {
+    handleRegister(req, res).catch((error) => sendJson(res, 400, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/login" && req.method === "POST") {
+    handleLogin(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/me" && req.method === "GET") {
+    handleMe(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/history" && req.method === "GET") {
+    handleHistoryGet(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/history/insights" && req.method === "GET") {
+    handleHistoryInsightsGet(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/assistant/chat" && req.method === "POST") {
+    handleAssistantChat(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/history" && req.method === "POST") {
+    handleHistoryPost(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/history/import" && req.method === "POST") {
+    handleHistoryImport(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    sendJson(res, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  if (requestUrl.pathname === "/game" || requestUrl.pathname === "/game/") {
+    serveStaticFile(res, path.join(PUBLIC_DIR, "game.html"));
+    return;
+  }
+
+  const safePath = safePublicPath(requestUrl.pathname);
+  if (!safePath) {
+    sendText(res, 403, "Forbidden", "text/plain; charset=utf-8");
+    return;
+  }
+
+  let filePath = safePath;
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+    filePath = path.join(filePath, "index.html");
+  }
+
+  if (!fs.existsSync(filePath)) {
+    const fallbackPath = path.join(PUBLIC_DIR, "index.html");
+    if (requestUrl.pathname.startsWith("/scripts/") || requestUrl.pathname.endsWith(".js") || requestUrl.pathname.endsWith(".css")) {
+      sendText(res, 404, "Not found", "text/plain; charset=utf-8");
+      return;
+    }
+    serveStaticFile(res, fallbackPath);
+    return;
+  }
+
+  serveStaticFile(res, filePath);
+});
+
+const rooms = new Map();
+const wss = new WebSocketServer({ noServer: true });
+
+function getRoomClients(roomCode) {
+  const room = normalizeRoomCode(roomCode);
+  if (!rooms.has(room)) rooms.set(room, new Set());
+  return rooms.get(room);
+}
+
+function sendSocketJson(socket, payload) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  socket.send(JSON.stringify(payload));
+}
+
+function broadcastRoom(roomCode, payload, exceptSocket = null) {
+  const clients = getRoomClients(roomCode);
+  for (const client of clients) {
+    if (client === exceptSocket) continue;
+    sendSocketJson(client, payload);
+  }
+}
+
+function roomPresence(roomCode) {
+  const clients = getRoomClients(roomCode);
+  return Array.from(clients).map((client) => ({
+    id: client.clientId,
+    role: client.clientRole
+  }));
+}
+
+wss.on("connection", (socket, req, context = {}) => {
+  const room = normalizeRoomCode(context.room);
+  const role = normalizeClientRole(context.role);
+  const clientId = crypto.randomBytes(8).toString("hex");
+  const clients = getRoomClients(room);
+
+  socket.roomCode = room;
+  socket.clientRole = role;
+  socket.clientId = clientId;
+  clients.add(socket);
+
+  sendSocketJson(socket, {
+    type: "room-ready",
+    room,
+    clientId,
+    role,
+    peers: roomPresence(room),
+    sentAt: Date.now()
+  });
+
+  broadcastRoom(room, {
+    type: "peer-joined",
+    room,
+    clientId,
+    role,
+    peers: roomPresence(room),
+    sentAt: Date.now()
+  }, socket);
+
+  socket.on("message", (raw) => {
+    let message = null;
+    try {
+      message = JSON.parse(String(raw));
+    } catch (error) {
+      return;
+    }
+    if (!message || typeof message !== "object") return;
+
+    broadcastRoom(room, {
+      ...message,
+      room,
+      clientId,
+      role,
+      sentAt: Date.now()
+    }, socket);
+  });
+
+  socket.on("close", () => {
+    clients.delete(socket);
+    if (clients.size === 0) rooms.delete(room);
+    broadcastRoom(room, {
+      type: "peer-left",
+      room,
+      clientId,
+      role,
+      peers: roomPresence(room),
+      sentAt: Date.now()
+    }, socket);
+  });
+});
+
+server.on("upgrade", (req, socket, head) => {
+  let requestUrl;
+  try {
+    requestUrl = new URL(req.url, `http://${req.headers.host || `localhost:${PORT}`}`);
+  } catch (error) {
+    socket.destroy();
+    return;
+  }
+
+  if (requestUrl.pathname !== "/ws") {
+    socket.destroy();
+    return;
+  }
+
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit("connection", ws, req, {
+      room: requestUrl.searchParams.get("room"),
+      role: requestUrl.searchParams.get("role")
+    });
+  });
+});
+
+server.listen(PORT, HOST, () => {
+  ensureLocalDbFile();
+  console.log(`Corpus VR server running at http://${HOST}:${PORT}`);
+  console.log(`Database fallback path: ${DB_PATH}`);
+  console.log(`Database provider: ${process.env.USE_SUPABASE === "true" ? "Supabase" : (process.env.USE_POSTGRES === "true" || process.env.DATABASE_URL ? "PostgreSQL" : "db.json")}`);
+});

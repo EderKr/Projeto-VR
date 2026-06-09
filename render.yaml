@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: headbutt-berserker
+    name: corpus-vr
     env: node
     plan: free
-    buildCommand: npm ci
-    startCommand: npm start
+    buildCommand: npm --prefix backend ci
+    startCommand: npm --prefix backend start
     envVars:
       - key: NODE_ENV
         value: production
