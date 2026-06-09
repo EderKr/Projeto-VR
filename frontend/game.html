@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fisio Trainer VR</title>
+  <title>Corpus VR</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-environment-component/dist/aframe-environment-component.min.js"></script>
   <script src="https://unpkg.com/aframe-extras@7.6.0/dist/aframe-extras.min.js"></script>
   <base href="/">
 
-  <link rel="stylesheet" href="/style.css?v=20260608-corpus-vr-fix3" />
+  <link rel="stylesheet" href="/style.css?v=20260609-corpus-vr-rpm1" />
 </head>
 <body>
   <div class="game-topbar" aria-hidden="true">
-    <div class="game-logo">Fisio Trainer VR</div>
+    <div class="game-logo">Corpus VR</div>
     <div class="game-help">Incline a cabeça, ataque e sobreviva à arena</div>
   </div>
 
@@ -48,7 +48,7 @@
 
   <div id="loginOverlay" class="login-overlay" aria-hidden="false">
     <form id="loginForm" class="login-card">
-      <div class="login-kicker">Fisio Trainer VR</div>
+      <div class="login-kicker">Corpus VR</div>
       <h1>Entrar no jogo</h1>
       <p id="loginStartHint" class="login-subtitle">Faça login ou crie uma conta para iniciar e salvar seu histórico.</p>
 
@@ -175,8 +175,8 @@
       <audio id="wilhelm-scream" src="/sounds/wilhelm-scream.mp3"></audio>
       <a-asset-item id="kingModel" src="/models/king.glb"></a-asset-item>
       <a-asset-item id="hoodedAdventurerModel" src="/models/hooded-adventurer.glb"></a-asset-item>
-      <a-asset-item id="adventurerMaleModel" src="/models/adventurer-male.glb"></a-asset-item>
-      <a-asset-item id="adventurerFemaleModel" src="/models/adventurer-female.glb"></a-asset-item>
+      <a-asset-item id="readyPlayerMaleModel" src="/models/ready-player-me-male.glb"></a-asset-item>
+      <a-asset-item id="readyPlayerFemaleModel" src="/models/ready-player-me-female.glb"></a-asset-item>
       <a-asset-item id="witchModel" src="/models/witch.glb"></a-asset-item>
       <a-asset-item id="torchModel" src="/models/torch.glb"></a-asset-item>
       <img id="sandTexture" src="/textures/sand-beige-natural.png">
@@ -245,7 +245,7 @@
             width="1.8"
             height="0.18"
             material="transparent: true; opacity: 0; shader: flat; depthTest: false"
-            canvas-text="value: Fisio Trainer VR; align: left; fontSize: 68; color: #FFE8B6; padding: 28;">
+            canvas-text="value: Corpus VR; align: left; fontSize: 68; color: #FFE8B6; padding: 28;">
           </a-plane>
 
           <a-plane
@@ -570,7 +570,7 @@
           width="2.1"
           height="0.18"
           material="transparent: true; opacity: 0"
-          canvas-text="value: Fisio Trainer VR; align: left; fontSize: 76; color: #FFE8B6; padding: 22;">
+          canvas-text="value: Corpus VR; align: left; fontSize: 76; color: #FFE8B6; padding: 22;">
         </a-plane>
 
         <a-plane
@@ -755,7 +755,7 @@
     <a-entity id="bodyMirrorAvatar" visible="false" position="0 0 -3.2" scale="1.08 1.08 1.08">
       <a-entity
         id="bodyMirrorCharacterModel"
-        gltf-model="#adventurerMaleModel"
+        gltf-model="#readyPlayerMaleModel"
         position="0 0 0"
         rotation="0 0 0"
         scale="1 1 1">
@@ -865,11 +865,11 @@
     </a-entity>
   </a-scene>
 
-  <script src="/scripts/auth.js?v=20260608-corpus-vr-fix3"></script>
+  <script src="/scripts/auth.js?v=20260609-corpus-vr-rpm1"></script>
   <script src="/scripts/state.js"></script>
   <script src="/scripts/ui.js"></script>
   <script src="/scripts/gameplay.js"></script>
   <script src="/scripts/components.js"></script>
-  <script src="/scripts/game-pose-controller.js?v=20260609-corpus-vr-mirror-rig2"></script>
+  <script src="/scripts/game-pose-controller.js?v=20260609-corpus-vr-rpm1"></script>
 </body>
 </html>

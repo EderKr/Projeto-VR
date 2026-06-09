@@ -47,6 +47,8 @@
   const HIDDEN_DOM_IDS = ["pauseMenuDesktopToggle", "logoutButton", "userBadge", "pauseMenuDesktop"];
   const BONE_ALIASES = {
     hips: ["Hips", "mixamorigHips"],
+    spine: ["Spine", "mixamorigSpine"],
+    chest: ["Spine1", "Spine2", "Chest", "UpperChest", "mixamorigSpine1", "mixamorigSpine2"],
     neck: ["Neck", "mixamorigNeck"],
     head: ["Head", "mixamorigHead"],
     shoulderL: ["Shoulder.L", "LeftShoulder", "mixamorigLeftShoulder"],
@@ -64,6 +66,16 @@
     lowerLegR: ["LowerLeg.R", "RightLeg", "RightLowerLeg", "mixamorigRightLeg"],
     footR: ["Foot.R", "RightFoot", "mixamorigRightFoot"]
   };
+  const LOCAL_MODEL_ASSETS = {
+    male: {
+      src: "#readyPlayerMaleModel",
+      scale: "1.08 1.08 1.08"
+    },
+    female: {
+      src: "#readyPlayerFemaleModel",
+      scale: "1.08 1.08 1.08"
+    }
+  };
   const RIG_AXIS_PRESETS = {
     male: {
       global: { x: 1, y: 1, z: 1, xScale: 1, yScale: 1.25, zScale: 0.75, amount: 0.9 },
@@ -71,6 +83,8 @@
         neck: { x: 1, y: 1, z: 1, amount: 0.65 },
         head: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.62 },
         hips: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        spine: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.44 },
+        chest: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.48 },
         shoulderL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
         shoulderR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
         upperArmL: { x: 1, y: 1, z: 1, amount: 0.95 },
@@ -93,6 +107,8 @@
         neck: { x: 1, y: 1, z: 1, amount: 0.66 },
         head: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.62 },
         hips: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
+        spine: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.44 },
+        chest: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.48 },
         shoulderL: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
         shoulderR: { rotX: 1, rotY: 1, rotZ: 1, amount: 0.46 },
         upperArmL: { x: 1, y: 1, z: 1, amount: 0.96 },
@@ -129,11 +145,13 @@
   let roomReconnectTimer = 0;
   let roomCode = resolveRoomCode();
   let currentModelAsset = "";
+  let currentModelScale = "1.08 1.08 1.08";
   let rigBones = {};
   let rigBaseRotations = {};
   let rigBaseQuaternions = {};
   let rigSegments = {};
   let rigAxisOverrides = loadAxisOverrides();
+  let lastRigCacheSignature = "";
   const hiddenState = new Map();
 
   function sanitizeRoomCode(value) {
@@ -309,16 +327,29 @@
     return sanitizeModelUrl(localStorage.getItem(MODEL_URL_STORAGE_KEY));
   }
 
+  function resolveLocalModelAsset() {
+    const key = normalizeModelKey(getUserGender());
+    return LOCAL_MODEL_ASSETS[key] || LOCAL_MODEL_ASSETS.male;
+  }
+
   function applyCharacterModel() {
     if (!characterModel) return;
-    const model = resolveRemoteModelAsset()
-      || (getUserGender() === "female" ? "#adventurerFemaleModel" : "#adventurerMaleModel");
-    if (currentModelAsset === model) return;
+    const remoteModel = resolveRemoteModelAsset();
+    const localModel = resolveLocalModelAsset();
+    const model = remoteModel || localModel.src;
+    currentModelScale = remoteModel ? "1.08 1.08 1.08" : localModel.scale;
+    if (currentModelAsset === model) {
+      characterModel.setAttribute("scale", currentModelScale);
+      return;
+    }
     currentModelAsset = model;
     rigBones = {};
     rigBaseRotations = {};
     rigBaseQuaternions = {};
     rigSegments = {};
+    lastRigCacheSignature = "";
+    characterModel.removeAttribute("gltf-model");
+    characterModel.setAttribute("scale", currentModelScale);
     characterModel.setAttribute("gltf-model", model);
     scheduleRigCache();
   }
@@ -390,11 +421,23 @@
     rigBaseRotations = nextBase;
     rigBaseQuaternions = nextQuaternions;
     rigSegments = buildRigSegments(THREE);
-    return Object.keys(rigBones).length;
+    const foundBones = Object.keys(rigBones).sort();
+    const signature = `${currentModelAsset}:${foundBones.join(",")}`;
+    if (foundBones.length > 0 && signature !== lastRigCacheSignature) {
+      lastRigCacheSignature = signature;
+      console.info("[Corpus VR] Rig encontrado", {
+        model: currentModelAsset,
+        bones: foundBones,
+        segments: Object.keys(rigSegments).sort()
+      });
+    }
+    return foundBones.length;
   }
 
   function buildRigSegments(THREE) {
     const pairs = {
+      spine: "chest",
+      chest: "neck",
       upperArmL: "lowerArmL",
       lowerArmL: "wristL",
       upperArmR: "lowerArmR",
@@ -1123,7 +1166,7 @@
     rotateBoneMapped(name, x, y, z, amount, { usePresetAmount: false });
   }
 
-  function applyVisibleRigFallback(features) {
+  function applyVisibleRigFallback(features, aimed = {}) {
     const leftUpperArm = clamp(normalizeAngle(features.upperArmAngleL - Math.PI / 2), -1.55, 1.55);
     const rightUpperArm = clamp(normalizeAngle(features.upperArmAngleR - Math.PI / 2), -1.55, 1.55);
     const leftLowerArm = clamp(normalizeAngle(features.lowerArmAngleL - Math.PI / 2), -1.65, 1.65);
@@ -1146,21 +1189,21 @@
       ? clamp((features.rightWrist.x - features.rightShoulder.x) * 2.5, -1.25, 1.25)
       : 0;
 
-    rotateBoneDirect("upperArmL", -leftArmLift * 0.55, leftArmReach * 0.18, leftUpperArm, 0.52);
-    rotateBoneDirect("lowerArmL", -leftArmLift * 0.22, 0, leftLowerArm, 0.56);
-    rotateBoneDirect("wristL", leftLowerArm * 0.22, 0, leftLowerArm * 0.5, 0.5);
+    if (!aimed.upperArmL) rotateBoneDirect("upperArmL", -leftArmLift * 0.55, leftArmReach * 0.18, leftUpperArm, 0.52);
+    if (!aimed.lowerArmL) rotateBoneDirect("lowerArmL", -leftArmLift * 0.22, 0, leftLowerArm, 0.56);
+    if (!aimed.lowerArmL) rotateBoneDirect("wristL", leftLowerArm * 0.22, 0, leftLowerArm * 0.5, 0.5);
 
-    rotateBoneDirect("upperArmR", -rightArmLift * 0.55, rightArmReach * 0.18, rightUpperArm, 0.52);
-    rotateBoneDirect("lowerArmR", -rightArmLift * 0.22, 0, rightLowerArm, 0.56);
-    rotateBoneDirect("wristR", rightLowerArm * 0.22, 0, rightLowerArm * 0.5, 0.5);
+    if (!aimed.upperArmR) rotateBoneDirect("upperArmR", -rightArmLift * 0.55, rightArmReach * 0.18, rightUpperArm, 0.52);
+    if (!aimed.lowerArmR) rotateBoneDirect("lowerArmR", -rightArmLift * 0.22, 0, rightLowerArm, 0.56);
+    if (!aimed.lowerArmR) rotateBoneDirect("wristR", rightLowerArm * 0.22, 0, rightLowerArm * 0.5, 0.5);
 
-    rotateBoneDirect("upperLegL", leftLowerLeg * 0.36, leftUpperLeg * 0.12, leftUpperLeg * 0.26, 0.44);
-    rotateBoneDirect("lowerLegL", leftLowerLeg * 0.62, 0, leftLowerLeg * 0.18, 0.48);
-    rotateBoneDirect("footL", leftLowerLeg * 0.28, 0, 0, 0.42);
+    if (!aimed.upperLegL) rotateBoneDirect("upperLegL", leftLowerLeg * 0.36, leftUpperLeg * 0.12, leftUpperLeg * 0.26, 0.44);
+    if (!aimed.lowerLegL) rotateBoneDirect("lowerLegL", leftLowerLeg * 0.62, 0, leftLowerLeg * 0.18, 0.48);
+    if (!aimed.lowerLegL) rotateBoneDirect("footL", leftLowerLeg * 0.28, 0, 0, 0.42);
 
-    rotateBoneDirect("upperLegR", rightLowerLeg * 0.36, rightUpperLeg * 0.12, rightUpperLeg * 0.26, 0.44);
-    rotateBoneDirect("lowerLegR", rightLowerLeg * 0.62, 0, rightLowerLeg * 0.18, 0.48);
-    rotateBoneDirect("footR", rightLowerLeg * 0.28, 0, 0, 0.42);
+    if (!aimed.upperLegR) rotateBoneDirect("upperLegR", rightLowerLeg * 0.36, rightUpperLeg * 0.12, rightUpperLeg * 0.26, 0.44);
+    if (!aimed.lowerLegR) rotateBoneDirect("lowerLegR", rightLowerLeg * 0.62, 0, rightLowerLeg * 0.18, 0.48);
+    if (!aimed.lowerLegR) rotateBoneDirect("footR", rightLowerLeg * 0.28, 0, 0, 0.42);
   }
 
   function rotateLimbBones(features) {
@@ -1174,6 +1217,8 @@
     const torsoCrouch = baseline ? clamp((features.shoulderCenter.y - baseline.shoulderY) * 2.8, 0, 0.38) : 0;
 
     rotateBoneMapped("hips", torsoCrouch, yaw * 0.25, -hipTilt * 0.45, 0.42);
+    rotateBoneMapped("spine", torsoCrouch * 0.26, yaw * 0.24, -shoulderTilt * 0.22, 0.4);
+    rotateBoneMapped("chest", -torsoCrouch * 0.16, yaw * 0.38, -shoulderTilt * 0.32, 0.45);
     rotateBoneMapped("neck", 0, headYaw * 0.45, -shoulderTilt * 0.35, 0.48);
     rotateBoneMapped("head", 0, headYaw, -shoulderTilt * 0.58, 0.54);
     rotateBoneMapped("shoulderL", 0, 0, -shoulderTilt * 0.35, 0.44);
@@ -1196,7 +1241,7 @@
     const leftLowerLeg = clamp(normalizeAngle(features.lowerLegAngleL - Math.PI / 2), -0.95, 0.95);
     const rightLowerLeg = clamp(normalizeAngle(features.lowerLegAngleR - Math.PI / 2), -0.95, 0.95);
 
-    applyVisibleRigFallback(features);
+    applyVisibleRigFallback(features, aimed);
 
     if (!aimed.upperArmL) rotateBoneMapped("upperArmL", 0, 0, clamp(normalizeAngle(features.upperArmAngleL - Math.PI / 2), -1.25, 1.25), 0.72);
     if (!aimed.lowerArmL) rotateBoneMapped("lowerArmL", 0, 0, leftLowerArm, 0.72);
@@ -1229,7 +1274,7 @@
 
     if (characterModel) {
       characterModel.setAttribute("rotation", `0 0 ${roll.toFixed(1)}`);
-      characterModel.setAttribute("scale", getUserGender() === "female" ? "1.04 1.04 1.04" : "1.08 1.08 1.08");
+      characterModel.setAttribute("scale", currentModelScale);
     }
 
     rotateLimbBones(features);
@@ -1449,6 +1494,10 @@
       cacheRigBones();
       resetRigPose();
     });
+    characterModel.addEventListener("model-error", (event) => {
+      console.warn("[Corpus VR] Falha ao carregar avatar corporal", event && event.detail);
+      setHint("modelo corporal indisponivel");
+    });
   }
 
   window.addEventListener("auth-state-change", applyCharacterModel);
@@ -1460,6 +1509,7 @@
     bones: () => Object.keys(rigBones),
     segments: () => Object.keys(rigSegments),
     model: () => currentModelAsset,
+    asset: () => resolveLocalModelAsset(),
     clearModel: () => {
       localStorage.removeItem(MODEL_URL_STORAGE_KEY);
       currentModelAsset = "";

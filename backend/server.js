@@ -950,7 +950,7 @@ server.listen(PORT, HOST, () => {
   if (CONFIGURED_PUBLIC_DIR !== PUBLIC_DIR) {
     console.warn(`FRONTEND_DIR=${CONFIGURED_PUBLIC_DIR} não existe; voltando para ${PUBLIC_DIR}`);
   }
-  console.log(`Fisio Trainer VR server running at http://${HOST}:${PORT}`);
+  console.log(`Corpus VR server running at http://${HOST}:${PORT}`);
   console.log(`Commit SHA: ${COMMIT_SHA}`);
   console.log(`Frontend directory: ${PUBLIC_DIR}`);
   console.log(`Database fallback path: ${DB_PATH}`);

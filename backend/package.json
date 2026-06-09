@@ -1,7 +1,7 @@
 {
-  "name": "fisio-trainer-vr",
+  "name": "corpus-vr",
   "version": "1.2.0",
-  "description": "Projeto VR/WebXR com visao computacional, espelho corporal e historico de desempenho.",
+  "description": "Projeto WebXR com visao computacional, espelho corporal e historico de desempenho.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
