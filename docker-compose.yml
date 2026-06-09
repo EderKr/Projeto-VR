@@ -9,6 +9,8 @@ services:
         condition: service_healthy
     ports:
       - "3000:3000"
+    command: ["npm", "start"]
+    working_dir: /app/backend
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       HOST: ${HOST:-0.0.0.0}
