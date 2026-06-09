@@ -20,9 +20,13 @@ const {
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 const ROOT_DIR = __dirname;
-const PUBLIC_DIR = process.env.FRONTEND_DIR
+const DEFAULT_PUBLIC_DIR = path.resolve(ROOT_DIR, "..", "frontend");
+const CONFIGURED_PUBLIC_DIR = process.env.FRONTEND_DIR
   ? path.resolve(process.env.FRONTEND_DIR)
-  : path.resolve(ROOT_DIR, "..", "frontend");
+  : DEFAULT_PUBLIC_DIR;
+const PUBLIC_DIR = fs.existsSync(CONFIGURED_PUBLIC_DIR) && fs.statSync(CONFIGURED_PUBLIC_DIR).isDirectory()
+  ? CONFIGURED_PUBLIC_DIR
+  : DEFAULT_PUBLIC_DIR;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const HISTORY_LIMIT = 12;
 const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
@@ -942,7 +946,11 @@ server.on("upgrade", (req, socket, head) => {
 
 server.listen(PORT, HOST, () => {
   ensureLocalDbFile();
+  if (CONFIGURED_PUBLIC_DIR !== PUBLIC_DIR) {
+    console.warn(`FRONTEND_DIR=${CONFIGURED_PUBLIC_DIR} não existe; voltando para ${PUBLIC_DIR}`);
+  }
   console.log(`Fisio Trainer VR server running at http://${HOST}:${PORT}`);
+  console.log(`Frontend directory: ${PUBLIC_DIR}`);
   console.log(`Database fallback path: ${DB_PATH}`);
   console.log(`Database provider: ${process.env.USE_POSTGRES === "true" || process.env.DATABASE_URL ? "PostgreSQL" : "db.json"}`);
 });
