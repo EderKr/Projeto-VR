@@ -32,6 +32,7 @@ const HISTORY_LIMIT = 12;
 const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
 
 const AUTH_SECRET = process.env.AUTH_SECRET || "headbutt-berserker-dev-secret-change-me";
+const COMMIT_SHA = process.env.COMMIT_SHA || "unknown";
 const TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 
 function toBase64Url(value) {
@@ -950,6 +951,7 @@ server.listen(PORT, HOST, () => {
     console.warn(`FRONTEND_DIR=${CONFIGURED_PUBLIC_DIR} não existe; voltando para ${PUBLIC_DIR}`);
   }
   console.log(`Fisio Trainer VR server running at http://${HOST}:${PORT}`);
+  console.log(`Commit SHA: ${COMMIT_SHA}`);
   console.log(`Frontend directory: ${PUBLIC_DIR}`);
   console.log(`Database fallback path: ${DB_PATH}`);
   console.log(`Database provider: ${process.env.USE_POSTGRES === "true" || process.env.DATABASE_URL ? "PostgreSQL" : "db.json"}`);

@@ -8,6 +8,8 @@ RUN cd /app/backend && npm ci --omit=dev || npm install --omit=dev
 COPY backend /app/backend
 COPY frontend /app/frontend
 
+ARG COMMIT_SHA=unknown
+ENV COMMIT_SHA=$COMMIT_SHA
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV FRONTEND_DIR=/app/frontend
