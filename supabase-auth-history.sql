@@ -8,6 +8,7 @@ create table if not exists public.app_users (
   created_at timestamptz not null default now(),
   username text not null unique,
   display_name text not null,
+  gender text not null default 'male',
   password_hash text not null,
   password_salt text not null
 );
@@ -44,6 +45,7 @@ create table if not exists public.performance_history (
 alter table public.app_users add column if not exists display_name text;
 update public.app_users set display_name = username where display_name is null;
 alter table public.app_users alter column display_name set not null;
+alter table public.app_users add column if not exists gender text not null default 'male';
 
 alter table public.performance_history add column if not exists user_id uuid references public.app_users(id) on delete cascade;
 alter table public.performance_history add column if not exists player_name text;

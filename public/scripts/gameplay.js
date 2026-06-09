@@ -338,6 +338,13 @@ function dispatchAction(action, source = "unknown") {
 }
 
 window.dispatchGameAction = dispatchAction;
+window.getGameInputState = function () {
+  return {
+    running: Boolean(game.running),
+    waitingInput: Boolean(game.waitingInput),
+    expectedAction: game.expectedAction
+  };
+};
 
 document.addEventListener(
   "keydown",

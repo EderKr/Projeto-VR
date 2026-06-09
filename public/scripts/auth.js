@@ -55,6 +55,12 @@ function updateAuthUI() {
       ? "Login confirmado. Você já pode iniciar o jogo."
       : "Faça login ou crie uma conta para iniciar e salvar seu histórico.";
   }
+  window.dispatchEvent(new CustomEvent("auth-state-change", {
+    detail: {
+      loggedIn: isLoggedIn(),
+      user: authState.user
+    }
+  }));
 }
 
 function saveAuthSession(payload) {
@@ -78,8 +84,10 @@ function clearAuthSession() {
 async function submitAuth(mode) {
   const usernameEl = document.getElementById("loginUsername");
   const passwordEl = document.getElementById("loginPassword");
+  const genderEl = document.getElementById("loginGender");
   const username = usernameEl ? usernameEl.value.trim() : "";
   const password = passwordEl ? passwordEl.value : "";
+  const gender = genderEl && genderEl.value === "female" ? "female" : "male";
 
   if (!username || !password) {
     setAuthMessage("Preencha usuário e senha.", "error");
@@ -92,7 +100,7 @@ async function submitAuth(mode) {
     const response = await fetch(`/api/auth/${mode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify(mode === "register" ? { username, password, gender } : { username, password })
     });
 
     const parsed = await response.json().catch(() => ({}));
@@ -155,7 +163,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoutButton = document.getElementById("logoutButton");
   const form = document.getElementById("loginForm");
 
-  if (loginButton) loginButton.addEventListener("click", () => submitAuth("login"));
+  if (loginButton) {
+    loginButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      submitAuth("login");
+    });
+  }
   if (registerButton) registerButton.addEventListener("click", () => submitAuth("register"));
   if (logoutButton) logoutButton.addEventListener("click", clearAuthSession);
   if (form) {

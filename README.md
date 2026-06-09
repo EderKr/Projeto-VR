@@ -1,16 +1,16 @@
-<h1 align="center">Headbutt Berserker</h1>
+<h1 align="center">Corpus VR</h1>
 
 <p align="center">
-Jogo VR/WebXR de reflexos em que o jogador enfrenta inimigos usando movimentos de cabeça, histórico de desempenho e um assistente inteligente baseado em regras.
+Projeto WebXR com jogo, espelho corporal por visao computacional, salas PC/celular, historico de desempenho e assistente baseado em regras.
 </p>
 
 <hr>
 
 ## 🎮 Conceito
 
-**Headbutt Berserker** é um jogo em realidade virtual no qual o jogador luta contra inimigos usando cabeçadas, esquivas laterais e agachamentos.
+**Corpus VR** e um projeto WebXR com jogo, espelho corporal e visao computacional para observar movimento em tempo real.
 
-O protótipo atual usa **A-Frame/WebXR** para rastrear a câmera/cabeça do jogador. Também há suporte a teclado para testes no desktop:
+O prototipo atual usa **A-Frame/WebXR** para a arena VR e **MediaPipe Pose** para registrar pontos do corpo pela camera. Tambem ha suporte a teclado para testes no desktop:
 
 - `↑` atacar;
 - `←` esquivar para a esquerda;
@@ -25,6 +25,8 @@ O protótipo atual usa **A-Frame/WebXR** para rastrear a câmera/cabeça do joga
 - **Node.js** para o servidor/back-end;
 - **A-Frame/WebXR** para o front-end VR;
 - **JavaScript puro** no front-end;
+- **MediaPipe Pose** para o controle corporal experimental;
+- **WebSocket (`ws`)** para salas PC/celular;
 - **PostgreSQL** via Docker Compose para histórico de desempenho;
 - **JSON local (`db.json`)** como fallback;
 - **Supabase/PostgreSQL** opcional para deploy externo.
@@ -51,6 +53,64 @@ Acesse:
 ```text
 http://localhost:3000
 ```
+
+Nesta versao modificada:
+
+```text
+/       -> landing page com login, sala, Espelho IA, estatisticas e chat
+/game   -> jogo WebXR e espelho 3D simulado
+```
+
+Na criacao de conta, o campo de genero escolhe o personagem do espelho:
+
+```text
+Masculino -> public/models/adventurer-male.glb
+Feminino  -> public/models/adventurer-female.glb
+```
+
+O chat da landing usa a rota local:
+
+```text
+POST /api/assistant/chat
+```
+
+Ele responde com base no historico do usuario autenticado.
+
+Tambem existe um controle corporal experimental em `/game`:
+
+- `Ativar` liga a camera e o modelo MediaPipe Pose.
+- `Ativar` tambem entra no modo Espelho IA: inimigo, HUD e menus somem.
+- O jogador ve o personagem 3D no jogo, nao o video cru da camera.
+- O modelo tenta mapear ossos nomeados do GLB para cabeca, tronco, bracos, pulsos, pernas e pes.
+- O registro corporal usa suavizacao e pontuacao de corpo inteiro antes de considerar o tracking estavel.
+- `Calibrar` salva a posicao neutra do corpo.
+- Inclinar para esquerda/direita aciona esquiva.
+- Abaixar o tronco aciona `duck`.
+- Aproximar/avancar o corpo aciona ataque.
+
+As leituras sao de controle e observacao de movimento, nao diagnostico medico.
+
+Na landing, o botao `Ativar espelho IA` tambem usa a camera e MediaPipe Pose, mas mostra apenas skeleton, qualidade de registro e metricas corporais. O espelho 3D simulado continua apenas no jogo.
+
+### Salas PC/celular
+
+A landing gera um codigo de sala e links:
+
+```text
+/api/room?room=SALA
+/game?room=SALA
+/game?room=SALA&mirror=1
+/ws?room=SALA&role=game
+```
+
+Fluxo recomendado:
+
+1. Abra a landing no PC e confira o codigo da sala.
+2. No PC, abra `Espelho IA no PC` para usar a camera.
+3. No celular, abra `Jogo no celular` usando o link da mesma sala.
+4. As acoes detectadas pela camera no PC sao retransmitidas para o celular via WebSocket.
+
+O celular e o PC precisam estar na mesma rede local para usar o link com IP da maquina.
 
 A rota de saúde mostra se o banco está conectado:
 

@@ -56,6 +56,7 @@ async function ensurePostgresSchema() {
       created_at timestamptz not null default now(),
       username text not null unique,
       display_name text not null,
+      gender text not null default 'male',
       password_hash text not null,
       password_salt text not null
     );
@@ -84,6 +85,7 @@ async function ensurePostgresSchema() {
       raw_data jsonb default '{}'::jsonb
     );
 
+    alter table app_users add column if not exists gender text not null default 'male';
     alter table performance_history add column if not exists user_id uuid references app_users(id) on delete cascade;
     alter table performance_history add column if not exists player_name text;
 
@@ -179,6 +181,10 @@ function normalizeDisplayName(username) {
   return String(username || "Jogador").trim().slice(0, 40) || "Jogador";
 }
 
+function normalizeGender(value) {
+  return String(value || "").trim().toLowerCase() === "female" ? "female" : "male";
+}
+
 function createPasswordHash(password, salt = crypto.randomBytes(16).toString("hex")) {
   const passwordValue = String(password || "");
   const hash = crypto.pbkdf2Sync(passwordValue, salt, 120000, 32, "sha256").toString("hex");
@@ -191,11 +197,12 @@ function safeUser(row = {}) {
     id: String(row.id),
     username: row.username,
     displayName: row.display_name || row.displayName || row.username,
+    gender: normalizeGender(row.gender),
     createdAt: row.created_at || row.createdAt || new Date().toISOString()
   };
 }
 
-function validateNewUser(username, password) {
+function validateNewUser(username, password, gender) {
   const normalizedUsername = normalizeUsername(username);
   const passwordValue = String(password || "");
   if (normalizedUsername.length < 3) {
@@ -204,7 +211,12 @@ function validateNewUser(username, password) {
   if (passwordValue.length < 4) {
     throw new Error("A senha precisa ter pelo menos 4 caracteres.");
   }
-  return { username: normalizedUsername, displayName: normalizeDisplayName(username), password: passwordValue };
+  return {
+    username: normalizedUsername,
+    displayName: normalizeDisplayName(username),
+    gender: normalizeGender(gender),
+    password: passwordValue
+  };
 }
 
 async function findUserByUsername(username) {
@@ -240,7 +252,7 @@ async function getUserById(userId) {
   if (client) {
     const { data, error } = await client
       .from("app_users")
-      .select("id, username, display_name, created_at")
+      .select("id, username, display_name, gender, created_at")
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;
@@ -249,7 +261,7 @@ async function getUserById(userId) {
 
   const pool = await ensurePostgresSchema();
   if (pool) {
-    const { rows } = await pool.query("select id, username, display_name, created_at from app_users where id = $1 limit 1", [id]);
+    const { rows } = await pool.query("select id, username, display_name, gender, created_at from app_users where id = $1 limit 1", [id]);
     return safeUser(rows[0]);
   }
 
@@ -258,8 +270,8 @@ async function getUserById(userId) {
   return safeUser(user);
 }
 
-async function createUser(username, password) {
-  const valid = validateNewUser(username, password);
+async function createUser(username, password, gender) {
+  const valid = validateNewUser(username, password, gender);
   const existing = await findUserByUsername(valid.username);
   if (existing) {
     throw new Error("Este usuário já existe. Entre com a senha ou escolha outro nome.");
@@ -274,10 +286,11 @@ async function createUser(username, password) {
       .insert({
         username: valid.username,
         display_name: valid.displayName,
+        gender: valid.gender,
         password_hash: hash,
         password_salt: salt
       })
-      .select("id, username, display_name, created_at")
+      .select("id, username, display_name, gender, created_at")
       .single();
     if (error) throw error;
     return safeUser(data);
@@ -286,10 +299,10 @@ async function createUser(username, password) {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(
-      `insert into app_users (username, display_name, password_hash, password_salt)
-       values ($1, $2, $3, $4)
-       returning id, username, display_name, created_at`,
-      [valid.username, valid.displayName, hash, salt]
+      `insert into app_users (username, display_name, gender, password_hash, password_salt)
+       values ($1, $2, $3, $4, $5)
+       returning id, username, display_name, gender, created_at`,
+      [valid.username, valid.displayName, valid.gender, hash, salt]
     );
     return safeUser(rows[0]);
   }
@@ -300,6 +313,7 @@ async function createUser(username, password) {
     id: nextId,
     username: valid.username,
     display_name: valid.displayName,
+    gender: valid.gender,
     password_hash: hash,
     password_salt: salt,
     created_at: new Date().toISOString()
