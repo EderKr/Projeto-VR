@@ -1,0 +1,28 @@
+{
+  "name": "corpus-vr",
+  "version": "1.2.0",
+  "description": "Projeto VR/WebXR com visao computacional, espelho corporal e historico de desempenho.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check database.js && node --check ../frontend/public/scripts/auth.js && node --check ../frontend/public/scripts/state.js && node --check ../frontend/public/scripts/ui.js && node --check ../frontend/public/scripts/gameplay.js && node --check ../frontend/public/scripts/components.js && node --check ../frontend/public/scripts/landing.js && node --check ../frontend/public/scripts/game-pose-controller.js"
+  },
+  "keywords": [
+    "aframe",
+    "webxr",
+    "vr",
+    "game",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "2.49.4",
+    "pg": "^8.16.3",
+    "ws": "^8.20.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

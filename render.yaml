@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: corpus-vr
+    env: node
+    plan: free
+    buildCommand: npm --prefix backend ci
+    startCommand: npm --prefix backend start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: USE_SUPABASE
+        value: false
+      - key: HISTORY_LIMIT
+        value: 100

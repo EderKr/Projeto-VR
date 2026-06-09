@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corpus VR | Inicio</title>
+  <link rel="stylesheet" href="style.css?v=20260608-corpus-vr-fix3" />
+</head>
+<body class="landing-page">
+  <header class="landing-topbar">
+    <div class="landing-brand">
+      <span class="landing-brand-mark" aria-hidden="true"></span>
+      <div>
+        <strong>Corpus VR</strong>
+        <span>Hub corporal</span>
+      </div>
+    </div>
+
+    <div class="landing-user-row">
+      <div id="userBadge" class="user-badge landing-user-badge" aria-live="polite"></div>
+      <button id="logoutButton" class="logout-button landing-logout" type="button">Sair</button>
+    </div>
+  </header>
+
+  <main class="landing-grid">
+    <section class="landing-panel landing-auth-panel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Conta</span>
+        <h1>Entrar ou criar usuario</h1>
+      </div>
+
+      <form id="loginForm" class="landing-auth-form">
+        <p id="loginStartHint" class="landing-copy">Faca login para salvar historico e liberar estatisticas.</p>
+
+        <label for="loginUsername">Usuario</label>
+        <input id="loginUsername" name="username" type="text" minlength="3" maxlength="32" autocomplete="username" placeholder="ex: jogador" required />
+
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" name="password" type="password" minlength="4" autocomplete="current-password" placeholder="minimo 4 caracteres" required />
+
+        <label for="loginGender">Genero do personagem</label>
+        <select id="loginGender" name="gender" autocomplete="off">
+          <option value="male">Masculino</option>
+          <option value="female">Feminino</option>
+        </select>
+
+        <div class="landing-actions">
+          <button id="loginButton" class="landing-primary-button" type="submit">Entrar</button>
+          <button id="registerButton" class="landing-secondary-button" type="button">Criar conta</button>
+        </div>
+
+        <p id="loginMessage" class="login-message landing-message" data-type="info">Cada usuario tem seu proprio historico.</p>
+      </form>
+    </section>
+
+    <section class="landing-panel landing-launch-panel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Jogo</span>
+        <h2>Preparar partida</h2>
+      </div>
+
+      <div class="landing-command-grid">
+        <button id="cameraToggleButton" class="landing-tool-button" type="button">
+          <span>Camera</span>
+          <strong id="cameraStateLabel">desligada</strong>
+        </button>
+
+        <a id="startGameLink" class="landing-tool-button landing-start-button" href="/game">
+          <span>WebXR</span>
+          <strong>comecar jogo</strong>
+        </a>
+      </div>
+
+      <div class="landing-room-block">
+        <label for="roomCodeInput">Sala</label>
+        <div class="landing-room-row">
+          <input id="roomCodeInput" type="text" maxlength="18" autocomplete="off" />
+          <button id="roomGenerateButton" class="landing-mini-button" type="button">Nova sala</button>
+        </div>
+        <div class="landing-room-links">
+          <a id="mirrorGameLink" href="/game?mirror=1">Espelho IA no PC</a>
+          <a id="phoneGameLink" href="/game">Jogo no celular</a>
+        </div>
+        <p id="roomNetworkHint" class="landing-room-hint">Use o mesmo codigo no PC e no celular.</p>
+      </div>
+
+      <div class="landing-status-strip">
+        <div>
+          <span>Banco</span>
+          <strong id="dbStatusLabel">checando</strong>
+        </div>
+        <div>
+          <span>Sessao</span>
+          <strong id="sessionStatusLabel">offline</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-panel landing-camera-panel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Visao computacional</span>
+        <h2>Espelho corporal</h2>
+      </div>
+
+      <div class="landing-camera-stage">
+        <video id="cameraPreview" autoplay muted playsinline></video>
+        <canvas id="cameraCanvas" width="480" height="270"></canvas>
+        <span id="cameraHint" class="landing-camera-hint">camera desligada</span>
+      </div>
+
+      <div class="landing-cv-metrics">
+        <div>
+          <span>movimento</span>
+          <strong id="motionMetric">0%</strong>
+        </div>
+        <div>
+          <span>x</span>
+          <strong id="motionXMetric">0.00</strong>
+        </div>
+        <div>
+          <span>y</span>
+          <strong id="motionYMetric">0.00</strong>
+        </div>
+      </div>
+
+      <div class="landing-mirror-actions">
+        <button id="poseMirrorButton" class="landing-secondary-button" type="button">Ativar espelho IA</button>
+        <strong id="poseStatusLabel">pose offline</strong>
+      </div>
+
+      <div class="landing-pose-grid">
+        <div>
+          <span>ombros</span>
+          <strong id="shoulderTiltMetric">--</strong>
+        </div>
+        <div>
+          <span>quadril</span>
+          <strong id="hipTiltMetric">--</strong>
+        </div>
+        <div>
+          <span>tendencia</span>
+          <strong id="turnBiasMetric">--</strong>
+        </div>
+        <div>
+          <span>centro</span>
+          <strong id="centerShiftMetric">--</strong>
+        </div>
+      </div>
+
+      <div id="poseInsight" class="landing-pose-insight">
+        Leitura nao diagnostica. Use para observar assimetrias e padroes de movimento.
+      </div>
+    </section>
+
+    <section class="landing-panel landing-stats-panel">
+      <div class="landing-section-head row">
+        <div>
+          <span class="landing-kicker">Estatisticas</span>
+          <h2>Desempenho</h2>
+        </div>
+        <button id="refreshStatsButton" class="landing-mini-button" type="button">Atualizar</button>
+      </div>
+
+      <div class="landing-stat-grid">
+        <div class="landing-stat-card">
+          <span>Tentativas</span>
+          <strong id="statAttempts">0</strong>
+        </div>
+        <div class="landing-stat-card">
+          <span>Precisao</span>
+          <strong id="statAccuracy">0%</strong>
+        </div>
+        <div class="landing-stat-card">
+          <span>Reacao media</span>
+          <strong id="statReaction">--</strong>
+        </div>
+        <div class="landing-stat-card">
+          <span>Sessoes</span>
+          <strong id="statSessions">0</strong>
+        </div>
+      </div>
+
+      <div id="statsSummary" class="landing-stats-summary">Entre para carregar seus dados.</div>
+    </section>
+
+    <section class="landing-panel landing-chat-panel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Chat</span>
+        <h2>Perguntar sobre meus dados</h2>
+      </div>
+
+      <div id="chatTranscript" class="landing-chat-transcript" aria-live="polite">
+        <div class="landing-chat-message assistant">Entre e pergunte algo como: qual movimento eu erro mais?</div>
+      </div>
+
+      <form id="statsChatForm" class="landing-chat-form">
+        <input id="statsChatInput" type="text" autocomplete="off" placeholder="Pergunte sobre sua precisao, reacao ou erros" />
+        <button class="landing-primary-button" type="submit">Enviar</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="scripts/auth.js?v=20260608-corpus-vr-fix3"></script>
+  <script src="scripts/landing.js?v=20260608-corpus-vr-fix3"></script>
+</body>
+</html>
