@@ -460,6 +460,11 @@ html, body {
   font-size: 12px;
 }
 
+.admin-game-link {
+  right: 130px;
+  text-decoration: none;
+}
+
 .pose-control-panel {
   position: fixed;
   left: 14px;
@@ -670,6 +675,11 @@ body.landing-page {
 .landing-logout {
   border-radius: 8px;
   font-size: 0.92rem;
+}
+
+.landing-admin-link {
+  min-height: 40px;
+  padding: 0 12px;
 }
 
 .landing-grid {
@@ -1062,6 +1072,127 @@ body.landing-page {
   font-size: 0.95rem;
 }
 
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(420px, 1fr);
+  gap: 16px;
+  width: min(1240px, calc(100% - 32px));
+  margin: 22px auto 34px;
+}
+
+.admin-auth-panel.hidden {
+  display: none;
+}
+
+.admin-panel {
+  min-width: 0;
+}
+
+.admin-users-panel {
+  grid-column: 1 / -1;
+}
+
+.admin-full-button {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.admin-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-link-box,
+.admin-empty {
+  margin-top: 12px;
+  border: 1px solid rgba(242, 140, 40, 0.22);
+  border-radius: 8px;
+  background: rgba(242, 140, 40, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  padding: 12px;
+}
+
+.admin-link-box input,
+.admin-invite-item input {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(4, 8, 11, 0.82);
+  color: #fff;
+  padding: 0 10px;
+}
+
+.admin-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.admin-invite-item {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.6fr) minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 10px;
+}
+
+.admin-invite-item strong,
+.admin-invite-item span {
+  display: block;
+}
+
+.admin-invite-item span {
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.86rem;
+}
+
+.admin-table-wrap {
+  overflow: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  padding: 12px 10px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.admin-table th {
+  color: #ffe8b6;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 900;
+}
+
+.admin-pill.admin {
+  background: rgba(242, 140, 40, 0.18);
+  color: #ffe8b6;
+}
+
 @media (max-width: 1120px) {
   .landing-grid {
     grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);
@@ -1069,6 +1200,10 @@ body.landing-page {
 
   .landing-chat-panel {
     grid-column: 1 / -1;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1105,6 +1240,11 @@ body.landing-page {
 
   .landing-mirror-actions,
   .landing-pose-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-actions,
+  .admin-invite-item {
     grid-template-columns: 1fr;
   }
 }

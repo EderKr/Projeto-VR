@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corpus VR | Admin</title>
+  <link rel="stylesheet" href="/style.css?v=20260612-invites" />
+</head>
+<body class="landing-page admin-page">
+  <header class="landing-topbar">
+    <div class="landing-brand">
+      <span class="landing-brand-mark" aria-hidden="true"></span>
+      <div>
+        <strong>Corpus VR</strong>
+        <span>Administrador</span>
+      </div>
+    </div>
+
+    <div class="landing-user-row">
+      <a class="landing-mini-button" href="/">Inicio</a>
+      <div id="userBadge" class="user-badge landing-user-badge" aria-live="polite"></div>
+      <button id="logoutButton" class="logout-button landing-logout" type="button">Sair</button>
+    </div>
+  </header>
+
+  <main class="admin-grid">
+    <section class="landing-panel admin-auth-panel" id="loginOverlay" aria-hidden="false">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Acesso restrito</span>
+        <h1 id="authTitle">Entrar</h1>
+      </div>
+
+      <form id="loginForm" class="landing-auth-form">
+        <p id="loginStartHint" class="landing-copy">Entre com uma conta de administrador.</p>
+
+        <label for="loginEmail">E-mail</label>
+        <input id="loginEmail" name="email" type="email" autocomplete="username" required />
+
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" minlength="4" required />
+
+        <button id="loginButton" class="landing-primary-button admin-full-button" type="submit">Entrar</button>
+        <button id="registerButton" type="button" hidden></button>
+
+        <p id="loginMessage" class="login-message landing-message" data-type="info">Somente ADMs podem acessar os dados e convites.</p>
+      </form>
+    </section>
+
+    <section class="landing-panel admin-panel">
+      <div class="landing-section-head row">
+        <div>
+          <span class="landing-kicker">Convites</span>
+          <h2>Gerar link</h2>
+        </div>
+        <button id="refreshAdminButton" class="landing-mini-button" type="button">Atualizar</button>
+      </div>
+
+      <div class="admin-actions">
+        <button id="createStandardInvite" class="landing-primary-button" type="button">Convite padrao</button>
+        <button id="createAdminInvite" class="landing-secondary-button" type="button">Convite admin</button>
+      </div>
+
+      <div id="latestInvite" class="admin-link-box">Nenhum convite gerado nesta sessao.</div>
+      <div id="adminMessage" class="login-message landing-message" data-type="info"></div>
+
+      <div id="invitesList" class="admin-list"></div>
+    </section>
+
+    <section class="landing-panel admin-panel admin-users-panel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Dados</span>
+        <h2>Usuarios cadastrados</h2>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Idade</th>
+              <th>Sexo</th>
+              <th>Papel</th>
+              <th>Sessoes</th>
+              <th>Criado em</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="7">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/scripts/auth.js?v=20260612-invites"></script>
+  <script src="/scripts/admin.js?v=20260612-invites"></script>
+</body>
+</html>

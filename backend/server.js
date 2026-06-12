@@ -9,11 +9,16 @@ const {
   DB_PATH,
   ensureLocalDbFile,
   authenticateUser,
+  createInvite,
   createUser,
+  getInviteByToken,
   getUserById,
   getDatabaseStatus,
   getHistory,
+  listInvites,
+  listUsers,
   saveHistory,
+  useInvite,
   replaceHistory
 } = require("./database");
 
@@ -53,6 +58,7 @@ function createAuthToken(user) {
     username: user.username,
     displayName: user.displayName,
     gender: user.gender || "male",
+    role: user.role || "user",
     iat: Date.now()
   }));
   return `${payload}.${signTokenPayload(payload)}`;
@@ -93,6 +99,16 @@ async function requireAuthenticatedUser(req, res) {
   const user = await getAuthenticatedUser(req);
   if (!user) {
     sendJson(res, 401, { error: "Login obrigatório para acessar este recurso." });
+    return null;
+  }
+  return user;
+}
+
+async function requireAdminUser(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return null;
+  if (user.role !== "admin") {
+    sendJson(res, 403, { error: "Acesso restrito a administradores." });
     return null;
   }
   return user;
@@ -655,8 +671,37 @@ async function handleHistoryImport(req, res) {
 
 async function handleRegister(req, res) {
   const body = await collectRequestBody(req);
-  const user = await createUser(body.username, body.password, body.gender);
+  const inviteToken = String(body.inviteToken || "").trim();
+  const users = await listUsers();
+  const canBootstrapAdmin = users.length === 0;
+
+  if (canBootstrapAdmin && !inviteToken) {
+    const user = await createUser(body, { type: "admin" });
+    sendAuthResponse(res, user);
+    return;
+  }
+
+  const invite = await getInviteByToken(inviteToken);
+
+  if (!invite) {
+    sendJson(res, 400, { error: "Cadastro permitido apenas por convite valido." });
+    return;
+  }
+  if (invite.used_at || invite.usedAt) {
+    sendJson(res, 400, { error: "Este convite ja foi usado." });
+    return;
+  }
+
+  const user = await createUser(body, invite);
+  await useInvite(inviteToken, user.id);
   sendAuthResponse(res, user);
+}
+
+async function handleBootstrapStatus(req, res) {
+  const users = await listUsers();
+  sendJson(res, 200, {
+    canCreateFirstAdmin: users.length === 0
+  });
 }
 
 async function handleLogin(req, res) {
@@ -669,6 +714,26 @@ async function handleMe(req, res) {
   const user = await requireAuthenticatedUser(req, res);
   if (!user) return;
   sendJson(res, 200, { user });
+}
+
+async function handleAdminUsers(req, res) {
+  const user = await requireAdminUser(req, res);
+  if (!user) return;
+  sendJson(res, 200, { users: await listUsers() });
+}
+
+async function handleAdminInvitesGet(req, res) {
+  const user = await requireAdminUser(req, res);
+  if (!user) return;
+  sendJson(res, 200, { invites: await listInvites() });
+}
+
+async function handleAdminInvitesPost(req, res) {
+  const user = await requireAdminUser(req, res);
+  if (!user) return;
+  const body = await collectRequestBody(req);
+  const invite = await createInvite(body.type, user.id);
+  sendJson(res, 201, { invite });
 }
 
 function serveStaticFile(res, filePath) {
@@ -763,6 +828,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/auth/bootstrap" && req.method === "GET") {
+    handleBootstrapStatus(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
   if (requestUrl.pathname === "/api/auth/login" && req.method === "POST") {
     handleLogin(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
     return;
@@ -770,6 +840,21 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/api/auth/me" && req.method === "GET") {
     handleMe(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/admin/users" && req.method === "GET") {
+    handleAdminUsers(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/admin/invites" && req.method === "GET") {
+    handleAdminInvitesGet(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/admin/invites" && req.method === "POST") {
+    handleAdminInvitesPost(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 
@@ -805,6 +890,11 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/game" || requestUrl.pathname === "/game/") {
     serveStaticFile(res, path.join(PUBLIC_DIR, "game.html"));
+    return;
+  }
+
+  if (requestUrl.pathname === "/admin" || requestUrl.pathname === "/admin/") {
+    serveStaticFile(res, path.join(PUBLIC_DIR, "admin.html"));
     return;
   }
 

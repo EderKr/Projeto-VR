@@ -17,6 +17,7 @@
     </div>
 
     <div class="landing-user-row">
+      <a id="adminLink" class="landing-mini-button landing-admin-link" href="/admin" style="display: none;">Admin</a>
       <div id="userBadge" class="user-badge landing-user-badge" aria-live="polite"></div>
       <button id="logoutButton" class="logout-button landing-logout" type="button">Sair</button>
     </div>
@@ -26,27 +27,45 @@
     <section class="landing-panel landing-auth-panel">
       <div class="landing-section-head">
         <span class="landing-kicker">Conta</span>
-        <h1>Entrar ou criar usuario</h1>
+        <h1 id="authTitle">Entrar</h1>
       </div>
 
       <form id="loginForm" class="landing-auth-form">
         <p id="loginStartHint" class="landing-copy">Faca login para salvar historico e liberar estatisticas.</p>
 
-        <label for="loginUsername">Usuario</label>
-        <input id="loginUsername" name="username" type="text" minlength="3" maxlength="32" autocomplete="username" placeholder="ex: jogador" required />
+        <div class="register-only" hidden>
+          <label for="registerInvite">Convite</label>
+          <input id="registerInvite" name="inviteToken" type="text" autocomplete="off" placeholder="codigo do convite" data-required="true" />
+
+          <label for="registerName">Nome</label>
+          <input id="registerName" name="name" type="text" minlength="2" maxlength="40" autocomplete="name" placeholder="seu nome" data-required="true" />
+        </div>
+
+        <label for="loginEmail">E-mail</label>
+        <input id="loginEmail" name="email" type="email" maxlength="120" autocomplete="username" placeholder="voce@email.com" required />
+
+        <div class="register-only" hidden>
+          <label for="registerAge">Idade</label>
+          <input id="registerAge" name="age" type="number" min="1" max="120" autocomplete="off" placeholder="idade" data-required="true" />
+
+          <label for="registerSex">Sexo</label>
+          <select id="registerSex" name="sex" autocomplete="sex" data-required="true">
+            <option value="male">Masculino</option>
+            <option value="female">Feminino</option>
+          </select>
+        </div>
 
         <label for="loginPassword">Senha</label>
         <input id="loginPassword" name="password" type="password" minlength="4" autocomplete="current-password" placeholder="minimo 4 caracteres" required />
 
-        <label for="loginGender">Genero do personagem</label>
-        <select id="loginGender" name="gender" autocomplete="off">
-          <option value="male">Masculino</option>
-          <option value="female">Feminino</option>
-        </select>
+        <div class="register-only" hidden>
+          <label for="registerConfirmPassword">Confirmar senha</label>
+          <input id="registerConfirmPassword" name="confirmPassword" type="password" minlength="4" autocomplete="new-password" placeholder="repita a senha" data-required="true" />
+        </div>
 
         <div class="landing-actions">
           <button id="loginButton" class="landing-primary-button" type="submit">Entrar</button>
-          <button id="registerButton" class="landing-secondary-button" type="button">Criar conta</button>
+          <button id="registerButton" class="landing-secondary-button" type="button">Usar convite</button>
         </div>
 
         <p id="loginMessage" class="login-message landing-message" data-type="info">Cada usuario tem seu proprio historico.</p>
