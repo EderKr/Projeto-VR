@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/aframe-extras@7.6.0/dist/aframe-extras.min.js"></script>
   <base href="/">
 
-  <link rel="stylesheet" href="/style.css?v=20260609-corpus-vr-rpm1" />
+  <link rel="stylesheet" href="/style.css?v=20260612-delete-account" />
 </head>
 <body>
   <div class="game-topbar" aria-hidden="true">
@@ -87,6 +87,8 @@
         <button id="loginButton" type="submit">Entrar</button>
         <button id="registerButton" type="button">Usar convite</button>
       </div>
+
+      <button id="deleteAccountButton" class="danger-button account-delete-inline" type="button">Apagar minha conta</button>
 
       <p id="loginMessage" class="login-message" data-type="info">O histórico será salvo separadamente para cada usuário.</p>
     </form>
@@ -884,7 +886,7 @@
     </a-entity>
   </a-scene>
 
-  <script src="/scripts/auth.js?v=20260612-bootstrap-admin"></script>
+  <script src="/scripts/auth.js?v=20260612-delete-account"></script>
   <script src="/scripts/state.js"></script>
   <script src="/scripts/ui.js"></script>
   <script src="/scripts/gameplay.js"></script>

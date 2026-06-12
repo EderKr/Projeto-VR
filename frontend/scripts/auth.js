@@ -94,6 +94,7 @@ function updateAuthUI() {
   const userBadge = document.getElementById("userBadge");
   const startHint = document.getElementById("loginStartHint");
   const logoutButton = document.getElementById("logoutButton");
+  const deleteAccountButton = document.getElementById("deleteAccountButton");
   const adminLink = document.getElementById("adminLink");
 
   if (overlay) {
@@ -108,6 +109,10 @@ function updateAuthUI() {
 
   if (logoutButton) {
     logoutButton.style.display = isLoggedIn() ? "block" : "none";
+  }
+
+  if (deleteAccountButton) {
+    deleteAccountButton.style.display = isLoggedIn() ? "inline-flex" : "none";
   }
 
   if (adminLink) {
@@ -144,6 +149,39 @@ function clearAuthSession() {
   updateAuthUI();
   if (typeof resetGame === "function") resetGame();
   if (typeof renderPerformanceHistory === "function") renderPerformanceHistory();
+}
+
+async function deleteOwnAccount() {
+  if (!isLoggedIn()) {
+    setAuthMessage("Entre antes de apagar a conta.", "error");
+    return;
+  }
+
+  const confirmed = window.confirm("Apagar sua conta tambem remove seu historico. Esta acao nao pode ser desfeita.");
+  if (!confirmed) return;
+
+  const password = window.prompt("Digite sua senha para confirmar a exclusao da conta:");
+  if (!password) {
+    setAuthMessage("Exclusao cancelada.", "info");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth/me", {
+      method: "DELETE",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ password })
+    });
+    const parsed = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(parsed.error || "Nao foi possivel apagar a conta.");
+    }
+
+    clearAuthSession();
+    setAuthMessage("Conta apagada com sucesso.", "success");
+  } catch (error) {
+    setAuthMessage(error.message || "Erro ao apagar conta.", "error");
+  }
 }
 
 function getFieldValue(id) {
@@ -267,6 +305,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const loginButton = document.getElementById("loginButton");
   const registerButton = document.getElementById("registerButton");
   const logoutButton = document.getElementById("logoutButton");
+  const deleteAccountButton = document.getElementById("deleteAccountButton");
   const form = document.getElementById("loginForm");
   const inviteToken = getInviteFromUrl();
 
@@ -285,6 +324,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     registerButton.addEventListener("click", () => setAuthMode(authState.mode === "register" ? "login" : "register"));
   }
   if (logoutButton) logoutButton.addEventListener("click", clearAuthSession);
+  if (deleteAccountButton) deleteAccountButton.addEventListener("click", deleteOwnAccount);
   if (form) {
     form.addEventListener("submit", (event) => {
       event.preventDefault();

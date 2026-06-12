@@ -460,6 +460,27 @@ html, body {
   font-size: 12px;
 }
 
+.danger-button {
+  border: 1px solid rgba(255, 120, 120, 0.38);
+  border-radius: 8px;
+  background: rgba(150, 30, 42, 0.18);
+  color: #ffb9b9;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+#deleteAccountButton {
+  display: none;
+}
+
+.account-delete-inline {
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 10px;
+  padding: 0 12px;
+}
+
 .admin-game-link {
   right: 130px;
   text-decoration: none;

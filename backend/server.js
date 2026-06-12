@@ -11,6 +11,7 @@ const {
   authenticateUser,
   createInvite,
   createUser,
+  deleteUserAccount,
   getInviteByToken,
   getUserById,
   getDatabaseStatus,
@@ -125,7 +126,7 @@ function sendAuthResponse(res, user) {
 function getBaseHeaders(extraHeaders = {}) {
   return {
     "Access-Control-Allow-Origin": CORS_ORIGIN,
-    "Access-Control-Allow-Methods": "GET,POST,HEAD,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,DELETE,HEAD,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer-when-downgrade",
@@ -716,6 +717,21 @@ async function handleMe(req, res) {
   sendJson(res, 200, { user });
 }
 
+async function handleDeleteMe(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const body = await collectRequestBody(req);
+  const password = String(body.password || "");
+
+  if (!password) {
+    sendJson(res, 400, { error: "Informe sua senha para apagar a conta." });
+    return;
+  }
+
+  await deleteUserAccount(user.id, password);
+  sendJson(res, 200, { ok: true });
+}
+
 async function handleAdminUsers(req, res) {
   const user = await requireAdminUser(req, res);
   if (!user) return;
@@ -840,6 +856,11 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/api/auth/me" && req.method === "GET") {
     handleMe(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/me" && req.method === "DELETE") {
+    handleDeleteMe(req, res).catch((error) => sendJson(res, 400, { error: error.message }));
     return;
   }
 

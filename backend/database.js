@@ -409,6 +409,33 @@ async function authenticateUser(username, password) {
   return safeUser(user);
 }
 
+async function deleteUserAccount(userId, password) {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("Usuario nao encontrado.");
+  }
+
+  await authenticateUser(user.email || user.username, password);
+
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    await pool.query("delete from app_users where id = $1", [String(userId)]);
+    return true;
+  }
+
+  const db = readLocalDb();
+  db.users = (db.users || []).filter((item) => String(item.id) !== String(userId));
+  db.performanceHistory = (db.performanceHistory || [])
+    .filter((entry) => String(entry.userId || entry.user_id || "") !== String(userId));
+  db.invites = (db.invites || []).map((invite) => ({
+    ...invite,
+    created_by: String(invite.created_by || "") === String(userId) ? null : invite.created_by,
+    used_by: String(invite.used_by || "") === String(userId) ? null : invite.used_by
+  }));
+  writeLocalDb(db);
+  return true;
+}
+
 async function getHistory(userId = null) {
   const pool = await ensurePostgresSchema();
   if (pool) {
@@ -708,6 +735,7 @@ module.exports = {
   authenticateUser,
   createInvite,
   createUser,
+  deleteUserAccount,
   getUserById,
   getInviteByToken,
   getDatabaseStatus,
