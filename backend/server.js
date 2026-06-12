@@ -673,7 +673,7 @@ async function handleRegister(req, res) {
   const body = await collectRequestBody(req);
   const inviteToken = String(body.inviteToken || "").trim();
   const users = await listUsers();
-  const canBootstrapAdmin = users.length === 0;
+  const canBootstrapAdmin = !users.some((user) => user.role === "admin");
 
   if (canBootstrapAdmin && !inviteToken) {
     const user = await createUser(body, { type: "admin" });
@@ -700,7 +700,7 @@ async function handleRegister(req, res) {
 async function handleBootstrapStatus(req, res) {
   const users = await listUsers();
   sendJson(res, 200, {
-    canCreateFirstAdmin: users.length === 0
+    canCreateFirstAdmin: !users.some((user) => user.role === "admin")
   });
 }
 

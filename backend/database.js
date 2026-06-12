@@ -130,16 +130,6 @@ async function ensurePostgresSchema() {
 
   await pool.query("update app_users set email = username where email is null");
   await pool.query("update app_users set sex = gender where sex is null or sex = ''");
-  await pool.query(`
-    update app_users
-    set role = 'admin'
-    where id = (
-      select id from app_users
-      where not exists (select 1 from app_users where role = 'admin')
-      order by created_at asc
-      limit 1
-    )
-  `);
 
   postgresReady = true;
   return pool;
@@ -215,9 +205,6 @@ function migrateLocalDb(db) {
     if (!user.role) user.role = "user";
   }
 
-  if ((db.users || []).length > 0 && !(db.users || []).some((user) => user.role === "admin")) {
-    db.users[0].role = "admin";
-  }
 }
 
 function createPasswordHash(password, salt = crypto.randomBytes(16).toString("hex")) {

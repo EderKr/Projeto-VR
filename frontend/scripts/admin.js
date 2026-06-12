@@ -81,6 +81,12 @@ function renderInvites(invites = []) {
   });
 }
 
+function updateAdminPanelsVisibility() {
+  document.querySelectorAll(".admin-panel").forEach((panel) => {
+    panel.hidden = !isAdmin();
+  });
+}
+
 async function fetchAdminJson(url, options = {}) {
   const response = await fetch(url, {
     ...options,
@@ -98,6 +104,7 @@ async function fetchAdminJson(url, options = {}) {
 }
 
 async function loadAdminData() {
+  updateAdminPanelsVisibility();
   if (!isLoggedIn()) return;
   if (!isAdmin()) {
     setAdminMessage("Esta pagina e exclusiva para administradores.", "error");
@@ -146,6 +153,7 @@ async function createInvite(type) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  updateAdminPanelsVisibility();
   document.getElementById("createStandardInvite")?.addEventListener("click", () => createInvite("standard"));
   document.getElementById("createAdminInvite")?.addEventListener("click", () => createInvite("admin"));
   document.getElementById("refreshAdminButton")?.addEventListener("click", loadAdminData);

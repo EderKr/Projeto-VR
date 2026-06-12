@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Corpus VR | Admin</title>
-  <link rel="stylesheet" href="/style.css?v=20260612-invites" />
+  <link rel="stylesheet" href="/style.css?v=20260612-bootstrap-admin" />
 </head>
 <body class="landing-page admin-page">
   <header class="landing-topbar">
@@ -33,14 +33,40 @@
       <form id="loginForm" class="landing-auth-form">
         <p id="loginStartHint" class="landing-copy">Entre com uma conta de administrador.</p>
 
-        <label for="loginEmail">E-mail</label>
-        <input id="loginEmail" name="email" type="email" autocomplete="username" required />
+        <div class="register-only" hidden>
+          <label for="registerInvite">Convite</label>
+          <input id="registerInvite" name="inviteToken" type="text" autocomplete="off" placeholder="dispensado para o primeiro ADM" data-required="true" />
+
+          <label for="registerName">Nome</label>
+          <input id="registerName" name="name" type="text" minlength="2" maxlength="40" autocomplete="name" placeholder="seu nome" data-required="true" />
+        </div>
+
+        <label id="loginEmailLabel" for="loginEmail">E-mail ou usuario</label>
+        <input id="loginEmail" name="email" type="text" autocomplete="username" required />
+
+        <div class="register-only" hidden>
+          <label for="registerAge">Idade</label>
+          <input id="registerAge" name="age" type="number" min="1" max="120" autocomplete="off" placeholder="idade" data-required="true" />
+
+          <label for="registerSex">Sexo</label>
+          <select id="registerSex" name="sex" autocomplete="sex" data-required="true">
+            <option value="male">Masculino</option>
+            <option value="female">Feminino</option>
+          </select>
+        </div>
 
         <label for="loginPassword">Senha</label>
         <input id="loginPassword" name="password" type="password" autocomplete="current-password" minlength="4" required />
 
-        <button id="loginButton" class="landing-primary-button admin-full-button" type="submit">Entrar</button>
-        <button id="registerButton" type="button" hidden></button>
+        <div class="register-only" hidden>
+          <label for="registerConfirmPassword">Confirmar senha</label>
+          <input id="registerConfirmPassword" name="confirmPassword" type="password" minlength="4" autocomplete="new-password" placeholder="repita a senha" data-required="true" />
+        </div>
+
+        <div class="landing-actions">
+          <button id="loginButton" class="landing-primary-button" type="submit">Entrar</button>
+          <button id="registerButton" class="landing-secondary-button" type="button">Criar primeiro ADM</button>
+        </div>
 
         <p id="loginMessage" class="login-message landing-message" data-type="info">Somente ADMs podem acessar os dados e convites.</p>
       </form>
@@ -93,7 +119,7 @@
     </section>
   </main>
 
-  <script src="/scripts/auth.js?v=20260612-invites"></script>
-  <script src="/scripts/admin.js?v=20260612-invites"></script>
+  <script src="/scripts/auth.js?v=20260612-bootstrap-admin"></script>
+  <script src="/scripts/admin.js?v=20260612-bootstrap-admin"></script>
 </body>
 </html>

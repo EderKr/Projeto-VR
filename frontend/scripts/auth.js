@@ -55,17 +55,26 @@ function setAuthMode(mode) {
   });
 
   const emailEl = document.getElementById("loginEmail");
+  const emailLabelEl = document.getElementById("loginEmailLabel");
   const passwordEl = document.getElementById("loginPassword");
   const titleEl = document.getElementById("authTitle");
   const submitEl = document.getElementById("loginButton");
   const toggleEl = document.getElementById("registerButton");
   const inviteEl = document.getElementById("registerInvite");
 
-  if (emailEl) emailEl.autocomplete = isRegister ? "email" : "username";
+  if (emailEl) {
+    emailEl.type = isRegister ? "email" : "text";
+    emailEl.autocomplete = isRegister ? "email" : "username";
+    emailEl.placeholder = isRegister ? "voce@email.com" : "email ou usuario";
+  }
+  if (emailLabelEl) emailLabelEl.textContent = isRegister ? "E-mail" : "E-mail ou usuario";
   if (passwordEl) passwordEl.autocomplete = isRegister ? "new-password" : "current-password";
-  if (titleEl) titleEl.textContent = isRegister ? "Criar conta por convite" : "Entrar";
+  if (titleEl) titleEl.textContent = isRegister ? (bootstrapAdmin ? "Criar primeiro ADM" : "Criar conta por convite") : "Entrar";
   if (submitEl) submitEl.textContent = isRegister ? "Criar conta" : "Entrar";
-  if (toggleEl) toggleEl.textContent = isRegister ? "Ja tenho conta" : (authState.canCreateFirstAdmin ? "Criar primeiro ADM" : "Usar convite");
+  if (toggleEl) {
+    toggleEl.hidden = false;
+    toggleEl.textContent = isRegister ? "Ja tenho conta" : (authState.canCreateFirstAdmin ? "Criar primeiro ADM" : "Usar convite");
+  }
   if (inviteEl && !inviteEl.value) inviteEl.value = getInviteFromUrl();
   if (inviteEl) {
     inviteEl.disabled = bootstrapAdmin;
@@ -74,7 +83,7 @@ function setAuthMode(mode) {
 
   setAuthMessage(
     isRegister
-      ? (bootstrapAdmin ? "Como ainda nao ha usuarios, esta primeira conta sera ADM." : "Use o link de convite recebido para criar sua conta.")
+      ? (bootstrapAdmin ? "Como ainda nao ha ADM, esta conta sera criada como administradora." : "Use o link de convite recebido para criar sua conta.")
       : "Entre com seu e-mail e senha.",
     "info"
   );
