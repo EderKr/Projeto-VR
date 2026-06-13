@@ -21,7 +21,7 @@ function sexLabel(value) {
 
 function roleLabel(value) {
   if (value === "god") return "Deus";
-  return value === "admin" ? "ADM" : "Padrao";
+  return value === "admin" ? "ADM" : "Padrão";
 }
 
 function inviteUrl(token) {
@@ -33,7 +33,7 @@ function renderUsers(users = []) {
   if (!tbody) return;
 
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="8">Nenhum usuario cadastrado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8">Nenhum usuário cadastrado.</td></tr>';
     return;
   }
 
@@ -73,7 +73,7 @@ function renderInvites(invites = []) {
       <article class="admin-invite-item">
         <div>
           <strong>${roleLabel(invite.type === "god" ? "god" : (invite.type === "admin" ? "admin" : "user"))}</strong>
-          <span>${used ? `Usado em ${formatDate(invite.usedAt)}` : "Disponivel"}</span>
+          <span>${used ? `Usado em ${formatDate(invite.usedAt)}` : "Disponível"}</span>
         </div>
         <input type="text" value="${url}" readonly />
         <button class="landing-mini-button" type="button" data-copy="${url}">Copiar</button>
@@ -109,7 +109,7 @@ async function fetchAdminJson(url, options = {}) {
   });
   const parsed = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(parsed.error || "Acesso administrativo indisponivel.");
+    throw new Error(parsed.error || "Acesso administrativo indisponível.");
   }
   return parsed;
 }
@@ -166,11 +166,11 @@ async function createInvite(type) {
 
 async function banUser(userId, userName) {
   if (!isGod()) {
-    setAdminMessage("Somente contas Deus podem banir usuarios.", "error");
+    setAdminMessage("Somente contas Deus podem banir usuários.", "error");
     return;
   }
 
-  const confirmed = window.confirm(`Banir ${userName || "este usuario"}? A conta sera apagada do banco de dados.`);
+  const confirmed = window.confirm(`Banir ${userName || "este usuário"}? A conta será apagada do banco de dados.`);
   if (!confirmed) return;
 
   try {

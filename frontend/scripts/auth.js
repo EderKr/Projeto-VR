@@ -69,25 +69,25 @@ function setAuthMode(mode) {
   if (emailEl) {
     emailEl.type = isRegister ? "email" : "text";
     emailEl.autocomplete = isRegister ? "email" : "username";
-    emailEl.placeholder = isRegister ? "voce@email.com" : "email ou usuario";
+    emailEl.placeholder = isRegister ? "voce@email.com" : "e-mail ou usuário";
   }
-  if (emailLabelEl) emailLabelEl.textContent = isRegister ? "E-mail" : "E-mail ou usuario";
+  if (emailLabelEl) emailLabelEl.textContent = isRegister ? "E-mail" : "E-mail ou usuário";
   if (passwordEl) passwordEl.autocomplete = isRegister ? "new-password" : "current-password";
   if (titleEl) titleEl.textContent = isRegister ? (bootstrapGod ? "Criar conta Deus" : "Criar conta por convite") : "Entrar";
   if (submitEl) submitEl.textContent = isRegister ? "Criar conta" : "Entrar";
   if (toggleEl) {
     toggleEl.hidden = false;
-    toggleEl.textContent = isRegister ? "Ja tenho conta" : (authState.canCreateFirstGod ? "Criar conta Deus" : "Usar convite");
+    toggleEl.textContent = isRegister ? "Já tenho conta" : (authState.canCreateFirstGod ? "Criar conta Deus" : "Usar convite");
   }
   if (inviteEl && !inviteEl.value) inviteEl.value = getInviteFromUrl();
   if (inviteEl) {
     inviteEl.disabled = bootstrapGod;
-    inviteEl.placeholder = bootstrapGod ? "dispensado para a primeira conta Deus" : "codigo do convite";
+    inviteEl.placeholder = bootstrapGod ? "dispensado para a primeira conta Deus" : "código do convite";
   }
 
   setAuthMessage(
     isRegister
-      ? (bootstrapGod ? "Como ainda nao ha conta Deus, esta conta sera criada como Deus." : "Use o link de convite recebido para criar sua conta.")
+      ? (bootstrapGod ? "Como ainda não há conta Deus, esta conta será criada como Deus." : "Use o link de convite recebido para criar sua conta.")
       : "Entre com seu e-mail e senha.",
     "info"
   );
@@ -125,7 +125,7 @@ function updateAuthUI() {
 
   if (startHint) {
     startHint.textContent = isLoggedIn()
-      ? "Login confirmado. Voce ja pode iniciar o jogo."
+      ? "Login confirmado. Você já pode iniciar o jogo."
       : "Entre com sua conta ou use um convite para se cadastrar.";
   }
 
@@ -161,12 +161,12 @@ async function deleteOwnAccount() {
     return;
   }
 
-  const confirmed = window.confirm("Apagar sua conta tambem remove seu historico. Esta acao nao pode ser desfeita.");
+  const confirmed = window.confirm("Apagar sua conta também remove seu histórico. Esta ação não pode ser desfeita.");
   if (!confirmed) return;
 
-  const password = window.prompt("Digite sua senha para confirmar a exclusao da conta:");
+  const password = window.prompt("Digite sua senha para confirmar a exclusão da conta:");
   if (!password) {
-    setAuthMessage("Exclusao cancelada.", "info");
+    setAuthMessage("Exclusão cancelada.", "info");
     return;
   }
 
@@ -178,7 +178,7 @@ async function deleteOwnAccount() {
     });
     const parsed = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(parsed.error || "Nao foi possivel apagar a conta.");
+      throw new Error(parsed.error || "Não foi possível apagar a conta.");
     }
 
     clearAuthSession();
@@ -241,17 +241,17 @@ async function submitAuth(mode = authState.mode) {
 
     const parsed = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(parsed.error || "Nao foi possivel autenticar.");
+      throw new Error(parsed.error || "Não foi possível autenticar.");
     }
 
     saveAuthSession(parsed);
-    setAuthMessage("Login confirmado. Historico individual ativo.", "success");
+    setAuthMessage("Login confirmado. Histórico individual ativo.", "success");
 
     if (typeof initializePerformanceHistory === "function") {
       await initializePerformanceHistory();
     }
   } catch (error) {
-    setAuthMessage(error.message || "Erro de autenticacao.", "error");
+    setAuthMessage(error.message || "Erro de autenticação.", "error");
   }
 }
 
@@ -267,7 +267,7 @@ async function validateStoredSession() {
       cache: "no-store"
     });
 
-    if (!response.ok) throw new Error("Sessao expirada.");
+    if (!response.ok) throw new Error("Sessão expirada.");
     const parsed = await response.json();
     authState.user = parsed.user;
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(authState.user));
@@ -277,7 +277,7 @@ async function validateStoredSession() {
     }
   } catch (error) {
     clearAuthSession();
-    setAuthMessage("Faca login para carregar seu historico.", "info");
+    setAuthMessage("Faça login para carregar seu histórico.", "info");
   }
 }
 
@@ -295,7 +295,7 @@ async function loadBootstrapStatus() {
 function requireAuthBeforeStart() {
   if (isLoggedIn()) return true;
   updateAuthUI();
-  setAuthMessage("Faca login antes de iniciar o jogo.", "error");
+  setAuthMessage("Faça login antes de iniciar o jogo.", "error");
   return false;
 }
 

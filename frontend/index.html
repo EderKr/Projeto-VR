@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Corpus VR | Inicio</title>
-  <link rel="stylesheet" href="style.css?v=20260612-god-role" />
+  <title>Corpus VR | Início</title>
+  <link rel="stylesheet" href="style.css?v=20260612-accents" />
 </head>
 <body class="landing-page">
   <header class="landing-topbar">
@@ -32,18 +32,18 @@
       </div>
 
       <form id="loginForm" class="landing-auth-form">
-        <p id="loginStartHint" class="landing-copy">Faca login para salvar historico e liberar estatisticas.</p>
+        <p id="loginStartHint" class="landing-copy">Faça login para salvar histórico e liberar estatísticas.</p>
 
         <div class="register-only" hidden>
           <label for="registerInvite">Convite</label>
-          <input id="registerInvite" name="inviteToken" type="text" autocomplete="off" placeholder="codigo do convite" data-required="true" />
+          <input id="registerInvite" name="inviteToken" type="text" autocomplete="off" placeholder="código do convite" data-required="true" />
 
           <label for="registerName">Nome</label>
           <input id="registerName" name="name" type="text" minlength="2" maxlength="40" autocomplete="name" placeholder="seu nome" data-required="true" />
         </div>
 
-        <label id="loginEmailLabel" for="loginEmail">E-mail ou usuario</label>
-        <input id="loginEmail" name="email" type="text" maxlength="120" autocomplete="username" placeholder="email ou usuario" required />
+        <label id="loginEmailLabel" for="loginEmail">E-mail ou usuário</label>
+        <input id="loginEmail" name="email" type="text" maxlength="120" autocomplete="username" placeholder="e-mail ou usuário" required />
 
         <div class="register-only" hidden>
           <label for="registerAge">Idade</label>
@@ -57,7 +57,7 @@
         </div>
 
         <label for="loginPassword">Senha</label>
-        <input id="loginPassword" name="password" type="password" minlength="4" autocomplete="current-password" placeholder="minimo 4 caracteres" required />
+        <input id="loginPassword" name="password" type="password" minlength="4" autocomplete="current-password" placeholder="mínimo 4 caracteres" required />
 
         <div class="register-only" hidden>
           <label for="registerConfirmPassword">Confirmar senha</label>
@@ -69,7 +69,7 @@
           <button id="registerButton" class="landing-secondary-button" type="button">Usar convite</button>
         </div>
 
-        <p id="loginMessage" class="login-message landing-message" data-type="info">Cada usuario tem seu proprio historico.</p>
+        <p id="loginMessage" class="login-message landing-message" data-type="info">Cada usuário tem seu próprio histórico.</p>
       </form>
     </section>
 
@@ -81,13 +81,13 @@
 
       <div class="landing-command-grid">
         <button id="cameraToggleButton" class="landing-tool-button" type="button">
-          <span>Camera</span>
+          <span>Câmera</span>
           <strong id="cameraStateLabel">desligada</strong>
         </button>
 
         <a id="startGameLink" class="landing-tool-button landing-start-button" href="/game">
           <span>WebXR</span>
-          <strong>comecar jogo</strong>
+          <strong>começar jogo</strong>
         </a>
       </div>
 
@@ -101,7 +101,7 @@
           <a id="mirrorGameLink" href="/game?mirror=1">Espelho IA no PC</a>
           <a id="phoneGameLink" href="/game">Jogo no celular</a>
         </div>
-        <p id="roomNetworkHint" class="landing-room-hint">Use o mesmo codigo no PC e no celular.</p>
+        <p id="roomNetworkHint" class="landing-room-hint">Use o mesmo código no PC e no celular.</p>
       </div>
 
       <div class="landing-status-strip">
@@ -110,7 +110,7 @@
           <strong id="dbStatusLabel">checando</strong>
         </div>
         <div>
-          <span>Sessao</span>
+          <span>Sessão</span>
           <strong id="sessionStatusLabel">offline</strong>
         </div>
       </div>
@@ -118,14 +118,14 @@
 
     <section class="landing-panel landing-camera-panel">
       <div class="landing-section-head">
-        <span class="landing-kicker">Visao computacional</span>
+        <span class="landing-kicker">Visão computacional</span>
         <h2>Espelho corporal</h2>
       </div>
 
       <div class="landing-camera-stage">
         <video id="cameraPreview" autoplay muted playsinline></video>
         <canvas id="cameraCanvas" width="480" height="270"></canvas>
-        <span id="cameraHint" class="landing-camera-hint">camera desligada</span>
+        <span id="cameraHint" class="landing-camera-hint">câmera desligada</span>
       </div>
 
       <div class="landing-cv-metrics">
@@ -158,7 +158,7 @@
           <strong id="hipTiltMetric">--</strong>
         </div>
         <div>
-          <span>tendencia</span>
+          <span>tendência</span>
           <strong id="turnBiasMetric">--</strong>
         </div>
         <div>
@@ -168,14 +168,14 @@
       </div>
 
       <div id="poseInsight" class="landing-pose-insight">
-        Leitura nao diagnostica. Use para observar assimetrias e padroes de movimento.
+        Leitura não diagnóstica. Use para observar assimetrias e padrões de movimento.
       </div>
     </section>
 
     <section class="landing-panel landing-stats-panel">
       <div class="landing-section-head row">
         <div>
-          <span class="landing-kicker">Estatisticas</span>
+          <span class="landing-kicker">Estatísticas</span>
           <h2>Desempenho</h2>
         </div>
         <button id="refreshStatsButton" class="landing-mini-button" type="button">Atualizar</button>
@@ -187,15 +187,15 @@
           <strong id="statAttempts">0</strong>
         </div>
         <div class="landing-stat-card">
-          <span>Precisao</span>
+          <span>Precisão</span>
           <strong id="statAccuracy">0%</strong>
         </div>
         <div class="landing-stat-card">
-          <span>Reacao media</span>
+          <span>Reação média</span>
           <strong id="statReaction">--</strong>
         </div>
         <div class="landing-stat-card">
-          <span>Sessoes</span>
+          <span>Sessões</span>
           <strong id="statSessions">0</strong>
         </div>
       </div>
@@ -214,13 +214,13 @@
       </div>
 
       <form id="statsChatForm" class="landing-chat-form">
-        <input id="statsChatInput" type="text" autocomplete="off" placeholder="Pergunte sobre sua precisao, reacao ou erros" />
+        <input id="statsChatInput" type="text" autocomplete="off" placeholder="Pergunte sobre sua precisão, reação ou erros" />
         <button class="landing-primary-button" type="submit">Enviar</button>
       </form>
     </section>
   </main>
 
-  <script src="scripts/auth.js?v=20260612-god-role"></script>
-  <script src="scripts/landing.js?v=20260609-corpus-vr-rpm1"></script>
+  <script src="scripts/auth.js?v=20260612-accents"></script>
+  <script src="scripts/landing.js?v=20260612-accents"></script>
 </body>
 </html>

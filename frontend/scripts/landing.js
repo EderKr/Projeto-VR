@@ -117,7 +117,7 @@
       const networkLinks = lanLinks.map((item) => item.game).filter(Boolean).join(" | ");
       roomNetworkHint.textContent = networkLinks
         ? `Sala ${room}. Links para celular: ${networkLinks}`
-        : `Use o codigo ${room} no PC e no celular.`;
+        : `Use o código ${room} no PC e no celular.`;
     }
   }
 
@@ -129,7 +129,7 @@
 
     try {
       const response = await fetch(`/api/room?room=${encodeURIComponent(room)}`, { cache: "no-store" });
-      if (!response.ok) throw new Error("sala indisponivel");
+      if (!response.ok) throw new Error("sala indisponível");
       roomInfo = await response.json();
       applyRoomLinks(roomInfo);
     } catch (error) {
@@ -143,7 +143,7 @@
     if (turnBiasMetric) turnBiasMetric.textContent = "--";
     if (centerShiftMetric) centerShiftMetric.textContent = "--";
     if (poseInsight) {
-      poseInsight.textContent = message || "Leitura nao diagnostica. Use para observar assimetrias e padroes de movimento.";
+      poseInsight.textContent = message || "Leitura não diagnóstica. Use para observar assimetrias e padrões de movimento.";
     }
   }
 
@@ -192,7 +192,7 @@
       return;
     }
 
-    statsSummary.textContent = "Carregando estatisticas...";
+    statsSummary.textContent = "Carregando estatísticas...";
 
     try {
       const response = await fetch("/api/history/insights", {
@@ -200,7 +200,7 @@
         headers: authHeaders()
       });
 
-      if (!response.ok) throw new Error("Nao foi possivel carregar estatisticas.");
+      if (!response.ok) throw new Error("Não foi possível carregar estatísticas.");
       const insights = await response.json();
       const totals = insights.totals || {};
 
@@ -212,10 +212,10 @@
       if (!insights.sampleSize) {
         statsSummary.textContent = "Sem partidas registradas ainda.";
       } else {
-        statsSummary.textContent = `Ponto de atencao: ${weakestActionLabel(insights)}. Ultima sessao: ${insights.latestEntry ? insights.latestEntry.status : "sem dados"}.`;
+        statsSummary.textContent = `Ponto de atenção: ${weakestActionLabel(insights)}. Última sessão: ${insights.latestEntry ? insights.latestEntry.status : "sem dados"}.`;
       }
     } catch (error) {
-      statsSummary.textContent = error.message || "Erro ao carregar estatisticas.";
+      statsSummary.textContent = error.message || "Erro ao carregar estatísticas.";
     }
   }
 
@@ -230,12 +230,12 @@
 
   async function askStatsAssistant(question) {
     if (!isSessionReady()) {
-      appendChatMessage("assistant", "Entre com seu usuario antes de perguntar sobre estatisticas.");
+      appendChatMessage("assistant", "Entre com seu usuário antes de perguntar sobre estatísticas.");
       return;
     }
 
     appendChatMessage("user", question);
-    const pending = appendChatMessage("assistant", "Lendo suas estatisticas...");
+    const pending = appendChatMessage("assistant", "Lendo suas estatísticas...");
 
     try {
       const response = await fetch("/api/assistant/chat", {
@@ -264,7 +264,7 @@
 
     if (cameraPreview) cameraPreview.srcObject = null;
     if (cameraStateLabel) cameraStateLabel.textContent = "desligada";
-    if (cameraHint) cameraHint.textContent = "camera desligada";
+    if (cameraHint) cameraHint.textContent = "câmera desligada";
     if (cameraCtx) {
       cameraCtx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
       cameraCtx.fillStyle = "#070d12";
@@ -310,7 +310,7 @@
       setPoseStatus("pose ativa");
       return poseLandmarker;
     } catch (error) {
-      setPoseStatus("pose indisponivel");
+      setPoseStatus("pose indisponível");
       resetPoseMetrics("Nao consegui carregar o modelo de pose. O tracking simples de movimento continua ativo.");
       throw error;
     } finally {
@@ -437,9 +437,9 @@
     if (quality < 0.72) {
       poseInsight.textContent = "Registro parcial do corpo. Afaste a camera ate cabeca, maos, quadril e joelhos ficarem no quadro.";
     } else if (tiltAverage > 8 || Math.abs(centerShift) > 0.18 || Math.abs(headOffset) > 0.16) {
-      poseInsight.textContent = "Assimetria perceptivel neste frame. Observe se o padrao se repete em varias tentativas; isso nao substitui avaliacao profissional.";
+      poseInsight.textContent = "Assimetria perceptível neste frame. Observe se o padrão se repete em várias tentativas; isso não substitui avaliação profissional.";
     } else if (tiltAverage > 4 || Math.abs(centerShift) > 0.10) {
-      poseInsight.textContent = "Pequena tendencia corporal detectada. Bom para calibrar postura antes do jogo.";
+      poseInsight.textContent = "Pequena tendência corporal detectada. Bom para calibrar postura antes do jogo.";
     } else {
       poseInsight.textContent = "Postura parece relativamente central neste momento.";
     }
@@ -544,7 +544,7 @@
 
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      if (cameraHint) cameraHint.textContent = "camera indisponivel";
+      if (cameraHint) cameraHint.textContent = "câmera indisponível";
       return false;
     }
 
@@ -560,7 +560,7 @@
       cameraPreview.srcObject = cameraStream;
       await cameraPreview.play();
       cameraStateLabel.textContent = "ligada";
-      cameraHint.textContent = poseMirrorEnabled ? "espelho IA ativo" : "simulacao de movimento";
+      cameraHint.textContent = poseMirrorEnabled ? "espelho IA ativo" : "simulação de movimento";
       updateMotionFrame();
       return true;
     } catch (error) {
@@ -586,21 +586,21 @@
         if (!poseMirrorEnabled) {
           setPoseStatus("pose offline");
           resetPoseMetrics();
-          if (cameraHint) cameraHint.textContent = cameraStream ? "simulacao de movimento" : "camera desligada";
+          if (cameraHint) cameraHint.textContent = cameraStream ? "simulação de movimento" : "câmera desligada";
           return;
         }
 
         try {
           if (!cameraStream) {
             const cameraReady = await startCamera();
-            if (!cameraReady) throw new Error("camera indisponivel");
+            if (!cameraReady) throw new Error("câmera indisponível");
           }
           await ensurePoseLandmarker();
           if (cameraHint) cameraHint.textContent = "espelho IA ativo";
         } catch (error) {
           poseMirrorEnabled = false;
           poseMirrorButton.textContent = "Ativar espelho IA";
-          setPoseStatus("pose indisponivel");
+          setPoseStatus("pose indisponível");
         }
       });
     }
