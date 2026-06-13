@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const DB_PATH = process.env.DB_PATH ? path.resolve(process.env.DB_PATH) : path.join(__dirname, "db.json");
 const HISTORY_LIMIT = Number(process.env.HISTORY_LIMIT) > 0 ? Number(process.env.HISTORY_LIMIT) : 100;
+const INVITE_MAX_AGE_MS = 1000 * 60 * 60 * 24;
 
 let postgresPool = null;
 let postgresReady = false;
@@ -607,18 +608,46 @@ async function replaceHistory(entries, user = null) {
 
 function safeInvite(row = {}) {
   if (!row) return null;
+  const createdAt = row.created_at || row.createdAt || new Date().toISOString();
+  const createdAtDate = new Date(createdAt);
+  const expiresAt = Number.isFinite(createdAtDate.getTime())
+    ? new Date(createdAtDate.getTime() + INVITE_MAX_AGE_MS).toISOString()
+    : new Date(Date.now() + INVITE_MAX_AGE_MS).toISOString();
   return {
     id: String(row.id),
     token: row.token,
     type: normalizeInviteType(row.type),
     createdBy: row.created_by || row.createdBy || null,
     usedBy: row.used_by || row.usedBy || null,
-    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+    createdAt,
+    expiresAt,
     usedAt: row.used_at || row.usedAt || null
   };
 }
 
+function isInviteExpired(invite = {}) {
+  const createdAt = new Date(invite.created_at || invite.createdAt);
+  return !Number.isFinite(createdAt.getTime()) || Date.now() - createdAt.getTime() > INVITE_MAX_AGE_MS;
+}
+
+async function cleanupExpiredInvites() {
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    await pool.query("delete from invite_tokens where used_at is not null or created_at < now() - interval '24 hours'");
+    return true;
+  }
+
+  const db = readLocalDb();
+  const before = (db.invites || []).length;
+  db.invites = (db.invites || []).filter((invite) => !invite.used_at && !invite.usedAt && !isInviteExpired(invite));
+  if (db.invites.length !== before) {
+    writeLocalDb(db);
+  }
+  return true;
+}
+
 async function createInvite(type = "standard", createdBy = null) {
+  await cleanupExpiredInvites();
   const inviteType = normalizeInviteType(type);
   const token = crypto.randomBytes(24).toString("base64url");
   const creatorId = createdBy ? String(createdBy.id || createdBy) : null;
@@ -651,17 +680,21 @@ async function createInvite(type = "standard", createdBy = null) {
 }
 
 async function getInviteByToken(token) {
+  await cleanupExpiredInvites();
   const normalizedToken = String(token || "").trim();
   if (!normalizedToken) return null;
 
   const pool = await ensurePostgresSchema();
   if (pool) {
-    const { rows } = await pool.query("select * from invite_tokens where token = $1 limit 1", [normalizedToken]);
+    const { rows } = await pool.query(
+      "select * from invite_tokens where token = $1 and used_at is null and created_at >= now() - interval '24 hours' limit 1",
+      [normalizedToken]
+    );
     return rows[0] || null;
   }
 
   const db = readLocalDb();
-  return (db.invites || []).find((invite) => invite.token === normalizedToken) || null;
+  return (db.invites || []).find((invite) => invite.token === normalizedToken && !invite.used_at && !invite.usedAt && !isInviteExpired(invite)) || null;
 }
 
 async function useInvite(token, userId) {
@@ -676,31 +709,34 @@ async function useInvite(token, userId) {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(
-      `update invite_tokens
-       set used_by = $2, used_at = now()
-       where token = $1 and used_at is null
+      `delete from invite_tokens
+       where token = $1
+         and used_at is null
+         and created_at >= now() - interval '24 hours'
        returning *`,
-      [String(token).trim(), String(userId)]
+      [String(token).trim()]
     );
-    if (!rows[0]) throw new Error("Este convite ja foi usado.");
+    if (!rows[0]) throw new Error("Este convite ja foi usado ou expirou.");
     return safeInvite(rows[0]);
   }
 
   const db = readLocalDb();
   const localInvite = (db.invites || []).find((item) => item.token === String(token).trim());
-  if (!localInvite || localInvite.used_at) {
-    throw new Error("Este convite ja foi usado.");
+  if (!localInvite || localInvite.used_at || localInvite.usedAt || isInviteExpired(localInvite)) {
+    throw new Error("Este convite ja foi usado ou expirou.");
   }
-  localInvite.used_by = String(userId);
-  localInvite.used_at = new Date().toISOString();
+  db.invites = (db.invites || []).filter((item) => item.token !== String(token).trim());
   writeLocalDb(db);
   return safeInvite(localInvite);
 }
 
 async function listInvites() {
+  await cleanupExpiredInvites();
   const pool = await ensurePostgresSchema();
   if (pool) {
-    const { rows } = await pool.query("select * from invite_tokens order by created_at desc limit 200");
+    const { rows } = await pool.query(
+      "select * from invite_tokens where used_at is null and created_at >= now() - interval '24 hours' order by created_at desc limit 200"
+    );
     return rows.map(safeInvite);
   }
 
@@ -761,6 +797,7 @@ async function getDatabaseStatus() {
 
 module.exports = {
   DB_PATH,
+  cleanupExpiredInvites,
   ensureLocalDbFile,
   authenticateUser,
   createInvite,

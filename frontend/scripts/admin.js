@@ -67,13 +67,12 @@ function renderInvites(invites = []) {
   }
 
   list.innerHTML = invites.map((invite) => {
-    const used = Boolean(invite.usedAt);
     const url = inviteUrl(invite.token);
     return `
       <article class="admin-invite-item">
         <div>
           <strong>${roleLabel(invite.type === "god" ? "god" : (invite.type === "admin" ? "admin" : "user"))}</strong>
-          <span>${used ? `Usado em ${formatDate(invite.usedAt)}` : "Disponível"}</span>
+          <span>Expira em ${formatDate(invite.expiresAt)}</span>
         </div>
         <input type="text" value="${url}" readonly />
         <button class="landing-mini-button" type="button" data-copy="${url}">Copiar</button>

@@ -7,6 +7,7 @@ const WebSocket = require("ws");
 const { WebSocketServer } = WebSocket;
 const {
   DB_PATH,
+  cleanupExpiredInvites,
   ensureLocalDbFile,
   authenticateUser,
   createInvite,
@@ -41,6 +42,7 @@ const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
 const AUTH_SECRET = process.env.AUTH_SECRET || "headbutt-berserker-dev-secret-change-me";
 const COMMIT_SHA = process.env.COMMIT_SHA || "unknown";
 const TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
+const INVITE_CLEANUP_INTERVAL_MS = 1000 * 60 * 30;
 
 function toBase64Url(value) {
   return Buffer.from(value).toString("base64url");
@@ -696,7 +698,7 @@ async function handleRegister(req, res) {
   const invite = await getInviteByToken(inviteToken);
 
   if (!invite) {
-    sendJson(res, 400, { error: "Cadastro permitido apenas por convite valido." });
+    sendJson(res, 400, { error: "Cadastro permitido apenas por convite valido e ativo." });
     return;
   }
   if (invite.used_at || invite.usedAt) {
@@ -1100,6 +1102,14 @@ server.on("upgrade", (req, socket, head) => {
 
 server.listen(PORT, HOST, () => {
   ensureLocalDbFile();
+  cleanupExpiredInvites().catch((error) => {
+    console.warn("Nao foi possivel limpar convites expirados.", error.message);
+  });
+  setInterval(() => {
+    cleanupExpiredInvites().catch((error) => {
+      console.warn("Nao foi possivel limpar convites expirados.", error.message);
+    });
+  }, INVITE_CLEANUP_INTERVAL_MS).unref();
   if (CONFIGURED_PUBLIC_DIR !== PUBLIC_DIR) {
     console.warn(`FRONTEND_DIR=${CONFIGURED_PUBLIC_DIR} não existe; voltando para ${PUBLIC_DIR}`);
   }
