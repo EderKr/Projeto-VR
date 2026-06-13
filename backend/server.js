@@ -12,6 +12,7 @@ const {
   createInvite,
   createUser,
   deleteUserAccount,
+  deleteUserById,
   getInviteByToken,
   getUserById,
   getDatabaseStatus,
@@ -108,8 +109,18 @@ async function requireAuthenticatedUser(req, res) {
 async function requireAdminUser(req, res) {
   const user = await requireAuthenticatedUser(req, res);
   if (!user) return null;
-  if (user.role !== "admin") {
+  if (user.role !== "admin" && user.role !== "god") {
     sendJson(res, 403, { error: "Acesso restrito a administradores." });
+    return null;
+  }
+  return user;
+}
+
+async function requireGodUser(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return null;
+  if (user.role !== "god") {
+    sendJson(res, 403, { error: "Acesso restrito a contas Deus." });
     return null;
   }
   return user;
@@ -674,10 +685,10 @@ async function handleRegister(req, res) {
   const body = await collectRequestBody(req);
   const inviteToken = String(body.inviteToken || "").trim();
   const users = await listUsers();
-  const canBootstrapAdmin = !users.some((user) => user.role === "admin");
+  const canBootstrapGod = !users.some((user) => user.role === "god");
 
-  if (canBootstrapAdmin && !inviteToken) {
-    const user = await createUser(body, { type: "admin" });
+  if (canBootstrapGod && !inviteToken) {
+    const user = await createUser(body, { type: "god" });
     sendAuthResponse(res, user);
     return;
   }
@@ -701,7 +712,7 @@ async function handleRegister(req, res) {
 async function handleBootstrapStatus(req, res) {
   const users = await listUsers();
   sendJson(res, 200, {
-    canCreateFirstAdmin: !users.some((user) => user.role === "admin")
+    canCreateFirstGod: !users.some((user) => user.role === "god")
   });
 }
 
@@ -748,8 +759,33 @@ async function handleAdminInvitesPost(req, res) {
   const user = await requireAdminUser(req, res);
   if (!user) return;
   const body = await collectRequestBody(req);
-  const invite = await createInvite(body.type, user.id);
+  const type = String(body.type || "standard").trim().toLowerCase();
+
+  if (type === "god" && user.role !== "god") {
+    sendJson(res, 403, { error: "Somente contas Deus podem gerar convites Deus." });
+    return;
+  }
+
+  const invite = await createInvite(type, user.id);
   sendJson(res, 201, { invite });
+}
+
+async function handleAdminUserDelete(req, res, userId) {
+  const user = await requireGodUser(req, res);
+  if (!user) return;
+  const target = await getUserById(userId);
+
+  if (!target) {
+    sendJson(res, 404, { error: "Usuario nao encontrado." });
+    return;
+  }
+  if (target.role === "god") {
+    sendJson(res, 403, { error: "Contas Deus nao podem banir outras contas Deus." });
+    return;
+  }
+
+  await deleteUserById(target.id);
+  sendJson(res, 200, { ok: true });
 }
 
 function serveStaticFile(res, filePath) {
@@ -866,6 +902,12 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/api/admin/users" && req.method === "GET") {
     handleAdminUsers(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/admin/users/") && req.method === "DELETE") {
+    const userId = decodeURIComponent(requestUrl.pathname.slice("/api/admin/users/".length));
+    handleAdminUserDelete(req, res, userId).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 

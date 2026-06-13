@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Corpus VR | Admin</title>
-  <link rel="stylesheet" href="/style.css?v=20260612-delete-account" />
+  <link rel="stylesheet" href="/style.css?v=20260612-god-role" />
 </head>
 <body class="landing-page admin-page">
   <header class="landing-topbar">
@@ -35,7 +35,7 @@
 
         <div class="register-only" hidden>
           <label for="registerInvite">Convite</label>
-          <input id="registerInvite" name="inviteToken" type="text" autocomplete="off" placeholder="dispensado para o primeiro ADM" data-required="true" />
+          <input id="registerInvite" name="inviteToken" type="text" autocomplete="off" placeholder="dispensado para a primeira conta Deus" data-required="true" />
 
           <label for="registerName">Nome</label>
           <input id="registerName" name="name" type="text" minlength="2" maxlength="40" autocomplete="name" placeholder="seu nome" data-required="true" />
@@ -65,10 +65,10 @@
 
         <div class="landing-actions">
           <button id="loginButton" class="landing-primary-button" type="submit">Entrar</button>
-          <button id="registerButton" class="landing-secondary-button" type="button">Criar primeiro ADM</button>
+          <button id="registerButton" class="landing-secondary-button" type="button">Criar conta Deus</button>
         </div>
 
-        <p id="loginMessage" class="login-message landing-message" data-type="info">Somente ADMs podem acessar os dados e convites.</p>
+        <p id="loginMessage" class="login-message landing-message" data-type="info">ADMs e contas Deus podem acessar dados e convites.</p>
       </form>
     </section>
 
@@ -84,6 +84,7 @@
       <div class="admin-actions">
         <button id="createStandardInvite" class="landing-primary-button" type="button">Convite padrao</button>
         <button id="createAdminInvite" class="landing-secondary-button" type="button">Convite admin</button>
+        <button id="createGodInvite" class="landing-secondary-button god-only" type="button">Convite Deus</button>
       </div>
 
       <div id="latestInvite" class="admin-link-box">Nenhum convite gerado nesta sessao.</div>
@@ -109,17 +110,18 @@
               <th>Papel</th>
               <th>Sessoes</th>
               <th>Criado em</th>
+              <th class="god-only">Acoes</th>
             </tr>
           </thead>
           <tbody id="usersTableBody">
-            <tr><td colspan="7">Carregando...</td></tr>
+            <tr><td colspan="8">Carregando...</td></tr>
           </tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <script src="/scripts/auth.js?v=20260612-delete-account"></script>
-  <script src="/scripts/admin.js?v=20260612-bootstrap-admin"></script>
+  <script src="/scripts/auth.js?v=20260612-god-role"></script>
+  <script src="/scripts/admin.js?v=20260612-god-role"></script>
 </body>
 </html>

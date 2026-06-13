@@ -5,7 +5,7 @@ const authState = {
   token: localStorage.getItem(AUTH_TOKEN_KEY) || "",
   user: null,
   mode: "login",
-  canCreateFirstAdmin: false
+  canCreateFirstGod: false
 };
 
 try {
@@ -26,7 +26,11 @@ function isLoggedIn() {
 }
 
 function isAdmin() {
-  return isLoggedIn() && authState.user.role === "admin";
+  return isLoggedIn() && (authState.user.role === "admin" || authState.user.role === "god");
+}
+
+function isGod() {
+  return isLoggedIn() && authState.user.role === "god";
 }
 
 function setAuthMessage(message, type = "info") {
@@ -44,7 +48,7 @@ function getInviteFromUrl() {
 function setAuthMode(mode) {
   authState.mode = mode === "register" ? "register" : "login";
   const isRegister = authState.mode === "register";
-  const bootstrapAdmin = isRegister && authState.canCreateFirstAdmin && !getInviteFromUrl();
+  const bootstrapGod = isRegister && authState.canCreateFirstGod && !getInviteFromUrl();
   document.body.classList.toggle("auth-register-mode", isRegister);
 
   document.querySelectorAll(".register-only").forEach((element) => {
@@ -69,21 +73,21 @@ function setAuthMode(mode) {
   }
   if (emailLabelEl) emailLabelEl.textContent = isRegister ? "E-mail" : "E-mail ou usuario";
   if (passwordEl) passwordEl.autocomplete = isRegister ? "new-password" : "current-password";
-  if (titleEl) titleEl.textContent = isRegister ? (bootstrapAdmin ? "Criar primeiro ADM" : "Criar conta por convite") : "Entrar";
+  if (titleEl) titleEl.textContent = isRegister ? (bootstrapGod ? "Criar conta Deus" : "Criar conta por convite") : "Entrar";
   if (submitEl) submitEl.textContent = isRegister ? "Criar conta" : "Entrar";
   if (toggleEl) {
     toggleEl.hidden = false;
-    toggleEl.textContent = isRegister ? "Ja tenho conta" : (authState.canCreateFirstAdmin ? "Criar primeiro ADM" : "Usar convite");
+    toggleEl.textContent = isRegister ? "Ja tenho conta" : (authState.canCreateFirstGod ? "Criar conta Deus" : "Usar convite");
   }
   if (inviteEl && !inviteEl.value) inviteEl.value = getInviteFromUrl();
   if (inviteEl) {
-    inviteEl.disabled = bootstrapAdmin;
-    inviteEl.placeholder = bootstrapAdmin ? "dispensado para o primeiro ADM" : "codigo do convite";
+    inviteEl.disabled = bootstrapGod;
+    inviteEl.placeholder = bootstrapGod ? "dispensado para a primeira conta Deus" : "codigo do convite";
   }
 
   setAuthMessage(
     isRegister
-      ? (bootstrapAdmin ? "Como ainda nao ha ADM, esta conta sera criada como administradora." : "Use o link de convite recebido para criar sua conta.")
+      ? (bootstrapGod ? "Como ainda nao ha conta Deus, esta conta sera criada como Deus." : "Use o link de convite recebido para criar sua conta.")
       : "Entre com seu e-mail e senha.",
     "info"
   );
@@ -104,7 +108,7 @@ function updateAuthUI() {
 
   if (userBadge) {
     userBadge.style.display = isLoggedIn() ? "flex" : "none";
-    userBadge.textContent = isLoggedIn() ? `${isAdmin() ? "ADM" : "Jogador"}: ${authState.user.displayName || authState.user.email}` : "";
+    userBadge.textContent = isLoggedIn() ? `${isGod() ? "Deus" : (isAdmin() ? "ADM" : "Jogador")}: ${authState.user.displayName || authState.user.email}` : "";
   }
 
   if (logoutButton) {
@@ -211,7 +215,7 @@ function getLoginPayload() {
 async function submitAuth(mode = authState.mode) {
   const isRegister = mode === "register";
   const payload = isRegister ? getRegisterPayload() : getLoginPayload();
-  const bootstrapAdmin = isRegister && authState.canCreateFirstAdmin && !getInviteFromUrl();
+  const bootstrapGod = isRegister && authState.canCreateFirstGod && !getInviteFromUrl();
 
   if (!payload.email && !payload.username) {
     setAuthMessage("Preencha o e-mail.", "error");
@@ -221,7 +225,7 @@ async function submitAuth(mode = authState.mode) {
     setAuthMessage("Preencha a senha.", "error");
     return;
   }
-  if (isRegister && !payload.inviteToken && !bootstrapAdmin) {
+  if (isRegister && !payload.inviteToken && !bootstrapGod) {
     setAuthMessage("Use um link de convite valido para se cadastrar.", "error");
     return;
   }
@@ -282,9 +286,9 @@ async function loadBootstrapStatus() {
     const response = await fetch("/api/auth/bootstrap", { cache: "no-store" });
     if (!response.ok) return;
     const parsed = await response.json();
-    authState.canCreateFirstAdmin = Boolean(parsed.canCreateFirstAdmin);
+    authState.canCreateFirstGod = Boolean(parsed.canCreateFirstGod);
   } catch (error) {
-    authState.canCreateFirstAdmin = false;
+    authState.canCreateFirstGod = false;
   }
 }
 
@@ -298,6 +302,7 @@ function requireAuthBeforeStart() {
 window.getAuthHeaders = getAuthHeaders;
 window.isLoggedIn = isLoggedIn;
 window.isAdmin = isAdmin;
+window.isGod = isGod;
 window.requireAuthBeforeStart = requireAuthBeforeStart;
 window.authState = authState;
 
@@ -311,7 +316,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadBootstrapStatus();
 
-  if (inviteToken || authState.canCreateFirstAdmin) setAuthMode("register");
+  if (inviteToken || authState.canCreateFirstGod) setAuthMode("register");
   else setAuthMode("login");
 
   if (loginButton) {

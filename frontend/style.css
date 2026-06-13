@@ -1214,6 +1214,19 @@ body.landing-page {
   color: #ffe8b6;
 }
 
+.admin-pill.god {
+  background: rgba(255, 232, 182, 0.24);
+  color: #ffffff;
+}
+
+.god-only {
+  display: revert;
+}
+
+.god-only[hidden] {
+  display: none;
+}
+
 @media (max-width: 1120px) {
   .landing-grid {
     grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);

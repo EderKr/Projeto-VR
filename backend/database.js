@@ -190,11 +190,17 @@ function normalizeGender(value) {
 }
 
 function normalizeRole(value) {
-  return String(value || "").trim().toLowerCase() === "admin" ? "admin" : "user";
+  const role = String(value || "").trim().toLowerCase();
+  if (role === "god") return "god";
+  if (role === "admin") return "admin";
+  return "user";
 }
 
 function normalizeInviteType(value) {
-  return String(value || "").trim().toLowerCase() === "admin" ? "admin" : "standard";
+  const type = String(value || "").trim().toLowerCase();
+  if (type === "god") return "god";
+  if (type === "admin") return "admin";
+  return "standard";
 }
 
 function migrateLocalDb(db) {
@@ -358,7 +364,7 @@ async function createUser(profile = {}, invite = null) {
   }
 
   const { hash, salt } = createPasswordHash(valid.password);
-  const role = normalizeRole(invite && invite.type === "admin" ? "admin" : "user");
+  const role = normalizeRole(invite && invite.type === "god" ? "god" : (invite && invite.type === "admin" ? "admin" : "user"));
 
   const pool = await ensurePostgresSchema();
   if (pool) {
@@ -392,8 +398,7 @@ async function createUser(profile = {}, invite = null) {
 }
 
 async function authenticateUser(username, password) {
-  const normalizedUsername = normalizeUsername(username);
-  const user = await findUserByUsername(normalizedUsername);
+  const user = await findUserByUsername(username);
   if (!user || !user.password_hash || !user.password_salt) {
     throw new Error("Usuário ou senha inválidos.");
   }
@@ -416,6 +421,31 @@ async function deleteUserAccount(userId, password) {
   }
 
   await authenticateUser(user.email || user.username, password);
+
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    await pool.query("delete from app_users where id = $1", [String(userId)]);
+    return true;
+  }
+
+  const db = readLocalDb();
+  db.users = (db.users || []).filter((item) => String(item.id) !== String(userId));
+  db.performanceHistory = (db.performanceHistory || [])
+    .filter((entry) => String(entry.userId || entry.user_id || "") !== String(userId));
+  db.invites = (db.invites || []).map((invite) => ({
+    ...invite,
+    created_by: String(invite.created_by || "") === String(userId) ? null : invite.created_by,
+    used_by: String(invite.used_by || "") === String(userId) ? null : invite.used_by
+  }));
+  writeLocalDb(db);
+  return true;
+}
+
+async function deleteUserById(userId) {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("Usuario nao encontrado.");
+  }
 
   const pool = await ensurePostgresSchema();
   if (pool) {
@@ -736,6 +766,7 @@ module.exports = {
   createInvite,
   createUser,
   deleteUserAccount,
+  deleteUserById,
   getUserById,
   getInviteByToken,
   getDatabaseStatus,

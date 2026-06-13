@@ -20,6 +20,7 @@ function sexLabel(value) {
 }
 
 function roleLabel(value) {
+  if (value === "god") return "Deus";
   return value === "admin" ? "ADM" : "Padrao";
 }
 
@@ -32,7 +33,7 @@ function renderUsers(users = []) {
   if (!tbody) return;
 
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="7">Nenhum usuario cadastrado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8">Nenhum usuario cadastrado.</td></tr>';
     return;
   }
 
@@ -42,11 +43,18 @@ function renderUsers(users = []) {
       <td>${user.email || user.username || "--"}</td>
       <td>${user.age || "--"}</td>
       <td>${sexLabel(user.sex || user.gender)}</td>
-      <td><span class="admin-pill ${user.role === "admin" ? "admin" : ""}">${roleLabel(user.role)}</span></td>
+      <td><span class="admin-pill ${user.role === "god" ? "god" : (user.role === "admin" ? "admin" : "")}">${roleLabel(user.role)}</span></td>
       <td>${user.historyCount || 0}</td>
       <td>${formatDate(user.createdAt)}</td>
+      <td class="god-only">
+        ${isGod() && user.role !== "god" ? `<button class="landing-mini-button danger-button" type="button" data-ban-user="${user.id}" data-ban-name="${user.displayName || user.email || user.username}">Banir</button>` : ""}
+      </td>
     </tr>
   `).join("");
+
+  tbody.querySelectorAll("[data-ban-user]").forEach((button) => {
+    button.addEventListener("click", () => banUser(button.dataset.banUser, button.dataset.banName));
+  });
 }
 
 function renderInvites(invites = []) {
@@ -64,7 +72,7 @@ function renderInvites(invites = []) {
     return `
       <article class="admin-invite-item">
         <div>
-          <strong>${roleLabel(invite.type === "admin" ? "admin" : "user")}</strong>
+          <strong>${roleLabel(invite.type === "god" ? "god" : (invite.type === "admin" ? "admin" : "user"))}</strong>
           <span>${used ? `Usado em ${formatDate(invite.usedAt)}` : "Disponivel"}</span>
         </div>
         <input type="text" value="${url}" readonly />
@@ -84,6 +92,9 @@ function renderInvites(invites = []) {
 function updateAdminPanelsVisibility() {
   document.querySelectorAll(".admin-panel").forEach((panel) => {
     panel.hidden = !isAdmin();
+  });
+  document.querySelectorAll(".god-only").forEach((element) => {
+    element.hidden = !isGod();
   });
 }
 
@@ -120,6 +131,7 @@ async function loadAdminData() {
     ]);
     renderUsers(usersPayload.users || []);
     renderInvites(invitesPayload.invites || []);
+    updateAdminPanelsVisibility();
     setAdminMessage("Dados administrativos carregados.", "success");
   } catch (error) {
     setAdminMessage(error.message, "error");
@@ -142,10 +154,30 @@ async function createInvite(type) {
     const url = inviteUrl(payload.invite.token);
     const latest = document.getElementById("latestInvite");
     if (latest) {
-      latest.innerHTML = `<strong>${roleLabel(type === "admin" ? "admin" : "user")}</strong><input type="text" value="${url}" readonly />`;
+      latest.innerHTML = `<strong>${roleLabel(type === "god" ? "god" : (type === "admin" ? "admin" : "user"))}</strong><input type="text" value="${url}" readonly />`;
     }
     await navigator.clipboard.writeText(url).catch(() => {});
     setAdminMessage("Convite gerado. Link copiado quando permitido pelo navegador.", "success");
+    await loadAdminData();
+  } catch (error) {
+    setAdminMessage(error.message, "error");
+  }
+}
+
+async function banUser(userId, userName) {
+  if (!isGod()) {
+    setAdminMessage("Somente contas Deus podem banir usuarios.", "error");
+    return;
+  }
+
+  const confirmed = window.confirm(`Banir ${userName || "este usuario"}? A conta sera apagada do banco de dados.`);
+  if (!confirmed) return;
+
+  try {
+    await fetchAdminJson(`/api/admin/users/${encodeURIComponent(userId)}`, {
+      method: "DELETE"
+    });
+    setAdminMessage("Conta banida e removida do banco.", "success");
     await loadAdminData();
   } catch (error) {
     setAdminMessage(error.message, "error");
@@ -156,6 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateAdminPanelsVisibility();
   document.getElementById("createStandardInvite")?.addEventListener("click", () => createInvite("standard"));
   document.getElementById("createAdminInvite")?.addEventListener("click", () => createInvite("admin"));
+  document.getElementById("createGodInvite")?.addEventListener("click", () => createInvite("god"));
   document.getElementById("refreshAdminButton")?.addEventListener("click", loadAdminData);
 });
 
