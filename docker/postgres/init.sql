@@ -9,6 +9,7 @@ create table if not exists app_users (
   age integer,
   sex text not null default 'male',
   role text not null default 'user',
+  admin_rank integer not null default 2,
   gender text not null default 'male',
   password_hash text not null,
   password_salt text not null

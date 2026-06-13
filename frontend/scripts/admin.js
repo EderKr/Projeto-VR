@@ -24,6 +24,36 @@ function roleLabel(value) {
   return value === "admin" ? "ADM" : "Padrão";
 }
 
+function userRoleLabel(user = {}) {
+  if (user.role === "admin") return `ADM rank ${user.adminRank === 1 ? "1" : "2"}`;
+  return roleLabel(user.role);
+}
+
+function hierarchyLevel(user = {}) {
+  if (user.role === "god") return 3;
+  if (user.role === "admin") return user.adminRank === 1 ? 2 : 1;
+  return 0;
+}
+
+function canManageUser(user = {}) {
+  return isAdmin() && hierarchyLevel(window.authState.user) > hierarchyLevel(user);
+}
+
+function roleChangeOptions(user = {}) {
+  const actor = window.authState.user || {};
+  const actorLevel = hierarchyLevel(actor);
+  const options = [];
+
+  if (actorLevel > 0) options.push({ label: "Usuário", role: "user", adminRank: 2 });
+  if (actorLevel >= 1) options.push({ label: "ADM rank 2", role: "admin", adminRank: 2 });
+  if (actor.role === "god") {
+    options.push({ label: "ADM rank 1", role: "admin", adminRank: 1 });
+    options.push({ label: "Deus", role: "god", adminRank: 2 });
+  }
+
+  return options.filter((option) => !(option.role === user.role && option.adminRank === (user.adminRank || 2)));
+}
+
 function inviteUrl(token) {
   return `${window.location.origin}/?invite=${encodeURIComponent(token)}`;
 }
@@ -43,11 +73,11 @@ function renderUsers(users = []) {
       <td>${user.email || user.username || "--"}</td>
       <td>${user.age || "--"}</td>
       <td>${sexLabel(user.sex || user.gender)}</td>
-      <td><span class="admin-pill ${user.role === "god" ? "god" : (user.role === "admin" ? "admin" : "")}">${roleLabel(user.role)}</span></td>
+      <td><span class="admin-pill ${user.role === "god" ? "god" : (user.role === "admin" ? "admin" : "")}">${userRoleLabel(user)}</span></td>
       <td>${user.historyCount || 0}</td>
       <td>${formatDate(user.createdAt)}</td>
-      <td class="god-only">
-        ${isGod() && user.role !== "god" ? `<button class="landing-mini-button danger-button" type="button" data-ban-user="${user.id}" data-ban-name="${user.displayName || user.email || user.username}">Banir</button>` : ""}
+      <td>
+        ${renderUserActions(user)}
       </td>
     </tr>
   `).join("");
@@ -55,6 +85,23 @@ function renderUsers(users = []) {
   tbody.querySelectorAll("[data-ban-user]").forEach((button) => {
     button.addEventListener("click", () => banUser(button.dataset.banUser, button.dataset.banName));
   });
+  tbody.querySelectorAll("[data-role-user]").forEach((button) => {
+    button.addEventListener("click", () => changeUserRole(button.dataset.roleUser, button.dataset.role, Number(button.dataset.adminRank)));
+  });
+}
+
+function renderUserActions(user = {}) {
+  if (!canManageUser(user)) return "";
+
+  const options = roleChangeOptions(user)
+    .map((option) => `<button class="landing-mini-button" type="button" data-role-user="${user.id}" data-role="${option.role}" data-admin-rank="${option.adminRank}">${option.label}</button>`)
+    .join("");
+  const canBan = isGod() || (window.authState.user && window.authState.user.role === "admin" && window.authState.user.adminRank === 1);
+  const ban = canBan
+    ? `<button class="landing-mini-button danger-button" type="button" data-ban-user="${user.id}" data-ban-name="${user.displayName || user.email || user.username}">Banir</button>`
+    : "";
+
+  return `<div class="admin-row-actions">${options}${ban}</div>`;
 }
 
 function renderInvites(invites = []) {
@@ -82,10 +129,32 @@ function renderInvites(invites = []) {
 
   list.querySelectorAll("[data-copy]").forEach((button) => {
     button.addEventListener("click", async () => {
-      await navigator.clipboard.writeText(button.dataset.copy);
-      setAdminMessage("Link copiado.", "success");
+      await copyText(button.dataset.copy);
     });
   });
+}
+
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    setAdminMessage("Link copiado.", "success");
+    return true;
+  } catch (error) {
+    setAdminMessage("Não foi possível copiar automaticamente. Selecione o link e copie manualmente.", "error");
+    return false;
+  }
 }
 
 function updateAdminPanelsVisibility() {
@@ -155,8 +224,23 @@ async function createInvite(type) {
     if (latest) {
       latest.innerHTML = `<strong>${roleLabel(type === "god" ? "god" : (type === "admin" ? "admin" : "user"))}</strong><input type="text" value="${url}" readonly />`;
     }
-    await navigator.clipboard.writeText(url).catch(() => {});
-    setAdminMessage("Convite gerado. Link copiado quando permitido pelo navegador.", "success");
+    const copied = await copyText(url);
+    if (copied) {
+      setAdminMessage("Convite gerado e link copiado.", "success");
+    }
+    await loadAdminData();
+  } catch (error) {
+    setAdminMessage(error.message, "error");
+  }
+}
+
+async function changeUserRole(userId, role, adminRank) {
+  try {
+    await fetchAdminJson(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role, adminRank })
+    });
+    setAdminMessage("Conta atualizada.", "success");
     await loadAdminData();
   } catch (error) {
     setAdminMessage(error.message, "error");
@@ -164,8 +248,9 @@ async function createInvite(type) {
 }
 
 async function banUser(userId, userName) {
-  if (!isGod()) {
-    setAdminMessage("Somente contas Deus podem banir usuários.", "error");
+  const actor = window.authState.user || {};
+  if (!isGod() && !(actor.role === "admin" && actor.adminRank === 1)) {
+    setAdminMessage("Somente contas Deus e ADMs rank 1 podem banir.", "error");
     return;
   }
 

@@ -21,6 +21,7 @@ const {
   listInvites,
   listUsers,
   saveHistory,
+  updateUserRole,
   useInvite,
   replaceHistory
 } = require("./database");
@@ -63,6 +64,7 @@ function createAuthToken(user) {
     displayName: user.displayName,
     gender: user.gender || "male",
     role: user.role || "user",
+    adminRank: user.adminRank || 2,
     iat: Date.now()
   }));
   return `${payload}.${signTokenPayload(payload)}`;
@@ -128,6 +130,24 @@ async function requireGodUser(req, res) {
   return user;
 }
 
+function getHierarchyLevel(user = {}) {
+  if (user.role === "god") return 3;
+  if (user.role === "admin") return user.adminRank === 1 ? 2 : 1;
+  return 0;
+}
+
+function canManageTarget(actor, target) {
+  return getHierarchyLevel(actor) > getHierarchyLevel(target);
+}
+
+function normalizeRequestedRoleChange(body = {}) {
+  const role = String(body.role || "").trim().toLowerCase();
+  const adminRank = Number(body.adminRank);
+  if (role === "god") return { role: "god", adminRank: 2 };
+  if (role === "admin") return { role: "admin", adminRank: adminRank === 1 ? 1 : 2 };
+  return { role: "user", adminRank: 2 };
+}
+
 function sendAuthResponse(res, user) {
   sendJson(res, 200, {
     token: createAuthToken(user),
@@ -139,7 +159,7 @@ function sendAuthResponse(res, user) {
 function getBaseHeaders(extraHeaders = {}) {
   return {
     "Access-Control-Allow-Origin": CORS_ORIGIN,
-    "Access-Control-Allow-Methods": "GET,POST,DELETE,HEAD,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,HEAD,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer-when-downgrade",
@@ -773,7 +793,7 @@ async function handleAdminInvitesPost(req, res) {
 }
 
 async function handleAdminUserDelete(req, res, userId) {
-  const user = await requireGodUser(req, res);
+  const user = await requireAdminUser(req, res);
   if (!user) return;
   const target = await getUserById(userId);
 
@@ -781,13 +801,51 @@ async function handleAdminUserDelete(req, res, userId) {
     sendJson(res, 404, { error: "Usuario nao encontrado." });
     return;
   }
-  if (target.role === "god") {
-    sendJson(res, 403, { error: "Contas Deus nao podem banir outras contas Deus." });
+  if (user.role !== "god" && !(user.role === "admin" && user.adminRank === 1)) {
+    sendJson(res, 403, { error: "Somente contas Deus e ADMs rank 1 podem banir." });
+    return;
+  }
+  if (!canManageTarget(user, target)) {
+    sendJson(res, 403, { error: "Voce so pode banir contas abaixo da sua hierarquia." });
     return;
   }
 
   await deleteUserById(target.id);
   sendJson(res, 200, { ok: true });
+}
+
+async function handleAdminUserRolePatch(req, res, userId) {
+  const user = await requireAdminUser(req, res);
+  if (!user) return;
+
+  const target = await getUserById(userId);
+  if (!target) {
+    sendJson(res, 404, { error: "Usuario nao encontrado." });
+    return;
+  }
+  if (!canManageTarget(user, target)) {
+    sendJson(res, 403, { error: "Voce so pode alterar contas abaixo da sua hierarquia." });
+    return;
+  }
+
+  const requested = normalizeRequestedRoleChange(await collectRequestBody(req));
+  const requestedLevel = getHierarchyLevel(requested);
+
+  if (requested.role === "god" && user.role !== "god") {
+    sendJson(res, 403, { error: "Somente contas Deus podem promover para Deus." });
+    return;
+  }
+  if (requested.role === "admin" && requested.adminRank === 1 && user.role !== "god") {
+    sendJson(res, 403, { error: "Somente contas Deus podem definir ADM rank 1." });
+    return;
+  }
+  if (requestedLevel > getHierarchyLevel(user)) {
+    sendJson(res, 403, { error: "Voce nao pode promover uma conta acima do seu nivel." });
+    return;
+  }
+
+  const updated = await updateUserRole(target.id, requested.role, requested.adminRank);
+  sendJson(res, 200, { user: updated });
 }
 
 function serveStaticFile(res, filePath) {
@@ -904,6 +962,12 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/api/admin/users" && req.method === "GET") {
     handleAdminUsers(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/admin/users/") && requestUrl.pathname.endsWith("/role") && req.method === "PATCH") {
+    const userId = decodeURIComponent(requestUrl.pathname.slice("/api/admin/users/".length, -"/role".length));
+    handleAdminUserRolePatch(req, res, userId).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 

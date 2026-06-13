@@ -1126,6 +1126,8 @@ body.landing-page {
 
 .admin-link-box,
 .admin-empty {
+  width: 100%;
+  max-width: 100%;
   margin-top: 12px;
   border: 1px solid rgba(242, 140, 40, 0.22);
   border-radius: 8px;
@@ -1137,6 +1139,7 @@ body.landing-page {
 .admin-link-box input,
 .admin-invite-item input {
   width: 100%;
+  min-width: 0;
   min-height: 40px;
   margin-top: 8px;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -1144,6 +1147,7 @@ body.landing-page {
   background: rgba(4, 8, 11, 0.82);
   color: #fff;
   padding: 0 10px;
+  box-sizing: border-box;
 }
 
 .admin-list {
@@ -1154,13 +1158,17 @@ body.landing-page {
 
 .admin-invite-item {
   display: grid;
-  grid-template-columns: minmax(130px, 0.6fr) minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(120px, 0.6fr) minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.045);
   padding: 10px;
+  box-sizing: border-box;
 }
 
 .admin-invite-item strong,
@@ -1196,6 +1204,19 @@ body.landing-page {
   color: #ffe8b6;
   font-size: 0.82rem;
   text-transform: uppercase;
+}
+
+.admin-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.admin-row-actions .landing-mini-button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.84rem;
 }
 
 .admin-pill {

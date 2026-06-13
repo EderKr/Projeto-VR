@@ -59,6 +59,7 @@ async function ensurePostgresSchema() {
       age integer,
       sex text not null default 'male',
       role text not null default 'user',
+      admin_rank integer not null default 2,
       gender text not null default 'male',
       password_hash text not null,
       password_salt text not null
@@ -103,6 +104,7 @@ async function ensurePostgresSchema() {
     alter table app_users add column if not exists age integer;
     alter table app_users add column if not exists sex text not null default 'male';
     alter table app_users add column if not exists role text not null default 'user';
+    alter table app_users add column if not exists admin_rank integer not null default 2;
     alter table performance_history add column if not exists user_id uuid references app_users(id) on delete cascade;
     alter table performance_history add column if not exists player_name text;
 
@@ -131,6 +133,7 @@ async function ensurePostgresSchema() {
 
   await pool.query("update app_users set email = username where email is null");
   await pool.query("update app_users set sex = gender where sex is null or sex = ''");
+  await pool.query("update app_users set admin_rank = 2 where admin_rank is null or admin_rank not in (1, 2)");
 
   postgresReady = true;
   return pool;
@@ -204,12 +207,17 @@ function normalizeInviteType(value) {
   return "standard";
 }
 
+function normalizeAdminRank(value) {
+  return Number(value) === 1 ? 1 : 2;
+}
+
 function migrateLocalDb(db) {
   for (const user of db.users || []) {
     if (!user.email) user.email = user.username;
     if (!user.sex) user.sex = user.gender || "male";
     if (!user.gender) user.gender = normalizeGender(user.sex);
     if (!user.role) user.role = "user";
+    if (!user.admin_rank && !user.adminRank) user.admin_rank = 2;
   }
 
 }
@@ -231,6 +239,7 @@ function safeUser(row = {}) {
     sex: normalizeGender(row.sex || row.gender),
     gender: normalizeGender(row.gender || row.sex),
     role: normalizeRole(row.role),
+    adminRank: normalizeAdminRank(row.admin_rank || row.adminRank),
     createdAt: row.created_at || row.createdAt || new Date().toISOString()
   };
 }
@@ -348,7 +357,7 @@ async function getUserById(userId) {
 
   const pool = await ensurePostgresSchema();
   if (pool) {
-    const { rows } = await pool.query("select id, username, display_name, email, age, sex, role, gender, created_at from app_users where id = $1 limit 1", [id]);
+    const { rows } = await pool.query("select id, username, display_name, email, age, sex, role, admin_rank, gender, created_at from app_users where id = $1 limit 1", [id]);
     return safeUser(rows[0]);
   }
 
@@ -370,10 +379,10 @@ async function createUser(profile = {}, invite = null) {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(
-      `insert into app_users (username, display_name, email, age, sex, role, gender, password_hash, password_salt)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       returning id, username, display_name, email, age, sex, role, gender, created_at`,
-      [valid.username, valid.displayName, valid.email, valid.age, valid.sex, role, valid.gender, hash, salt]
+      `insert into app_users (username, display_name, email, age, sex, role, admin_rank, gender, password_hash, password_salt)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       returning id, username, display_name, email, age, sex, role, admin_rank, gender, created_at`,
+      [valid.username, valid.displayName, valid.email, valid.age, valid.sex, role, 2, valid.gender, hash, salt]
     );
     return safeUser(rows[0]);
   }
@@ -388,6 +397,7 @@ async function createUser(profile = {}, invite = null) {
     age: valid.age,
     sex: valid.sex,
     role,
+    admin_rank: 2,
     gender: valid.gender,
     password_hash: hash,
     password_salt: salt,
@@ -465,6 +475,32 @@ async function deleteUserById(userId) {
   }));
   writeLocalDb(db);
   return true;
+}
+
+async function updateUserRole(userId, role, adminRank = 2) {
+  const normalizedRole = normalizeRole(role);
+  const normalizedRank = normalizeAdminRank(adminRank);
+
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    const { rows } = await pool.query(
+      `update app_users
+       set role = $2, admin_rank = $3
+       where id = $1
+       returning id, username, display_name, email, age, sex, role, admin_rank, gender, created_at`,
+      [String(userId), normalizedRole, normalizedRank]
+    );
+    if (!rows[0]) throw new Error("Usuario nao encontrado.");
+    return safeUser(rows[0]);
+  }
+
+  const db = readLocalDb();
+  const user = (db.users || []).find((item) => String(item.id) === String(userId));
+  if (!user) throw new Error("Usuario nao encontrado.");
+  user.role = normalizedRole;
+  user.admin_rank = normalizedRank;
+  writeLocalDb(db);
+  return safeUser(user);
 }
 
 async function getHistory(userId = null) {
@@ -751,7 +787,7 @@ async function listUsers() {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(`
-      select u.id, u.username, u.display_name, u.email, u.age, u.sex, u.role, u.gender, u.created_at,
+      select u.id, u.username, u.display_name, u.email, u.age, u.sex, u.role, u.admin_rank, u.gender, u.created_at,
         count(h.id)::int as history_count
       from app_users u
       left join performance_history h on h.user_id = u.id
@@ -811,6 +847,7 @@ module.exports = {
   listInvites,
   listUsers,
   saveHistory,
+  updateUserRole,
   useInvite,
   replaceHistory
 };
