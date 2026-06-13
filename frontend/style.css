@@ -652,6 +652,16 @@ body.landing-page {
   min-width: 0;
 }
 
+.landing-brand-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.landing-brand-link:hover .landing-brand-mark {
+  filter: brightness(1.12);
+}
+
 .landing-brand strong,
 .landing-brand span {
   display: block;
@@ -1216,6 +1226,18 @@ body.landing-page {
 .admin-row-actions .landing-mini-button {
   min-height: 34px;
   padding: 0 10px;
+  font-size: 0.84rem;
+}
+
+.admin-role-select {
+  min-height: 34px;
+  max-width: 150px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(4, 8, 11, 0.82);
+  color: #fff;
+  padding: 0 10px;
+  font: inherit;
   font-size: 0.84rem;
 }
 

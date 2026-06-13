@@ -42,7 +42,7 @@ function canManageUser(user = {}) {
 function roleChangeOptions(user = {}) {
   const actor = window.authState.user || {};
   const actorLevel = hierarchyLevel(actor);
-  const options = [];
+  const options = [{ label: userRoleLabel(user), role: user.role, adminRank: user.adminRank || 2, current: true }];
 
   if (actorLevel > 0) options.push({ label: "Usuário", role: "user", adminRank: 2 });
   if (actorLevel >= 1) options.push({ label: "ADM rank 2", role: "admin", adminRank: 2 });
@@ -51,7 +51,10 @@ function roleChangeOptions(user = {}) {
     options.push({ label: "Deus", role: "god", adminRank: 2 });
   }
 
-  return options.filter((option) => !(option.role === user.role && option.adminRank === (user.adminRank || 2)));
+  return options.filter((option, index, all) => {
+    const optionKey = `${option.role}:${option.adminRank}`;
+    return all.findIndex((item) => `${item.role}:${item.adminRank}` === optionKey) === index;
+  });
 }
 
 function inviteUrl(token) {
@@ -85,23 +88,34 @@ function renderUsers(users = []) {
   tbody.querySelectorAll("[data-ban-user]").forEach((button) => {
     button.addEventListener("click", () => banUser(button.dataset.banUser, button.dataset.banName));
   });
-  tbody.querySelectorAll("[data-role-user]").forEach((button) => {
-    button.addEventListener("click", () => changeUserRole(button.dataset.roleUser, button.dataset.role, Number(button.dataset.adminRank)));
+  tbody.querySelectorAll("[data-role-select]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const selected = select.selectedOptions[0];
+      changeUserRole(select.dataset.roleSelect, selected.dataset.role, Number(selected.dataset.adminRank), select.dataset.userName, select);
+    });
   });
 }
 
 function renderUserActions(user = {}) {
   if (!canManageUser(user)) return "";
 
+  const userName = user.displayName || user.email || user.username || "este usuário";
   const options = roleChangeOptions(user)
-    .map((option) => `<button class="landing-mini-button" type="button" data-role-user="${user.id}" data-role="${option.role}" data-admin-rank="${option.adminRank}">${option.label}</button>`)
+    .map((option) => `<option value="${option.role}:${option.adminRank}" data-role="${option.role}" data-admin-rank="${option.adminRank}" ${option.current ? "selected" : ""}>${option.label}</option>`)
     .join("");
   const canBan = isGod() || (window.authState.user && window.authState.user.role === "admin" && window.authState.user.adminRank === 1);
   const ban = canBan
-    ? `<button class="landing-mini-button danger-button" type="button" data-ban-user="${user.id}" data-ban-name="${user.displayName || user.email || user.username}">Banir</button>`
+    ? `<button class="landing-mini-button danger-button" type="button" data-ban-user="${user.id}" data-ban-name="${userName}">Banir</button>`
     : "";
 
-  return `<div class="admin-row-actions">${options}${ban}</div>`;
+  return `
+    <div class="admin-row-actions">
+      <select class="admin-role-select" data-role-select="${user.id}" data-user-name="${userName}">
+        ${options}
+      </select>
+      ${ban}
+    </div>
+  `;
 }
 
 function renderInvites(invites = []) {
@@ -234,7 +248,14 @@ async function createInvite(type) {
   }
 }
 
-async function changeUserRole(userId, role, adminRank) {
+async function changeUserRole(userId, role, adminRank, userName, selectEl) {
+  const targetLabel = role === "admin" ? `ADM rank ${adminRank === 1 ? "1" : "2"}` : roleLabel(role);
+  const confirmed = window.confirm(`Alterar ${userName || "este usuário"} para ${targetLabel}?`);
+  if (!confirmed) {
+    if (selectEl) selectEl.value = selectEl.querySelector("option[selected]")?.value || selectEl.options[0]?.value || "";
+    return;
+  }
+
   try {
     await fetchAdminJson(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
       method: "PATCH",

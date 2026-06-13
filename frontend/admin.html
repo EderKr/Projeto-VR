@@ -4,20 +4,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Corpus VR | Admin</title>
-  <link rel="stylesheet" href="/style.css?v=20260612-admin-ranks" />
+  <link rel="stylesheet" href="/style.css?v=20260612-role-dropdown" />
 </head>
 <body class="landing-page admin-page">
   <header class="landing-topbar">
-    <div class="landing-brand">
+    <a class="landing-brand landing-brand-link" href="/" aria-label="Ir para o início">
       <span class="landing-brand-mark" aria-hidden="true"></span>
       <div>
         <strong>Corpus VR</strong>
         <span>Administrador</span>
       </div>
-    </div>
+    </a>
 
     <div class="landing-user-row">
-      <a class="landing-mini-button" href="/">Inicio</a>
       <div id="userBadge" class="user-badge landing-user-badge" aria-live="polite"></div>
       <button id="logoutButton" class="logout-button landing-logout" type="button">Sair</button>
     </div>
@@ -122,6 +121,6 @@
   </main>
 
   <script src="/scripts/auth.js?v=20260612-accents"></script>
-  <script src="/scripts/admin.js?v=20260612-admin-ranks"></script>
+  <script src="/scripts/admin.js?v=20260612-role-dropdown"></script>
 </body>
 </html>
