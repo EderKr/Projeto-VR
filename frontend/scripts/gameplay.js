@@ -349,8 +349,8 @@ window.getGameInputState = function () {
 document.addEventListener(
   "keydown",
   (event) => {
-    const blockedKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
-    if (blockedKeys.includes(event.key)) {
+    const blockedKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "];
+    if (blockedKeys.includes(event.key) || event.code === "Space") {
       event.preventDefault();
       if (event.stopImmediatePropagation) event.stopImmediatePropagation();
     }
@@ -361,6 +361,7 @@ document.addEventListener(
     if (event.key === "ArrowLeft") dispatchAction("dodgeLeft", "teclado");
     if (event.key === "ArrowRight") dispatchAction("dodgeRight", "teclado");
     if (event.key === "ArrowDown") dispatchAction("duck", "teclado");
+    if (event.code === "Space") dispatchAction("jump", "teclado");
   },
   { passive: false, capture: true }
 );

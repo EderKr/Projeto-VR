@@ -787,6 +787,7 @@ AFRAME.registerComponent("head-input", {
   schema: {
     dodgeThreshold: { default: 0.16 },
     duckThreshold: { default: 0.08 },
+    jumpThreshold: { default: 0.09 },
     attackThreshold: { default: 0.16 },
     rollThreshold: { default: 0.26 },
     pitchDuckThreshold: { default: 0.14 },
@@ -844,6 +845,9 @@ AFRAME.registerComponent("head-input", {
       this.lastActionTime = now;
     } else if (roll >= this.data.rollThreshold || dx >= this.data.dodgeThreshold) {
       window.dispatchGameAction("dodgeLeft", "cabeça");
+      this.lastActionTime = now;
+    } else if (dy >= this.data.jumpThreshold) {
+      window.dispatchGameAction("jump", "cabeça");
       this.lastActionTime = now;
     } else if (pitch >= this.data.pitchDuckThreshold || dy <= -this.data.duckThreshold) {
       window.dispatchGameAction("duck", "cabeça");
@@ -1291,18 +1295,20 @@ AFRAME.registerComponent("enemy-ai", {
       left: new THREE.Vector3(-0.95, 1.82, 0.72),
       right: new THREE.Vector3(0.95, 1.82, 0.72),
       // Ataque alto: a magia passa por cima da cabeça, em linha horizontal, para pedir AGACHAR.
-      high: new THREE.Vector3(0, 2.34, 0.52)
+      high: new THREE.Vector3(0, 2.34, 0.52),
+      low: new THREE.Vector3(0, 0.72, 0.52)
     };
     const endMap = {
       left: new THREE.Vector3(-0.34, 1.48, 2.12),
       right: new THREE.Vector3(0.34, 1.48, 2.12),
-      high: new THREE.Vector3(0, 2.08, 2.35)
+      high: new THREE.Vector3(0, 2.08, 2.35),
+      low: new THREE.Vector3(0, 0.92, 2.35)
     };
 
     const startPos = startMap[pattern] || startMap.high;
     const endPos = endMap[pattern] || endMap.high;
     const startedAt = performance.now();
-    const duration = pattern === "high" ? 520 : 460;
+    const duration = pattern === "high" || pattern === "low" ? 520 : 460;
 
     fx.setAttribute("visible", "true");
     fx.object3D.position.copy(startPos);
@@ -1318,6 +1324,9 @@ AFRAME.registerComponent("enemy-ai", {
       if (pattern === "high") {
         fx.object3D.scale.set(0.42 + 0.42 * ease, 0.42 + 0.16 * ease, 0.42 + 0.22 * ease);
         fx.object3D.rotation.z = Math.sin(t * Math.PI * 3) * 0.06;
+      } else if (pattern === "low") {
+        fx.object3D.scale.set(0.46 + 0.48 * ease, 0.22 + 0.12 * ease, 0.46 + 0.18 * ease);
+        fx.object3D.rotation.z = Math.sin(t * Math.PI * 3) * 0.08;
       } else {
         fx.object3D.scale.setScalar((0.18 + 0.62 * ease) * pulse);
         fx.object3D.rotation.y += 0.18;
@@ -1350,6 +1359,7 @@ AFRAME.registerComponent("enemy-ai", {
   getResponseActionForPattern: function (pattern) {
     if (pattern === "left") return "dodgeRight";
     if (pattern === "right") return "dodgeLeft";
+    if (pattern === "low") return "jump";
     return "duck";
   },
 

@@ -27,12 +27,13 @@ const HISTORY_IMPORT_API_URL = "/api/history/import";
 const LEGACY_PERFORMANCE_HISTORY_COOKIE = "hb_performance_history";
 const PERFORMANCE_HISTORY_COOKIE_DAYS = 180;
 const PERFORMANCE_HISTORY_LIMIT = 12;
-const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
+const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck", "jump"];
 const ACTION_LABELS = {
   attack: "ataque",
   dodgeLeft: "desvio para a esquerda",
   dodgeRight: "desvio para a direita",
-  duck: "agachar"
+  duck: "agachar",
+  jump: "pular"
 };
 
 const SFX_AUDIO_IDS = [
@@ -808,8 +809,8 @@ const ENEMY_PROFILES = {
     hitsNeeded: 3,
     reactionWindow: 1500,
     attackCooldown: 1500,
-    attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
-    patternWeights: { vulnerable: 0.60, left: 0.20, right: 0.20, high: 0 }
+    attackDelay: { left: 0, right: 0, high: 0, low: 0, vulnerable: 0 },
+    patternWeights: { vulnerable: 0.60, left: 0.20, right: 0.20, high: 0, low: 0 }
   },
   2: {
     key: "adventurer",
@@ -825,15 +826,16 @@ const ENEMY_PROFILES = {
       right: "CharacterArmature|Punch_Left",
       left: "CharacterArmature|Sword_Slash",
       leftOptions: { reverse: false, swordFx: true },
-      high: "CharacterArmature|Kick_Right"
+      high: "CharacterArmature|Kick_Right",
+      low: "CharacterArmature|Kick_Right"
     },
     speed: 0.046,
     attackDistance: 1.9,
     hitsNeeded: 4,
     reactionWindow: 760,
     attackCooldown: 760,
-    attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
-    patternWeights: { vulnerable: 0.24, left: 0.28, right: 0.28, high: 0.20 }
+    attackDelay: { left: 0, right: 0, high: 0, low: 0, vulnerable: 0 },
+    patternWeights: { vulnerable: 0.22, left: 0.24, right: 0.24, high: 0.16, low: 0.14 }
   },
   3: {
     key: "witch",
@@ -848,7 +850,8 @@ const ENEMY_PROFILES = {
     attacks: {
       left: "CharacterArmature|Idle_Gun_Shoot",
       right: "CharacterArmature|Gun_Shoot",
-      high: "CharacterArmature|Gun_Shoot"
+      high: "CharacterArmature|Gun_Shoot",
+      low: "CharacterArmature|Gun_Shoot"
     },
     speed: 0.039,
     attackDistance: 3.45,
@@ -856,8 +859,8 @@ const ENEMY_PROFILES = {
     hitsNeeded: 5,
     reactionWindow: 720,
     attackCooldown: 720,
-    attackDelay: { left: 0, right: 0, high: 0, vulnerable: 0 },
-    patternWeights: { vulnerable: 0.14, left: 0.31, right: 0.31, high: 0.24 }
+    attackDelay: { left: 0, right: 0, high: 0, low: 0, vulnerable: 0 },
+    patternWeights: { vulnerable: 0.12, left: 0.28, right: 0.28, high: 0.18, low: 0.14 }
   }
 };
 

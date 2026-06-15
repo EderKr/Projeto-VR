@@ -1135,6 +1135,7 @@
     const lean = features.shoulderTilt;
     const stanceDelta = features.stanceWidth - baseline.stanceWidth;
 
+    if (duckDelta < -0.074) return "jump";
     if (duckDelta > 0.074 || features.kneeCenterY - features.hipCenter.y < 0.18) return "duck";
     if (widthDelta > 0.068 || depthDelta < -0.095 || stanceDelta > 0.10) return "attack";
 

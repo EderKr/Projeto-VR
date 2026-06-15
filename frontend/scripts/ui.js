@@ -227,6 +227,8 @@ function getPromptLabel(action) {
       return "DESVIAR À DIREITA";
     case "duck":
       return "AGACHAR";
+    case "jump":
+      return "PULAR";
     case "attack":
       return "ATACAR";
     default:
@@ -874,6 +876,8 @@ window.animateKeyboardCamera = function (action) {
       toPos.x += 0.03;
     } else if (action === 'duck') {
       toPos.y -= 0.18;
+    } else if (action === 'jump') {
+      toPos.y += 0.20;
     } else if (action === 'attack') {
       deltaEuler.x = -0.07;
       toPos.z -= 0.03;
