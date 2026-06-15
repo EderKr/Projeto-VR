@@ -256,10 +256,19 @@ async function changeUserRole(userId, role, adminRank, userName, selectEl) {
     return;
   }
 
+  const confirmationName = role === "god"
+    ? window.prompt(`Para promover ${userName || "este usuário"} para Deus, digite exatamente: ${userName}`)
+    : "";
+  if (role === "god" && confirmationName !== userName) {
+    if (selectEl) selectEl.value = selectEl.querySelector("option[selected]")?.value || selectEl.options[0]?.value || "";
+    setAdminMessage("Promoção para Deus cancelada: o nome digitado não confere.", "error");
+    return;
+  }
+
   try {
     await fetchAdminJson(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
       method: "PATCH",
-      body: JSON.stringify({ role, adminRank })
+      body: JSON.stringify({ role, adminRank, confirmationName })
     });
     setAdminMessage("Conta atualizada.", "success");
     await loadAdminData();

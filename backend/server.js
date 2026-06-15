@@ -828,12 +828,21 @@ async function handleAdminUserRolePatch(req, res, userId) {
     return;
   }
 
-  const requested = normalizeRequestedRoleChange(await collectRequestBody(req));
+  const body = await collectRequestBody(req);
+  const requested = normalizeRequestedRoleChange(body);
   const requestedLevel = getHierarchyLevel(requested);
 
   if (requested.role === "god" && user.role !== "god") {
     sendJson(res, 403, { error: "Somente contas Deus podem promover para Deus." });
     return;
+  }
+  if (requested.role === "god") {
+    const expectedConfirmation = String(target.displayName || target.username || target.email || "").trim();
+    const receivedConfirmation = String(body.confirmationName || "").trim();
+    if (!expectedConfirmation || receivedConfirmation !== expectedConfirmation) {
+      sendJson(res, 400, { error: "Para promover para Deus, digite exatamente o nome do usuario promovido." });
+      return;
+    }
   }
   if (requested.role === "admin" && requested.adminRank === 1 && user.role !== "god") {
     sendJson(res, 403, { error: "Somente contas Deus podem definir ADM rank 1." });
