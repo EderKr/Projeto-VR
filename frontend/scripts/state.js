@@ -710,7 +710,7 @@ function renderPerformanceHistory() {
       const breakdownItem = document.createElement("li");
       breakdownItem.className = "history-breakdown-item";
       const avgActionLabel = stats.avgReaction == null ? "--" : formatSeconds(stats.avgReaction);
-      breakdownItem.textContent = `${getActionLabel(actionType)}: ${stats.attempts} tentativas | ${stats.hits} acertos | ${stats.misses} erros | ${stats.timeouts} por tempo | media ${avgActionLabel} | precisao ${stats.accuracy.toFixed(1)}%`;
+      breakdownItem.textContent = `${getActionLabel(actionType)}: ${stats.attempts} ações | ${stats.hits} acertos | ${stats.misses} erros | ${stats.timeouts} por tempo | media ${avgActionLabel} | precisao ${stats.accuracy.toFixed(1)}%`;
       breakdownList.appendChild(breakdownItem);
     }
 

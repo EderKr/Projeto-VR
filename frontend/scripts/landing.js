@@ -437,7 +437,7 @@
     if (quality < 0.72) {
       poseInsight.textContent = "Registro parcial do corpo. Afaste a camera ate cabeca, maos, quadril e joelhos ficarem no quadro.";
     } else if (tiltAverage > 8 || Math.abs(centerShift) > 0.18 || Math.abs(headOffset) > 0.16) {
-      poseInsight.textContent = "Assimetria perceptível neste frame. Observe se o padrão se repete em várias tentativas; isso não substitui avaliação profissional.";
+      poseInsight.textContent = "Assimetria perceptível neste frame. Observe se o padrão se repete em várias ações; isso não substitui avaliação profissional.";
     } else if (tiltAverage > 4 || Math.abs(centerShift) > 0.10) {
       poseInsight.textContent = "Pequena tendência corporal detectada. Bom para calibrar postura antes do jogo.";
     } else {

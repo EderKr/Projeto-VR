@@ -519,6 +519,19 @@ async function getHistory(userId = null) {
     .slice(0, HISTORY_LIMIT);
 }
 
+async function listPerformanceHistory() {
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    const { rows } = await pool.query("select * from performance_history order by created_at desc");
+    return rows.map(fromDatabaseRow);
+  }
+
+  const db = readLocalDb();
+  return (db.performanceHistory || [])
+    .slice()
+    .sort((a, b) => String(b.createdAt || b.created_at || "").localeCompare(String(a.createdAt || a.created_at || "")));
+}
+
 async function saveHistory(entry, user = null) {
   const payload = normalizeHistoryEntry({
     ...entry,
@@ -845,6 +858,7 @@ module.exports = {
   getDatabaseStatus,
   getHistory,
   listInvites,
+  listPerformanceHistory,
   listUsers,
   saveHistory,
   updateUserRole,

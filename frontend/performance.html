@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corpus VR | Desempenho global</title>
+  <link rel="stylesheet" href="/style.css?v=20260615-global-performance" />
+</head>
+<body class="landing-page performance-page">
+  <header class="landing-topbar">
+    <a class="landing-brand landing-brand-link" href="/" aria-label="Ir para o início">
+      <span class="landing-brand-mark" aria-hidden="true"></span>
+      <div>
+        <strong>Corpus VR</strong>
+        <span>Desempenho global</span>
+      </div>
+    </a>
+
+    <div class="landing-user-row">
+      <a class="landing-mini-button" href="/admin">Admin</a>
+      <div id="userBadge" class="user-badge landing-user-badge" aria-live="polite"></div>
+      <button id="logoutButton" class="logout-button landing-logout" type="button">Sair</button>
+    </div>
+  </header>
+
+  <main class="performance-shell">
+    <section class="landing-panel performance-filters-panel">
+      <div class="landing-section-head row">
+        <div>
+          <span class="landing-kicker">Filtros</span>
+          <h1>Desempenho global</h1>
+        </div>
+        <button id="refreshPerformanceButton" class="landing-mini-button" type="button">Atualizar</button>
+      </div>
+
+      <form id="globalPerformanceFilters" class="performance-filter-grid">
+        <label>
+          <span>Sexo</span>
+          <select name="sex">
+            <option value="">Todos</option>
+            <option value="male">Masculino</option>
+            <option value="female">Feminino</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Fonte</span>
+          <select name="source">
+            <option value="">Todas</option>
+            <option value="keyboard">Teclado</option>
+            <option value="vr">VR / corpo</option>
+            <option value="other">Outra</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Idade mínima</span>
+          <input name="minAge" type="number" min="1" max="120" inputmode="numeric" />
+        </label>
+
+        <label>
+          <span>Idade máxima</span>
+          <input name="maxAge" type="number" min="1" max="120" inputmode="numeric" />
+        </label>
+
+        <label>
+          <span>Precisão mínima (%)</span>
+          <input name="minAccuracy" type="number" min="0" max="100" step="0.1" inputmode="decimal" />
+        </label>
+
+        <label>
+          <span>Precisão máxima (%)</span>
+          <input name="maxAccuracy" type="number" min="0" max="100" step="0.1" inputmode="decimal" />
+        </label>
+
+        <label>
+          <span>Reação mínima (s)</span>
+          <input name="minReaction" type="number" min="0" step="0.01" inputmode="decimal" />
+        </label>
+
+        <label>
+          <span>Reação máxima (s)</span>
+          <input name="maxReaction" type="number" min="0" step="0.01" inputmode="decimal" />
+        </label>
+
+        <div class="performance-filter-actions">
+          <button class="landing-primary-button" type="submit">Aplicar</button>
+          <button id="clearPerformanceFilters" class="landing-secondary-button" type="button">Limpar</button>
+        </div>
+      </form>
+
+      <p id="globalPerformanceMessage" class="login-message landing-message" data-type="info">Carregando desempenho...</p>
+    </section>
+
+    <section class="landing-panel performance-results-panel">
+      <div id="globalPerformanceSummary" class="admin-performance-summary"></div>
+      <div id="globalActionSummary" class="admin-performance-breakdown performance-global-actions"></div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table performance-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Sexo</th>
+              <th>Idade</th>
+              <th>Sessões</th>
+              <th>Ações</th>
+              <th>Precisão</th>
+              <th>Reação média</th>
+              <th>Detalhes</th>
+            </tr>
+          </thead>
+          <tbody id="globalPerformanceTable">
+            <tr><td colspan="8">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/scripts/auth.js?v=20260612-accents"></script>
+  <script src="/scripts/global-performance.js?v=20260615-global-performance"></script>
+</body>
+</html>

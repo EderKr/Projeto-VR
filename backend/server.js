@@ -19,6 +19,7 @@ const {
   getDatabaseStatus,
   getHistory,
   listInvites,
+  listPerformanceHistory,
   listUsers,
   saveHistory,
   updateUserRole,
@@ -548,6 +549,193 @@ function buildHistoryInsights(entries) {
   };
 }
 
+function parseRangeFilter(searchParams, minKey, maxKey) {
+  const minValue = searchParams.get(minKey);
+  const maxValue = searchParams.get(maxKey);
+  const min = minValue === null || minValue === "" ? null : Number(minValue);
+  const max = maxValue === null || maxValue === "" ? null : Number(maxValue);
+
+  return {
+    min: Number.isFinite(min) ? min : null,
+    max: Number.isFinite(max) ? max : null
+  };
+}
+
+function matchesRange(value, range) {
+  if (range.min == null && range.max == null) return true;
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return false;
+  if (range.min != null && numberValue < range.min) return false;
+  if (range.max != null && numberValue > range.max) return false;
+  return true;
+}
+
+function sourceCategory(value) {
+  const source = normalizeQuestionText(value);
+  if (!source || source === "unknown") return "other";
+  if (source.includes("teclado") || source.includes("keyboard")) return "keyboard";
+  if (
+    source.includes("vr") ||
+    source.includes("webxr") ||
+    source.includes("visao") ||
+    source.includes("corporal") ||
+    source.includes("remota") ||
+    source.includes("cabeca") ||
+    source.includes("head") ||
+    source.includes("pose")
+  ) {
+    return "vr";
+  }
+  return "other";
+}
+
+function filterHistoryBySource(entries, sourceFilter) {
+  if (!sourceFilter) return entries;
+
+  return entries
+    .map((entry) => {
+      const actions = Array.isArray(entry.actions)
+        ? entry.actions.filter((action) => sourceCategory(action.source) === sourceFilter)
+        : [];
+      if (!actions.length) return null;
+
+      const hits = actions.filter((action) => action.outcome === "success").length;
+      const misses = actions.length - hits;
+      const reactionActions = actions.filter((action) => action.outcome === "success" && Number.isFinite(Number(action.reactionTime)));
+      const avgReaction = reactionActions.length > 0
+        ? reactionActions.reduce((sum, action) => sum + Number(action.reactionTime), 0) / reactionActions.length
+        : null;
+
+      return {
+        ...entry,
+        actions,
+        attempts: actions.length,
+        hits,
+        misses,
+        accuracy: actions.length > 0 ? (hits / actions.length) * 100 : 0,
+        avgReaction,
+        actionBreakdown: buildActionBreakdown(actions)
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildGlobalPerformance(users, entries, searchParams) {
+  const sexFilter = String(searchParams.get("sex") || "").trim();
+  const requestedSource = String(searchParams.get("source") || "").trim();
+  const sourceFilter = ["keyboard", "vr", "other"].includes(requestedSource) ? requestedSource : "";
+  const ageRange = parseRangeFilter(searchParams, "minAge", "maxAge");
+  const accuracyRange = parseRangeFilter(searchParams, "minAccuracy", "maxAccuracy");
+  const reactionRange = parseRangeFilter(searchParams, "minReaction", "maxReaction");
+  const historyByUser = new Map();
+
+  for (const entry of entries) {
+    const normalized = normalizeHistoryItem(entry);
+    if (!normalized) continue;
+    const userId = String(entry.userId || entry.user_id || normalized.userId || "");
+    if (!userId) continue;
+    if (!historyByUser.has(userId)) historyByUser.set(userId, []);
+    historyByUser.get(userId).push(normalized);
+  }
+
+  const userRows = users
+    .map((user) => {
+      const history = filterHistoryBySource(historyByUser.get(String(user.id)) || [], sourceFilter);
+      if (!history.length) return null;
+
+      const insights = buildHistoryInsights(history);
+      return {
+        user,
+        sessions: history.length,
+        totals: insights.totals || {},
+        byAction: insights.byAction || {},
+        latestEntry: insights.latestEntry || null
+      };
+    })
+    .filter(Boolean)
+    .filter((row) => {
+      if (sexFilter && sexFilter !== row.user.sex && sexFilter !== row.user.gender) return false;
+      if (!matchesRange(row.user.age, ageRange)) return false;
+      if (!matchesRange(row.totals.overallAccuracy, accuracyRange)) return false;
+      if (!matchesRange(row.totals.overallAvgReaction, reactionRange)) return false;
+      return true;
+    })
+    .sort((a, b) => (b.totals.overallAccuracy || 0) - (a.totals.overallAccuracy || 0));
+
+  const globalByAction = {};
+  let totalSessions = 0;
+  let totalActions = 0;
+  let accuracyTotal = 0;
+  let accuracySamples = 0;
+  let reactionTotal = 0;
+  let reactionSamples = 0;
+
+  for (const actionType of ACTION_TYPES) {
+    globalByAction[actionType] = createAggregateActionStats();
+  }
+
+  for (const row of userRows) {
+    totalSessions += row.sessions;
+    totalActions += Number(row.totals.attempts) || 0;
+
+    if (Number(row.totals.attempts) > 0 && Number.isFinite(Number(row.totals.overallAccuracy))) {
+      accuracyTotal += Number(row.totals.overallAccuracy);
+      accuracySamples += 1;
+    }
+    if (Number.isFinite(Number(row.totals.overallAvgReaction))) {
+      reactionTotal += Number(row.totals.overallAvgReaction);
+      reactionSamples += 1;
+    }
+
+    for (const actionType of ACTION_TYPES) {
+      const source = row.byAction[actionType] || {};
+      const bucket = globalByAction[actionType];
+      bucket.attempts += Number(source.attempts) || 0;
+      bucket.hits += Number(source.hits) || 0;
+      bucket.misses += Number(source.misses) || 0;
+      bucket.timeouts += Number(source.timeouts) || 0;
+      bucket.wrongActions += Number(source.wrongActions) || 0;
+
+      if (Number.isFinite(Number(source.avgReaction)) && Number(source.hits) > 0) {
+        bucket.reactionSamples += Number(source.hits);
+        bucket.reactionTotal += Number(source.avgReaction) * Number(source.hits);
+      }
+    }
+  }
+
+  for (const actionType of ACTION_TYPES) {
+    const bucket = globalByAction[actionType];
+    bucket.accuracy = bucket.attempts > 0 ? (bucket.hits / bucket.attempts) * 100 : 0;
+    bucket.timeoutRate = bucket.attempts > 0 ? (bucket.timeouts / bucket.attempts) * 100 : 0;
+    bucket.missRate = bucket.attempts > 0 ? (bucket.misses / bucket.attempts) * 100 : 0;
+    bucket.avgReaction = bucket.reactionSamples > 0 ? bucket.reactionTotal / bucket.reactionSamples : null;
+    delete bucket.reactionSamples;
+    delete bucket.reactionTotal;
+  }
+
+  return {
+    filters: {
+      sex: sexFilter,
+      source: sourceFilter,
+      minAge: ageRange.min,
+      maxAge: ageRange.max,
+      minAccuracy: accuracyRange.min,
+      maxAccuracy: accuracyRange.max,
+      minReaction: reactionRange.min,
+      maxReaction: reactionRange.max
+    },
+    summary: {
+      users: userRows.length,
+      sessions: totalSessions,
+      actions: totalActions,
+      averageAccuracy: accuracySamples > 0 ? accuracyTotal / accuracySamples : 0,
+      averageReaction: reactionSamples > 0 ? reactionTotal / reactionSamples : null
+    },
+    byAction: globalByAction,
+    users: userRows
+  };
+}
+
 function normalizeQuestionText(value) {
   return String(value || "")
     .normalize("NFD")
@@ -568,7 +756,8 @@ function getActionLabel(actionType) {
     attack: "ataque",
     dodgeLeft: "desvio para a esquerda",
     dodgeRight: "desvio para a direita",
-    duck: "agachar"
+    duck: "agachar",
+    jump: "pular"
   };
   return labels[actionType] || actionType;
 }
@@ -600,7 +789,7 @@ function createAssistantAnswer(question, insights, user) {
   if (text.includes("erro") || text.includes("pior") || text.includes("fraco") || text.includes("dificuldade")) {
     if (!weakest) return "Nao encontrei um movimento fraco ainda.";
     const [action, stats] = weakest;
-    return `Seu ponto mais fraco agora e ${getActionLabel(action)}: ${formatPercent(stats.accuracy)} de precisao em ${stats.attempts} tentativas. Treine esse movimento em ritmo lento antes de subir a dificuldade.`;
+    return `Seu ponto mais fraco agora e ${getActionLabel(action)}: ${formatPercent(stats.accuracy)} de precisao em ${stats.attempts} acoes. Treine esse movimento em ritmo lento antes de subir a dificuldade.`;
   }
 
   if (text.includes("reacao") || text.includes("tempo") || text.includes("rapido") || text.includes("lento")) {
@@ -611,13 +800,13 @@ function createAssistantAnswer(question, insights, user) {
   }
 
   if (text.includes("precisao") || text.includes("acerto") || text.includes("acertos")) {
-    return `Sua precisao geral esta em ${formatPercent(totals.overallAccuracy)}: ${totals.hits} acertos em ${totals.attempts} tentativas registradas.`;
+    return `Sua precisao geral esta em ${formatPercent(totals.overallAccuracy)}: ${totals.hits} acertos em ${totals.attempts} acoes registradas.`;
   }
 
   if (text.includes("tempo esgotado") || text.includes("timeout") || text.includes("demoro")) {
-    if (!mostTimeouts) return "Ainda nao ha tentativas suficientes para comparar tempo esgotado.";
+    if (!mostTimeouts) return "Ainda nao ha acoes suficientes para comparar tempo esgotado.";
     const [action, stats] = mostTimeouts;
-    return `O maior indice de tempo esgotado apareceu em ${getActionLabel(action)}: ${formatPercent(stats.timeoutRate)} das tentativas desse movimento.`;
+    return `O maior indice de tempo esgotado apareceu em ${getActionLabel(action)}: ${formatPercent(stats.timeoutRate)} das acoes desse movimento.`;
   }
 
   if (text.includes("ultima") || text.includes("recente") || text.includes("sessao")) {
@@ -629,7 +818,7 @@ function createAssistantAnswer(question, insights, user) {
   const weakText = weakest
     ? `${getActionLabel(weakest[0])} (${formatPercent(weakest[1].accuracy)})`
     : "sem ponto fraco definido";
-  return `Resumo: ${sampleSize} sessoes, ${totals.attempts} tentativas, ${formatPercent(totals.overallAccuracy)} de precisao e reacao media de ${formatSeconds(totals.overallAvgReaction)}. Ponto de atencao: ${weakText}.`;
+  return `Resumo: ${sampleSize} sessoes, ${totals.attempts} acoes, ${formatPercent(totals.overallAccuracy)} de precisao e reacao media de ${formatSeconds(totals.overallAvgReaction)}. Ponto de atencao: ${weakText}.`;
 }
 
 function collectRequestBody(req) {
@@ -792,6 +981,17 @@ async function handleAdminUsers(req, res) {
   const user = await requireAdminUser(req, res);
   if (!user) return;
   sendJson(res, 200, { users: await listUsers() });
+}
+
+async function handleAdminGlobalPerformanceGet(req, res, requestUrl) {
+  const user = await requireAdminUser(req, res);
+  if (!user) return;
+
+  const [users, history] = await Promise.all([
+    listUsers(),
+    listPerformanceHistory()
+  ]);
+  sendJson(res, 200, buildGlobalPerformance(users, history, requestUrl.searchParams));
 }
 
 async function handleAdminUserHistoryGet(req, res, userId) {
@@ -1016,6 +1216,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/admin/performance/global" && req.method === "GET") {
+    handleAdminGlobalPerformanceGet(req, res, requestUrl).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
   if (requestUrl.pathname.startsWith("/api/admin/users/") && requestUrl.pathname.endsWith("/role") && req.method === "PATCH") {
     const userId = decodeURIComponent(requestUrl.pathname.slice("/api/admin/users/".length, -"/role".length));
     handleAdminUserRolePatch(req, res, userId).catch((error) => sendJson(res, 500, { error: error.message }));
@@ -1081,6 +1286,11 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/admin" || requestUrl.pathname === "/admin/") {
     serveStaticFile(res, path.join(PUBLIC_DIR, "admin.html"));
+    return;
+  }
+
+  if (requestUrl.pathname === "/desempenho" || requestUrl.pathname === "/desempenho/") {
+    serveStaticFile(res, path.join(PUBLIC_DIR, "performance.html"));
     return;
   }
 

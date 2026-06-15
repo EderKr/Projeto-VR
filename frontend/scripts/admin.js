@@ -337,7 +337,7 @@ function renderUserPerformance(payload = {}) {
   title.textContent = user.displayName || user.email || user.username || payload.selectedName || "Usuário";
   summary.innerHTML = `
     <div class="admin-performance-stat"><span>Sessões</span><strong>${history.length}</strong></div>
-    <div class="admin-performance-stat"><span>Tentativas</span><strong>${totals.attempts || 0}</strong></div>
+    <div class="admin-performance-stat"><span>Ações</span><strong>${totals.attempts || 0}</strong></div>
     <div class="admin-performance-stat"><span>Precisão</span><strong>${formatPercent(totals.overallAccuracy)}</strong></div>
     <div class="admin-performance-stat"><span>Reação média</span><strong>${formatSeconds(totals.overallAvgReaction)}</strong></div>
   `;
@@ -353,7 +353,7 @@ function renderUserPerformance(payload = {}) {
     const goalLabel = item.enemyHitsNeeded === "INF" || item.enemyHitsNeeded === Infinity ? "INF" : item.enemyHitsNeeded;
     const breakdown = Object.entries(item.actionBreakdown || {})
       .map(([action, stats]) => `
-        <li>${escapeHtml(actionLabel(action))}: ${stats.attempts || 0} tent. | ${stats.hits || 0} acertos | ${formatPercent(stats.accuracy)}</li>
+        <li>${escapeHtml(actionLabel(action))}: ${stats.attempts || 0} ações | ${stats.hits || 0} acertos | ${formatPercent(stats.accuracy)}</li>
       `)
       .join("");
 
