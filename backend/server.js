@@ -38,7 +38,7 @@ const PUBLIC_DIR = fs.existsSync(CONFIGURED_PUBLIC_DIR) && fs.statSync(CONFIGURE
   : DEFAULT_PUBLIC_DIR;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const HISTORY_LIMIT = 12;
-const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck"];
+const ACTION_TYPES = ["attack", "dodgeLeft", "dodgeRight", "duck", "jump"];
 
 const AUTH_SECRET = process.env.AUTH_SECRET || "headbutt-berserker-dev-secret-change-me";
 const COMMIT_SHA = process.env.COMMIT_SHA || "unknown";
@@ -458,32 +458,55 @@ function buildHistoryInsights(entries) {
   const latest = entries.length > 0 ? entries[0] : null;
 
   for (const entry of entries) {
-    if (!Array.isArray(entry.actions)) continue;
+    const actionList = Array.isArray(entry.actions) ? entry.actions : [];
+    const actionAttempts = actionList.length;
+    const actionHits = actionList.filter((action) => action && action.outcome === "success").length;
+    const actionMisses = actionList.filter((action) => action && action.outcome !== "success").length;
+    const entryAttempts = Math.max(0, Number(entry.attempts) || actionAttempts || 0);
+    const entryHits = Math.max(0, Number(entry.hits) || actionHits || 0);
+    const entryMisses = Math.max(0, Number(entry.misses) || actionMisses || 0);
+    const entryTimeouts = Array.isArray(entry.actions)
+      ? entry.actions.filter((action) => action && action.outcome === "timeout").length
+      : 0;
+
+    totalAttempts += entryAttempts;
+    totalHits += entryHits;
+    totalMisses += entryMisses;
+    totalTimeouts += entryTimeouts;
+
+    const hasEntryAvgReaction = Number.isFinite(Number(entry.avgReaction)) && entry.avgReaction >= 0;
+    if (hasEntryAvgReaction) {
+      const reactionWeight = entryHits > 0 ? entryHits : 1;
+      reactionSamples += reactionWeight;
+      reactionTotal += Number(entry.avgReaction) * reactionWeight;
+    }
+
+    if (!Array.isArray(entry.actions) || entry.actions.length === 0) {
+      continue;
+    }
 
     for (const action of entry.actions) {
       const actionType = ACTION_TYPES.includes(action.expectedAction) ? action.expectedAction : "attack";
       const bucket = byAction[actionType];
 
       bucket.attempts += 1;
-      totalAttempts += 1;
 
       if (action.outcome === "success") {
         bucket.hits += 1;
-        totalHits += 1;
 
         if (Number.isFinite(action.reactionTime)) {
           bucket.reactionSamples += 1;
           bucket.reactionTotal += action.reactionTime;
-          reactionSamples += 1;
-          reactionTotal += action.reactionTime;
+          if (!hasEntryAvgReaction) {
+            reactionSamples += 1;
+            reactionTotal += action.reactionTime;
+          }
         }
       } else {
         bucket.misses += 1;
-        totalMisses += 1;
 
         if (action.outcome === "timeout") {
           bucket.timeouts += 1;
-          totalTimeouts += 1;
         } else {
           bucket.wrongActions += 1;
         }
@@ -771,6 +794,25 @@ async function handleAdminUsers(req, res) {
   sendJson(res, 200, { users: await listUsers() });
 }
 
+async function handleAdminUserHistoryGet(req, res, userId) {
+  const user = await requireAdminUser(req, res);
+  if (!user) return;
+
+  const target = await getUserById(userId);
+  if (!target) {
+    sendJson(res, 404, { error: "Usuario nao encontrado." });
+    return;
+  }
+
+  const entries = await getHistory(target.id);
+  const history = entries.map((item) => normalizeHistoryItem(item)).filter(Boolean);
+  sendJson(res, 200, {
+    user: target,
+    history,
+    insights: buildHistoryInsights(history)
+  });
+}
+
 async function handleAdminInvitesGet(req, res) {
   const user = await requireAdminUser(req, res);
   if (!user) return;
@@ -977,6 +1019,12 @@ const server = http.createServer((req, res) => {
   if (requestUrl.pathname.startsWith("/api/admin/users/") && requestUrl.pathname.endsWith("/role") && req.method === "PATCH") {
     const userId = decodeURIComponent(requestUrl.pathname.slice("/api/admin/users/".length, -"/role".length));
     handleAdminUserRolePatch(req, res, userId).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/admin/users/") && requestUrl.pathname.endsWith("/history") && req.method === "GET") {
+    const userId = decodeURIComponent(requestUrl.pathname.slice("/api/admin/users/".length, -"/history".length));
+    handleAdminUserHistoryGet(req, res, userId).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 

@@ -1,5 +1,14 @@
 const adminState = {
-  loading: false
+  loading: false,
+  openPerformanceUserId: null
+};
+
+const ADMIN_ACTION_LABELS = {
+  attack: "ataque",
+  dodgeLeft: "desvio esquerda",
+  dodgeRight: "desvio direita",
+  duck: "agachar",
+  jump: "pular"
 };
 
 function setAdminMessage(message, type = "info") {
@@ -13,6 +22,60 @@ function formatDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "--";
   return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function formatSeconds(value) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? `${numberValue.toFixed(2)}s` : "--";
+}
+
+function formatPercent(value) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? `${numberValue.toFixed(1)}%` : "--";
+}
+
+function actionLabel(value) {
+  return ADMIN_ACTION_LABELS[value] || String(value || "--");
+}
+
+function calculatePerformanceTotals(history = []) {
+  let attempts = 0;
+  let hits = 0;
+  let misses = 0;
+  let reactionWeight = 0;
+  let reactionTotal = 0;
+
+  for (const item of history) {
+    const itemAttempts = Math.max(0, Number(item.attempts) || 0);
+    const itemHits = Math.max(0, Number(item.hits) || 0);
+    const itemMisses = Math.max(0, Number(item.misses) || 0);
+    attempts += itemAttempts;
+    hits += itemHits;
+    misses += itemMisses;
+
+    if (Number.isFinite(Number(item.avgReaction))) {
+      const weight = itemHits > 0 ? itemHits : 1;
+      reactionWeight += weight;
+      reactionTotal += Number(item.avgReaction) * weight;
+    }
+  }
+
+  return {
+    attempts,
+    hits,
+    misses,
+    overallAccuracy: attempts > 0 ? (hits / attempts) * 100 : 0,
+    overallAvgReaction: reactionWeight > 0 ? reactionTotal / reactionWeight : null
+  };
+}
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function sexLabel(value) {
@@ -85,6 +148,9 @@ function renderUsers(users = []) {
     </tr>
   `).join("");
 
+  tbody.querySelectorAll("[data-history-user]").forEach((button) => {
+    button.addEventListener("click", () => loadUserPerformance(button.dataset.historyUser, button.dataset.historyName));
+  });
   tbody.querySelectorAll("[data-ban-user]").forEach((button) => {
     button.addEventListener("click", () => banUser(button.dataset.banUser, button.dataset.banName));
   });
@@ -97,20 +163,24 @@ function renderUsers(users = []) {
 }
 
 function renderUserActions(user = {}) {
-  if (!canManageUser(user)) return "";
-
   const userName = user.displayName || user.email || user.username || "este usuário";
+  const safeUserName = escapeHtml(userName);
   const options = roleChangeOptions(user)
-    .map((option) => `<option value="${option.role}:${option.adminRank}" data-role="${option.role}" data-admin-rank="${option.adminRank}" ${option.current ? "selected" : ""}>${option.label}</option>`)
+    .map((option) => `<option value="${option.role}:${option.adminRank}" data-role="${option.role}" data-admin-rank="${option.adminRank}" ${option.current ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
     .join("");
+  const performanceButton = `<button class="landing-mini-button" type="button" data-history-user="${escapeHtml(user.id)}" data-history-name="${safeUserName}">Desempenho</button>`;
+  if (!canManageUser(user)) {
+    return `<div class="admin-row-actions">${performanceButton}</div>`;
+  }
   const canBan = isGod() || (window.authState.user && window.authState.user.role === "admin" && window.authState.user.adminRank === 1);
   const ban = canBan
-    ? `<button class="landing-mini-button danger-button" type="button" data-ban-user="${user.id}" data-ban-name="${userName}">Banir</button>`
+    ? `<button class="landing-mini-button danger-button" type="button" data-ban-user="${escapeHtml(user.id)}" data-ban-name="${safeUserName}">Banir</button>`
     : "";
 
   return `
     <div class="admin-row-actions">
-      <select class="admin-role-select" data-role-select="${user.id}" data-user-name="${userName}">
+      ${performanceButton}
+      <select class="admin-role-select" data-role-select="${escapeHtml(user.id)}" data-user-name="${safeUserName}">
         ${options}
       </select>
       ${ban}
@@ -248,6 +318,77 @@ async function createInvite(type) {
   }
 }
 
+function renderUserPerformance(payload = {}) {
+  const panel = document.getElementById("adminPerformancePanel");
+  const title = document.getElementById("adminPerformanceTitle");
+  const summary = document.getElementById("adminPerformanceSummary");
+  const list = document.getElementById("adminPerformanceList");
+  if (!panel || !title || !summary || !list) return;
+
+  const user = payload.user || {};
+  const history = Array.isArray(payload.history) ? payload.history : [];
+  const insights = payload.insights || {};
+  const calculatedTotals = calculatePerformanceTotals(history);
+  const serverTotals = insights.totals || {};
+  const totals = Number(serverTotals.attempts) > 0 ? serverTotals : calculatedTotals;
+
+  adminState.openPerformanceUserId = user.id || payload.selectedUserId || null;
+  panel.hidden = false;
+  title.textContent = user.displayName || user.email || user.username || payload.selectedName || "Usuário";
+  summary.innerHTML = `
+    <div class="admin-performance-stat"><span>Sessões</span><strong>${history.length}</strong></div>
+    <div class="admin-performance-stat"><span>Tentativas</span><strong>${totals.attempts || 0}</strong></div>
+    <div class="admin-performance-stat"><span>Precisão</span><strong>${formatPercent(totals.overallAccuracy)}</strong></div>
+    <div class="admin-performance-stat"><span>Reação média</span><strong>${formatSeconds(totals.overallAvgReaction)}</strong></div>
+  `;
+
+  if (!history.length) {
+    list.innerHTML = '<div class="admin-empty">Este usuário ainda não tem histórico de partidas.</div>';
+    return;
+  }
+
+  list.innerHTML = history.map((item) => {
+    const modeLabel = item.customMode ? `Modo custom (${item.difficultyPhase || item.phase})` : `Fase ${item.phase}`;
+    const livesLabel = item.livesLeft === "INF" || item.livesLeft === Infinity ? "INF" : item.livesLeft;
+    const goalLabel = item.enemyHitsNeeded === "INF" || item.enemyHitsNeeded === Infinity ? "INF" : item.enemyHitsNeeded;
+    const breakdown = Object.entries(item.actionBreakdown || {})
+      .map(([action, stats]) => `
+        <li>${escapeHtml(actionLabel(action))}: ${stats.attempts || 0} tent. | ${stats.hits || 0} acertos | ${formatPercent(stats.accuracy)}</li>
+      `)
+      .join("");
+
+    return `
+      <article class="admin-performance-item">
+        <h4>${escapeHtml(modeLabel)} - ${escapeHtml(item.status || "sessão")}</h4>
+        <p>${formatDate(item.createdAt)} | duração ${formatSeconds(item.duration)} | reação ${formatSeconds(item.avgReaction)}</p>
+        <p>Acertos ${item.hits || 0} | Erros ${item.misses || 0} | Precisão ${formatPercent(item.accuracy)} | Ataques ${item.enemyHits || 0}/${goalLabel} | Vidas ${livesLabel}</p>
+        <ul class="admin-performance-breakdown">${breakdown}</ul>
+      </article>
+    `;
+  }).join("");
+}
+
+async function loadUserPerformance(userId, userName) {
+  const panel = document.getElementById("adminPerformancePanel");
+  if (panel && !panel.hidden && String(adminState.openPerformanceUserId) === String(userId)) {
+    panel.hidden = true;
+    adminState.openPerformanceUserId = null;
+    setAdminMessage("Desempenho fechado.", "info");
+    return;
+  }
+
+  try {
+    setAdminMessage(`Carregando desempenho de ${userName || "usuário"}...`, "info");
+    const payload = await fetchAdminJson(`/api/admin/users/${encodeURIComponent(userId)}/history`);
+    payload.selectedName = userName;
+    payload.selectedUserId = userId;
+    renderUserPerformance(payload);
+    setAdminMessage("Desempenho carregado.", "success");
+  } catch (error) {
+    setAdminMessage(error.message, "error");
+  }
+}
+
 async function changeUserRole(userId, role, adminRank, userName, selectEl) {
   const targetLabel = role === "admin" ? `ADM rank ${adminRank === 1 ? "1" : "2"}` : roleLabel(role);
   const confirmed = window.confirm(`Alterar ${userName || "este usuário"} para ${targetLabel}?`);
@@ -309,3 +450,4 @@ document.addEventListener("DOMContentLoaded", () => {
 window.addEventListener("auth-state-change", () => {
   void loadAdminData();
 });
+

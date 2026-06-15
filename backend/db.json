@@ -1,5 +1,625 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": 1,
+      "username": "eder.kramer.gmail.com",
+      "display_name": "eder_kr",
+      "email": "eder.kramer@gmail.com",
+      "age": 21,
+      "sex": "male",
+      "role": "god",
+      "admin_rank": 2,
+      "gender": "male",
+      "password_hash": "7869b13d4316ea6c70f197c677e27cd6931a559039070f823184ec6447ea494c",
+      "password_salt": "3308a54b5d9ac8757b3ed4dbd97f68d5",
+      "created_at": "2026-06-15T21:55:58.827Z"
+    },
+    {
+      "id": 2,
+      "username": "a.gmail.com",
+      "display_name": "teste",
+      "email": "a@gmail.com",
+      "age": 21,
+      "sex": "male",
+      "role": "admin",
+      "admin_rank": 1,
+      "gender": "male",
+      "password_hash": "54207c5803c29f4ce89e5072c1ae221fa5abb0288a184c19c6ff049ee094d0a1",
+      "password_salt": "79d388a74ec1d6bb6c12b1bdce7347fc",
+      "created_at": "2026-06-15T21:56:17.731Z"
+    }
+  ],
   "invites": [],
-  "performanceHistory": []
+  "performanceHistory": [
+    {
+      "id": "1781560620298-2-p3hh48",
+      "userId": "2",
+      "playerName": "teste",
+      "originalId": "1781560620298-2-p3hh48",
+      "phase": 2,
+      "customMode": false,
+      "difficultyPhase": 1,
+      "status": "derrota",
+      "livesLeft": 0,
+      "enemyHits": 0,
+      "enemyHitsNeeded": 4,
+      "hits": 10,
+      "misses": 3,
+      "attempts": 13,
+      "accuracy": 76.92,
+      "duration": 18.29,
+      "avgReaction": 0.491,
+      "actions": [
+        {
+          "id": "1781560603179-2-0",
+          "phase": 2,
+          "expectedAction": "dodgeRight",
+          "actualAction": "dodgeRight",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.51,
+          "createdAt": "2026-06-15T21:56:43.179Z"
+        },
+        {
+          "id": "1781560604581-2-1",
+          "phase": 2,
+          "expectedAction": "dodgeRight",
+          "actualAction": "dodgeRight",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.499,
+          "createdAt": "2026-06-15T21:56:44.581Z"
+        },
+        {
+          "id": "1781560605973-2-2",
+          "phase": 2,
+          "expectedAction": "dodgeRight",
+          "actualAction": "dodgeRight",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.487,
+          "createdAt": "2026-06-15T21:56:45.973Z"
+        },
+        {
+          "id": "1781560607337-2-3",
+          "phase": 2,
+          "expectedAction": "dodgeRight",
+          "actualAction": "dodgeRight",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.457,
+          "createdAt": "2026-06-15T21:56:47.337Z"
+        },
+        {
+          "id": "1781560608646-2-4",
+          "phase": 2,
+          "expectedAction": "dodgeRight",
+          "actualAction": "dodgeRight",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.403,
+          "createdAt": "2026-06-15T21:56:48.646Z"
+        },
+        {
+          "id": "1781560610132-2-5",
+          "phase": 2,
+          "expectedAction": "dodgeLeft",
+          "actualAction": "dodgeLeft",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.573,
+          "createdAt": "2026-06-15T21:56:50.132Z"
+        },
+        {
+          "id": "1781560611517-2-6",
+          "phase": 2,
+          "expectedAction": "dodgeLeft",
+          "actualAction": "dodgeLeft",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.48,
+          "createdAt": "2026-06-15T21:56:51.517Z"
+        },
+        {
+          "id": "1781560613030-2-7",
+          "phase": 2,
+          "expectedAction": "duck",
+          "actualAction": "duck",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.591,
+          "createdAt": "2026-06-15T21:56:53.030Z"
+        },
+        {
+          "id": "1781560614401-2-8",
+          "phase": 2,
+          "expectedAction": "dodgeRight",
+          "actualAction": "dodgeRight",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.467,
+          "createdAt": "2026-06-15T21:56:54.401Z"
+        },
+        {
+          "id": "1781560615895-2-9",
+          "phase": 2,
+          "expectedAction": "attack",
+          "actualAction": "duck",
+          "source": "teclado",
+          "outcome": "miss",
+          "correct": false,
+          "reactionTime": 0.59,
+          "createdAt": "2026-06-15T21:56:55.895Z"
+        },
+        {
+          "id": "1781560617461-2-10",
+          "phase": 2,
+          "expectedAction": "duck",
+          "actualAction": "attack",
+          "source": "teclado",
+          "outcome": "miss",
+          "correct": false,
+          "reactionTime": 0.661,
+          "createdAt": "2026-06-15T21:56:57.461Z"
+        },
+        {
+          "id": "1781560618813-2-11",
+          "phase": 2,
+          "expectedAction": "dodgeRight",
+          "actualAction": "dodgeRight",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.441,
+          "createdAt": "2026-06-15T21:56:58.813Z"
+        },
+        {
+          "id": "1781560620295-2-12",
+          "phase": 2,
+          "expectedAction": "duck",
+          "actualAction": "jump",
+          "source": "teclado",
+          "outcome": "miss",
+          "correct": false,
+          "reactionTime": 0.57,
+          "createdAt": "2026-06-15T21:57:00.295Z"
+        }
+      ],
+      "actionBreakdown": {
+        "attack": {
+          "attempts": 1,
+          "hits": 0,
+          "misses": 1,
+          "timeouts": 0,
+          "wrongActions": 1,
+          "accuracy": 0,
+          "avgReaction": null
+        },
+        "dodgeLeft": {
+          "attempts": 2,
+          "hits": 2,
+          "misses": 0,
+          "timeouts": 0,
+          "wrongActions": 0,
+          "accuracy": 100,
+          "avgReaction": 0.5265
+        },
+        "dodgeRight": {
+          "attempts": 7,
+          "hits": 7,
+          "misses": 0,
+          "timeouts": 0,
+          "wrongActions": 0,
+          "accuracy": 100,
+          "avgReaction": 0.46628571428571425
+        },
+        "duck": {
+          "attempts": 3,
+          "hits": 1,
+          "misses": 2,
+          "timeouts": 0,
+          "wrongActions": 2,
+          "accuracy": 33.33333333333333,
+          "avgReaction": 0.591
+        }
+      },
+      "raw_data": {
+        "id": "1781560620298-2-p3hh48",
+        "phase": 2,
+        "customMode": false,
+        "difficultyPhase": 1,
+        "status": "derrota",
+        "livesLeft": 0,
+        "enemyHits": 0,
+        "enemyHitsNeeded": 4,
+        "hits": 10,
+        "misses": 3,
+        "attempts": 13,
+        "accuracy": 76.92,
+        "duration": 18.29,
+        "avgReaction": 0.491,
+        "actions": [
+          {
+            "id": "1781560603179-2-0",
+            "phase": 2,
+            "expectedAction": "dodgeRight",
+            "actualAction": "dodgeRight",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.51,
+            "createdAt": "2026-06-15T21:56:43.179Z"
+          },
+          {
+            "id": "1781560604581-2-1",
+            "phase": 2,
+            "expectedAction": "dodgeRight",
+            "actualAction": "dodgeRight",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.499,
+            "createdAt": "2026-06-15T21:56:44.581Z"
+          },
+          {
+            "id": "1781560605973-2-2",
+            "phase": 2,
+            "expectedAction": "dodgeRight",
+            "actualAction": "dodgeRight",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.487,
+            "createdAt": "2026-06-15T21:56:45.973Z"
+          },
+          {
+            "id": "1781560607337-2-3",
+            "phase": 2,
+            "expectedAction": "dodgeRight",
+            "actualAction": "dodgeRight",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.457,
+            "createdAt": "2026-06-15T21:56:47.337Z"
+          },
+          {
+            "id": "1781560608646-2-4",
+            "phase": 2,
+            "expectedAction": "dodgeRight",
+            "actualAction": "dodgeRight",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.403,
+            "createdAt": "2026-06-15T21:56:48.646Z"
+          },
+          {
+            "id": "1781560610132-2-5",
+            "phase": 2,
+            "expectedAction": "dodgeLeft",
+            "actualAction": "dodgeLeft",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.573,
+            "createdAt": "2026-06-15T21:56:50.132Z"
+          },
+          {
+            "id": "1781560611517-2-6",
+            "phase": 2,
+            "expectedAction": "dodgeLeft",
+            "actualAction": "dodgeLeft",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.48,
+            "createdAt": "2026-06-15T21:56:51.517Z"
+          },
+          {
+            "id": "1781560613030-2-7",
+            "phase": 2,
+            "expectedAction": "duck",
+            "actualAction": "duck",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.591,
+            "createdAt": "2026-06-15T21:56:53.030Z"
+          },
+          {
+            "id": "1781560614401-2-8",
+            "phase": 2,
+            "expectedAction": "dodgeRight",
+            "actualAction": "dodgeRight",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.467,
+            "createdAt": "2026-06-15T21:56:54.401Z"
+          },
+          {
+            "id": "1781560615895-2-9",
+            "phase": 2,
+            "expectedAction": "attack",
+            "actualAction": "duck",
+            "source": "teclado",
+            "outcome": "miss",
+            "correct": false,
+            "reactionTime": 0.59,
+            "createdAt": "2026-06-15T21:56:55.895Z"
+          },
+          {
+            "id": "1781560617461-2-10",
+            "phase": 2,
+            "expectedAction": "duck",
+            "actualAction": "attack",
+            "source": "teclado",
+            "outcome": "miss",
+            "correct": false,
+            "reactionTime": 0.661,
+            "createdAt": "2026-06-15T21:56:57.461Z"
+          },
+          {
+            "id": "1781560618813-2-11",
+            "phase": 2,
+            "expectedAction": "dodgeRight",
+            "actualAction": "dodgeRight",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.441,
+            "createdAt": "2026-06-15T21:56:58.813Z"
+          },
+          {
+            "id": "1781560620295-2-12",
+            "phase": 2,
+            "expectedAction": "duck",
+            "actualAction": "jump",
+            "source": "teclado",
+            "outcome": "miss",
+            "correct": false,
+            "reactionTime": 0.57,
+            "createdAt": "2026-06-15T21:57:00.295Z"
+          }
+        ],
+        "actionBreakdown": {
+          "attack": {
+            "attempts": 1,
+            "hits": 0,
+            "misses": 1,
+            "timeouts": 0,
+            "wrongActions": 1,
+            "accuracy": 0,
+            "avgReaction": null
+          },
+          "dodgeLeft": {
+            "attempts": 2,
+            "hits": 2,
+            "misses": 0,
+            "timeouts": 0,
+            "wrongActions": 0,
+            "accuracy": 100,
+            "avgReaction": 0.5265
+          },
+          "dodgeRight": {
+            "attempts": 7,
+            "hits": 7,
+            "misses": 0,
+            "timeouts": 0,
+            "wrongActions": 0,
+            "accuracy": 100,
+            "avgReaction": 0.46628571428571425
+          },
+          "duck": {
+            "attempts": 3,
+            "hits": 1,
+            "misses": 2,
+            "timeouts": 0,
+            "wrongActions": 2,
+            "accuracy": 33.33333333333333,
+            "avgReaction": 0.591
+          }
+        },
+        "createdAt": "2026-06-15T21:57:00.298Z",
+        "userId": "2",
+        "playerName": "teste"
+      },
+      "createdAt": "2026-06-15T21:57:00.298Z"
+    },
+    {
+      "id": "1781560602005-1-5mzmjy",
+      "userId": "2",
+      "playerName": "teste",
+      "originalId": "1781560602005-1-5mzmjy",
+      "phase": 1,
+      "customMode": false,
+      "difficultyPhase": 1,
+      "status": "concluida",
+      "livesLeft": 3,
+      "enemyHits": 3,
+      "enemyHitsNeeded": 3,
+      "hits": 3,
+      "misses": 0,
+      "attempts": 3,
+      "accuracy": 100,
+      "duration": 5.33,
+      "avgReaction": 0.502,
+      "actions": [
+        {
+          "id": "1781560597920-1-0",
+          "phase": 1,
+          "expectedAction": "attack",
+          "actualAction": "attack",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.692,
+          "createdAt": "2026-06-15T21:56:37.920Z"
+        },
+        {
+          "id": "1781560599294-1-1",
+          "phase": 1,
+          "expectedAction": "attack",
+          "actualAction": "attack",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.469,
+          "createdAt": "2026-06-15T21:56:39.294Z"
+        },
+        {
+          "id": "1781560600549-1-2",
+          "phase": 1,
+          "expectedAction": "attack",
+          "actualAction": "attack",
+          "source": "teclado",
+          "outcome": "success",
+          "correct": true,
+          "reactionTime": 0.345,
+          "createdAt": "2026-06-15T21:56:40.549Z"
+        }
+      ],
+      "actionBreakdown": {
+        "attack": {
+          "attempts": 3,
+          "hits": 3,
+          "misses": 0,
+          "timeouts": 0,
+          "wrongActions": 0,
+          "accuracy": 100,
+          "avgReaction": 0.502
+        },
+        "dodgeLeft": {
+          "attempts": 0,
+          "hits": 0,
+          "misses": 0,
+          "timeouts": 0,
+          "wrongActions": 0,
+          "accuracy": 0,
+          "avgReaction": null
+        },
+        "dodgeRight": {
+          "attempts": 0,
+          "hits": 0,
+          "misses": 0,
+          "timeouts": 0,
+          "wrongActions": 0,
+          "accuracy": 0,
+          "avgReaction": null
+        },
+        "duck": {
+          "attempts": 0,
+          "hits": 0,
+          "misses": 0,
+          "timeouts": 0,
+          "wrongActions": 0,
+          "accuracy": 0,
+          "avgReaction": null
+        }
+      },
+      "raw_data": {
+        "id": "1781560602005-1-5mzmjy",
+        "phase": 1,
+        "customMode": false,
+        "difficultyPhase": 1,
+        "status": "concluida",
+        "livesLeft": 3,
+        "enemyHits": 3,
+        "enemyHitsNeeded": 3,
+        "hits": 3,
+        "misses": 0,
+        "attempts": 3,
+        "accuracy": 100,
+        "duration": 5.33,
+        "avgReaction": 0.502,
+        "actions": [
+          {
+            "id": "1781560597920-1-0",
+            "phase": 1,
+            "expectedAction": "attack",
+            "actualAction": "attack",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.692,
+            "createdAt": "2026-06-15T21:56:37.920Z"
+          },
+          {
+            "id": "1781560599294-1-1",
+            "phase": 1,
+            "expectedAction": "attack",
+            "actualAction": "attack",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.469,
+            "createdAt": "2026-06-15T21:56:39.294Z"
+          },
+          {
+            "id": "1781560600549-1-2",
+            "phase": 1,
+            "expectedAction": "attack",
+            "actualAction": "attack",
+            "source": "teclado",
+            "outcome": "success",
+            "correct": true,
+            "reactionTime": 0.345,
+            "createdAt": "2026-06-15T21:56:40.549Z"
+          }
+        ],
+        "actionBreakdown": {
+          "attack": {
+            "attempts": 3,
+            "hits": 3,
+            "misses": 0,
+            "timeouts": 0,
+            "wrongActions": 0,
+            "accuracy": 100,
+            "avgReaction": 0.502
+          },
+          "dodgeLeft": {
+            "attempts": 0,
+            "hits": 0,
+            "misses": 0,
+            "timeouts": 0,
+            "wrongActions": 0,
+            "accuracy": 0,
+            "avgReaction": null
+          },
+          "dodgeRight": {
+            "attempts": 0,
+            "hits": 0,
+            "misses": 0,
+            "timeouts": 0,
+            "wrongActions": 0,
+            "accuracy": 0,
+            "avgReaction": null
+          },
+          "duck": {
+            "attempts": 0,
+            "hits": 0,
+            "misses": 0,
+            "timeouts": 0,
+            "wrongActions": 0,
+            "accuracy": 0,
+            "avgReaction": null
+          }
+        },
+        "createdAt": "2026-06-15T21:56:42.005Z",
+        "userId": "2",
+        "playerName": "teste"
+      },
+      "createdAt": "2026-06-15T21:56:42.005Z"
+    }
+  ]
 }

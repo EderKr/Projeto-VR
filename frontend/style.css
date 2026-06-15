@@ -1241,6 +1241,99 @@ body.landing-page {
   font-size: 0.84rem;
 }
 
+.admin-performance-panel {
+  margin-top: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 14px;
+}
+
+.admin-performance-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-performance-head h3 {
+  margin: 4px 0 0;
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.admin-performance-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-performance-stat,
+.admin-performance-item {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  background: rgba(4, 8, 11, 0.45);
+  padding: 10px;
+}
+
+.admin-performance-stat strong,
+.admin-performance-stat span {
+  display: block;
+}
+
+.admin-performance-stat span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.admin-performance-stat strong {
+  margin-top: 4px;
+  color: #ffe8b6;
+}
+
+.admin-performance-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-performance-item h4 {
+  margin: 0 0 6px;
+  color: #fff;
+  font-size: 0.98rem;
+}
+
+.admin-performance-item p {
+  margin: 4px 0;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.admin-performance-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-performance-breakdown li {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+  padding: 8px;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 760px) {
+  .admin-performance-summary,
+  .admin-performance-breakdown {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-pill {
   display: inline-flex;
   align-items: center;
