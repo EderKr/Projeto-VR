@@ -132,9 +132,16 @@ function syncEnemyWithSelectedDifficulty(options = {}) {
 }
 
 function setSelectedDifficulty(level) {
-  const difficulty = Math.min(3, Math.max(1, parseInt(level, 10) || 2));
+  const difficulty = Math.min(4, Math.max(1, parseInt(level, 10) || 2));
   if (typeof customDifficultyEl !== "undefined" && customDifficultyEl) {
     customDifficultyEl.value = String(difficulty);
+  }
+  if (
+    typeof customEnemyHitsEl !== "undefined" &&
+    customEnemyHitsEl &&
+    !(typeof customEnemyHitsInfiniteEl !== "undefined" && customEnemyHitsInfiniteEl && customEnemyHitsInfiniteEl.checked)
+  ) {
+    customEnemyHitsEl.value = String(getEnemyHitsNeeded(difficulty));
   }
 
   syncEnemyWithSelectedDifficulty({ resetPosition: true });
@@ -613,6 +620,7 @@ function updateCustomizeMenuDisplay() {
   const difficultyBtn1 = document.getElementById('difficultyBtn1');
   const difficultyBtn2 = document.getElementById('difficultyBtn2');
   const difficultyBtn3 = document.getElementById('difficultyBtn3');
+  const difficultyBtn4 = document.getElementById('difficultyBtn4');
 
   const selectedDifficulty = customDifficultyEl ? parseInt(customDifficultyEl.value, 10) : 1;
 
@@ -627,9 +635,14 @@ function updateCustomizeMenuDisplay() {
     difficultyBtn2.setAttribute('data-base-color', d2Color);
   }
   if (difficultyBtn3) {
-    const d3Color = selectedDifficulty === 3 ? '#4ECDC4' : '#8B0000';
+    const d3Color = selectedDifficulty === 3 ? '#4ECDC4' : '#6B5BC7';
     difficultyBtn3.setAttribute('color', d3Color);
     difficultyBtn3.setAttribute('data-base-color', d3Color);
+  }
+  if (difficultyBtn4) {
+    const d4Color = selectedDifficulty === 4 ? '#4ECDC4' : '#8B0000';
+    difficultyBtn4.setAttribute('color', d4Color);
+    difficultyBtn4.setAttribute('data-base-color', d4Color);
   }
 
   updateSfxVolumeButtons();

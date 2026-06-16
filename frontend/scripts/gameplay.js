@@ -82,6 +82,10 @@ function receiveAction(action, source = "unknown") {
     if (action === "attack") {
       game.enemyHits++;
       flashEnemy("#00ff66");
+      const enemy = document.getElementById("enemy");
+      if (enemy && enemy.components["enemy-ai"] && typeof enemy.components["enemy-ai"].reactToHit === "function") {
+        enemy.components["enemy-ai"].reactToHit();
+      }
       setResult(`Cabeçada acertada via ${source}!`, "success");
     } else {
       setResult(`Defesa correta via ${source}!`, "success");
@@ -180,6 +184,7 @@ function checkGameStateOrContinue() {
       const key = profile && profile.key ? profile.key : null;
       let winId = null;
       if (key === 'king') winId = 'king-win';
+      else if (key === 'dwarf') winId = 'dwarf-win';
       else if (key === 'adventurer') winId = 'adventure-win';
       else if (key === 'witch') winId = 'witch-win';
       if (winId) {
@@ -282,7 +287,7 @@ function resetGame() {
   game.waitingInput = false;
   game.expectedAction = null;
   game.phase = 1;
-  game.maxPhases = 3;
+  game.maxPhases = 4;
   game.lives = 3;
   game.maxLives = 3;
   game.hits = 0;

@@ -364,6 +364,7 @@ AFRAME.registerComponent("gaze-button", {
           "custom_set_difficulty_1",
           "custom_set_difficulty_2",
           "custom_set_difficulty_3",
+          "custom_set_difficulty_4",
           "sfx_volume_0",
           "sfx_volume_25",
           "sfx_volume_50",
@@ -468,6 +469,8 @@ AFRAME.registerComponent("gaze-button", {
         if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(2);
       } else if (this.data.action === "custom_set_difficulty_3") {
         if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(3);
+      } else if (this.data.action === "custom_set_difficulty_4") {
+        if (typeof setSelectedDifficulty === 'function') setSelectedDifficulty(4);
       } else if (this.data.action === "sfx_volume_0") {
         if (typeof setSfxVolume === 'function') setSfxVolume(0);
       } else if (this.data.action === "sfx_volume_25") {
@@ -871,6 +874,7 @@ AFRAME.registerComponent("enemy-ai", {
     this.currentModelClip = null;
     this.modelEls = {
       king: this.el.querySelector("#enemyModelKing"),
+      dwarf: this.el.querySelector("#enemyModelDwarf"),
       adventurer: this.el.querySelector("#enemyModelAdventurer"),
       witch: this.el.querySelector("#enemyModelWitch")
     };
@@ -965,7 +969,7 @@ AFRAME.registerComponent("enemy-ai", {
     });
 
     this.applyVariantForPhase = (phase) => {
-      const resolvedPhase = Math.min(3, Math.max(1, Number.parseInt(phase, 10) || 1));
+      const resolvedPhase = Math.min(4, Math.max(1, Number.parseInt(phase, 10) || 1));
       const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(resolvedPhase) : null;
       const key = profile && profile.key ? profile.key : "king";
       const scale = profile && profile.scale ? profile.scale : "1.12 1.12 1.12";
@@ -1058,7 +1062,7 @@ AFRAME.registerComponent("enemy-ai", {
   },
 
   getActiveModelEl: function () {
-    return this.modelEl || (this.modelEls && (this.modelEls.king || this.modelEls.adventurer || this.modelEls.witch));
+    return this.modelEl || (this.modelEls && (this.modelEls.king || this.modelEls.dwarf || this.modelEls.adventurer || this.modelEls.witch));
   },
 
   setVariantForPhase: function (phase) {
@@ -1085,6 +1089,15 @@ AFRAME.registerComponent("enemy-ai", {
     this.playIdle();
   },
 
+  reactToHit: function () {
+    if (this.isDefeated) return;
+    const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(this.currentPhaseModel || getActiveDifficultyPhase()) : null;
+    const hitReactClip = profile && profile.hitReactClip ? profile.hitReactClip : null;
+    if (hitReactClip && this.playModelClip(hitReactClip, "once", true)) {
+      this.scheduleIdleReturn(620);
+    }
+  },
+
   defeat: function (onFinished) {
     this.isDefeated = true;
     this.canAttack = false;
@@ -1098,6 +1111,7 @@ AFRAME.registerComponent("enemy-ai", {
       const key = profile && profile.key ? profile.key : null;
       let defeatSfxId = null;
       if (key === 'king') defeatSfxId = 'king-defeat';
+      else if (key === 'dwarf') defeatSfxId = 'dwarf-defeat';
       else if (key === 'adventurer') defeatSfxId = 'adventurer-defeat';
       else if (key === 'witch') defeatSfxId = 'witch-defeat';
 
@@ -1393,8 +1407,11 @@ AFRAME.registerComponent("enemy-ai", {
     if (profile && profile.key === 'king') {
       attackSwingSfx = 'punch-swing';
       attackHitSfx = 'punch-hit';
-    } else if (profile && profile.key === 'adventurer') {
+    } else if (profile && (profile.key === 'adventurer' || profile.key === 'dwarf')) {
       if (usesSwordFx && pattern === 'left') {
+        attackSwingSfx = 'sword-swing';
+        attackHitSfx = 'sword-hit';
+      } else if (profile.key === 'dwarf' && usesSwordFx) {
         attackSwingSfx = 'sword-swing';
         attackHitSfx = 'sword-hit';
       } else {

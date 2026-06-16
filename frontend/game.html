@@ -156,8 +156,9 @@
             <label for="customDifficulty">Dificuldade / personagem</label>
             <select id="customDifficulty">
               <option value="1">Fácil — Rei</option>
-              <option value="2">Intermediário — Aventureira</option>
-              <option value="3">Difícil — Bruxa</option>
+              <option value="2">Intermediário — Anão</option>
+              <option value="3">Avançado — Aventureira</option>
+              <option value="4">Difícil — Bruxa</option>
             </select>
           </div>
 
@@ -204,6 +205,8 @@
       <audio id="headbutt" src="/sounds/headbutt.mp3"></audio>
       <audio id="king-win" src="/sounds/king-win.mp3"></audio>
       <audio id="king-defeat" src="/sounds/king-defeat.mp3"></audio>
+      <audio id="dwarf-win" src="/sounds/dwarf-win.mp3"></audio>
+      <audio id="dwarf-defeat" src="/sounds/dwarf-defeat.mp3"></audio>
       <audio id="adventure-win" src="/sounds/adventure-win.mp3"></audio>
       <audio id="adventurer-defeat" src="/sounds/adventurer-defeat.mp3"></audio>
       <audio id="witch-win" src="/sounds/witch-win.mp3"></audio>
@@ -212,6 +215,7 @@
       <audio id="lego-yoda" src="/sounds/lego-yoda.mp3"></audio>
       <audio id="wilhelm-scream" src="/sounds/wilhelm-scream.mp3"></audio>
       <a-asset-item id="kingModel" src="/models/king.glb"></a-asset-item>
+      <a-asset-item id="dwarfModel" src="/models/dwarf.glb"></a-asset-item>
       <a-asset-item id="hoodedAdventurerModel" src="/models/hooded-adventurer.glb"></a-asset-item>
       <a-asset-item id="readyPlayerMaleModel" src="/models/ready-player-me-male.glb"></a-asset-item>
       <a-asset-item id="readyPlayerFemaleModel" src="/models/ready-player-me-female.glb"></a-asset-item>
@@ -522,17 +526,21 @@
 
       <a-entity position="0 -0.48 0.02">
         <a-plane width="6.05" height="1.02" color="#0B1B2B" opacity="0.98" radius="0.10" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-        <a-entity position="-2.00 -0.12 0.02">
-          <a-plane id="difficultyBtn1" class="clickable" gaze-button="action: custom_set_difficulty_1; dwellTime: 260" width="1.85" height="0.58" color="#315D92" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-          <a-plane position="0 0 0.035" width="1.85" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: REI; align: center; fontSize: 78; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-entity position="-2.25 -0.12 0.02">
+          <a-plane id="difficultyBtn1" class="clickable" gaze-button="action: custom_set_difficulty_1; dwellTime: 260" width="1.34" height="0.58" color="#315D92" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
+          <a-plane position="0 0 0.035" width="1.22" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: REI; align: center; fontSize: 72; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
         </a-entity>
-        <a-entity position="0 -0.12 0.02">
-          <a-plane id="difficultyBtn2" class="clickable" gaze-button="action: custom_set_difficulty_2; dwellTime: 260" width="1.85" height="0.58" color="#B58B2B" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-          <a-plane position="0 0 0.035" width="1.85" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: AVENTUREIRA; align: center; fontSize: 78; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-entity position="-0.75 -0.12 0.02">
+          <a-plane id="difficultyBtn2" class="clickable" gaze-button="action: custom_set_difficulty_2; dwellTime: 260" width="1.34" height="0.58" color="#B58B2B" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
+          <a-plane position="0 0 0.035" width="1.22" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: ANÃO; align: center; fontSize: 72; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
         </a-entity>
-        <a-entity position="2.00 -0.12 0.02">
-          <a-plane id="difficultyBtn3" class="clickable" gaze-button="action: custom_set_difficulty_3; dwellTime: 260" width="1.85" height="0.58" color="#8F2F3F" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
-          <a-plane position="0 0 0.035" width="1.85" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: BRUXA; align: center; fontSize: 78; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-entity position="0.75 -0.12 0.02">
+          <a-plane id="difficultyBtn3" class="clickable" gaze-button="action: custom_set_difficulty_3; dwellTime: 260" width="1.34" height="0.58" color="#6B5BC7" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
+          <a-plane position="0 0 0.035" width="1.22" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: AVENTUREIRA; align: center; fontSize: 72; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        </a-entity>
+        <a-entity position="2.25 -0.12 0.02">
+          <a-plane id="difficultyBtn4" class="clickable" gaze-button="action: custom_set_difficulty_4; dwellTime: 260" width="1.34" height="0.58" color="#8F2F3F" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
+          <a-plane position="0 0 0.035" width="1.22" height="0.36" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: BRUXA; align: center; fontSize: 72; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
         </a-entity>
       </a-entity>
 
@@ -695,6 +703,16 @@
           rotation="0 0 0"
           scale="1.12 1.12 1.12"
           visible="true">
+        </a-entity>
+
+        <a-entity
+          id="enemyModelDwarf"
+          class="enemy-character-model"
+          gltf-model="#dwarfModel"
+          position="0 0 0"
+          rotation="0 0 0"
+          scale="1.08 1.08 1.08"
+          visible="false">
         </a-entity>
 
         <a-entity
@@ -904,10 +922,10 @@
   </a-scene>
 
   <script src="/scripts/auth.js?v=20260612-god-role"></script>
-  <script src="/scripts/state.js"></script>
-  <script src="/scripts/ui.js"></script>
-  <script src="/scripts/gameplay.js"></script>
-  <script src="/scripts/components.js"></script>
+  <script src="/scripts/state.js?v=20260616-dwarf-sfx"></script>
+  <script src="/scripts/ui.js?v=20260616-dwarf-enemy"></script>
+  <script src="/scripts/gameplay.js?v=20260616-dwarf-sfx"></script>
+  <script src="/scripts/components.js?v=20260616-dwarf-sfx"></script>
   <script src="/scripts/game-pose-controller.js?v=20260609-corpus-vr-rpm1"></script>
 </body>
 </html>

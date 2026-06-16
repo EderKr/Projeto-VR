@@ -46,6 +46,8 @@ const SFX_AUDIO_IDS = [
   "headbutt",
   "king-win",
   "king-defeat",
+  "dwarf-win",
+  "dwarf-defeat",
   "adventure-win",
   "adventurer-defeat",
   "witch-win",
@@ -65,7 +67,7 @@ const game = {
   nextRoundTimeoutId: null,
 
   phase: 1,
-  maxPhases: 3,
+  maxPhases: 4,
   lives: 3,
   maxLives: 3,
   hits: 0,
@@ -139,16 +141,16 @@ function parsePositiveInt(value, fallback) {
 
 function getSelectedDifficultyPhase() {
   return customDifficultyEl
-    ? Math.min(3, Math.max(1, parsePositiveInt(customDifficultyEl.value, 2)))
+    ? Math.min(4, Math.max(1, parsePositiveInt(customDifficultyEl.value, 2)))
     : 2;
 }
 
 function getActiveDifficultyPhase() {
   if (game && game.customMode) {
-    return Math.min(3, Math.max(1, parsePositiveInt(game.difficultyPhase || getSelectedDifficultyPhase(), 2)));
+    return Math.min(4, Math.max(1, parsePositiveInt(game.difficultyPhase || getSelectedDifficultyPhase(), 2)));
   }
 
-  return Math.min(3, Math.max(1, parsePositiveInt(game.phase || 1, 1)));
+  return Math.min(4, Math.max(1, parsePositiveInt(game.phase || 1, 1)));
 }
 
 function getStartSettings() {
@@ -156,13 +158,14 @@ function getStartSettings() {
   const difficultyPhase = getSelectedDifficultyPhase();
 
   if (!customModeEnabled) {
+    const firstPhase = 1;
     return {
       customMode: false,
-      phase: 1,
-      maxPhases: 3,
+      phase: firstPhase,
+      maxPhases: 4,
       lives: 3,
-      enemyHitsNeeded: getEnemyHitsNeeded(difficultyPhase),
-      difficultyPhase
+      enemyHitsNeeded: getEnemyHitsNeeded(firstPhase),
+      difficultyPhase: firstPhase
     };
   }
 
@@ -588,7 +591,8 @@ function recordActionAttempt({ actualAction = null, source = "unknown", reaction
 
 function getDifficultyLabel(level) {
   if (level === 1) return "Fácil — Rei";
-  if (level === 2) return "Intermediário — Aventureira";
+  if (level === 2) return "Intermediário — Anão";
+  if (level === 3) return "Avançado — Aventureira";
   return "Difícil — Bruxa";
 }
 
@@ -767,13 +771,15 @@ if (typeof isLoggedIn === "function" && isLoggedIn()) {
 
 function getEnemyName(phase) {
   if (phase === 1) return "o rei";
-  if (phase === 2) return "a aventureira";
+  if (phase === 2) return "o anão";
+  if (phase === 3) return "a aventureira";
   return "a bruxa";
 }
 
 function getEnemyDisplayName(phase) {
   if (phase === 1) return "Rei";
-  if (phase === 2) return "Aventureira";
+  if (phase === 2) return "Anão";
+  if (phase === 3) return "Aventureira";
   return "Bruxa";
 }
 
@@ -813,6 +819,29 @@ const ENEMY_PROFILES = {
     patternWeights: { vulnerable: 0.60, left: 0.20, right: 0.20, high: 0, low: 0 }
   },
   2: {
+    key: "dwarf",
+    displayName: "Anão",
+    asset: "#dwarfModel",
+    scale: "1.08 1.08 1.08",
+    idleClip: "CharacterArmature|Idle_Gun",
+    runClip: "CharacterArmature|Run_Gun",
+    deathClip: "CharacterArmature|Death",
+    vulnerableClip: "CharacterArmature|Duck",
+    hitReactClip: "CharacterArmature|HitReact",
+    attackStyle: "weapon",
+    attacks: {
+      low: "CharacterArmature|Slash",
+      lowOptions: { swordFx: true }
+    },
+    speed: 0.046,
+    attackDistance: 1.9,
+    hitsNeeded: 4,
+    reactionWindow: 760,
+    attackCooldown: 760,
+    attackDelay: { left: 0, right: 0, high: 0, low: 0, vulnerable: 0 },
+    patternWeights: { vulnerable: 0.20, left: 0, right: 0, high: 0, low: 0.80 }
+  },
+  3: {
     key: "adventurer",
     displayName: "Aventureira",
     asset: "#hoodedAdventurerModel",
@@ -837,7 +866,7 @@ const ENEMY_PROFILES = {
     attackDelay: { left: 0, right: 0, high: 0, low: 0, vulnerable: 0 },
     patternWeights: { vulnerable: 0.22, left: 0.24, right: 0.24, high: 0.16, low: 0.14 }
   },
-  3: {
+  4: {
     key: "witch",
     displayName: "Bruxa",
     asset: "#witchModel",
@@ -865,7 +894,7 @@ const ENEMY_PROFILES = {
 };
 
 function getEnemyProfile(phase) {
-  const resolvedPhase = Math.min(3, Math.max(1, Number.parseInt(phase, 10) || 1));
+  const resolvedPhase = Math.min(4, Math.max(1, Number.parseInt(phase, 10) || 1));
   return ENEMY_PROFILES[resolvedPhase] || ENEMY_PROFILES[1];
 }
 
