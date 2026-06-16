@@ -28,6 +28,10 @@
   const SMOOTHING = 0.38;
   const MIN_FULL_BODY_QUALITY = 0.78;
   const LOCAL_POSE_SEND_MS = 80;
+  const AUTO_CALIBRATION_FRAMES = 24;
+  const AUTO_RECALIBRATION_FRAMES = 180;
+  const MIN_CALIBRATION_QUALITY = 0.82;
+  const POSE_DELEGATE = "CPU"; // CPU evita warnings WebGL/OpenGL do MediaPipe e é mais estável em PCs modestos.
 
   const POSE_CONNECTIONS = [
     [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
@@ -141,6 +145,10 @@
   let smoothedLandmarks = null;
   let smoothedWorldLandmarks = null;
   let stableRegistrationFrames = 0;
+  let calibrationSamples = [];
+  let autoCalibrated = false;
+  let neutralFrames = 0;
+  let lastVisionErrorAt = 0;
   let roomSocket = null;
   let roomReconnectTimer = 0;
   let roomCode = resolveRoomCode();
@@ -582,7 +590,38 @@
   }
 
   function landmarkOk(point, threshold = 0.45) {
-    return point && (point.visibility == null || point.visibility > threshold);
+    return finitePoint(point) && (point.visibility == null || point.visibility > threshold);
+  }
+
+  function sanitizeLandmarkPoint(point) {
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
+    const z = Number.isFinite(point.z) ? point.z : 0;
+    const visibility = Number.isFinite(point.visibility) ? clamp(point.visibility, 0, 1) : 1;
+    return {
+      ...point,
+      x: clamp(point.x, -0.5, 1.5),
+      y: clamp(point.y, -0.5, 1.5),
+      z,
+      visibility
+    };
+  }
+
+  function sanitizeLandmarkSet(landmarks) {
+    if (!Array.isArray(landmarks)) return null;
+    return landmarks.map(sanitizeLandmarkPoint);
+  }
+
+  function finiteTextNumber(value, fallback = 0, digits = 2) {
+    const number = Number.isFinite(value) ? value : fallback;
+    return number.toFixed(digits);
+  }
+
+  function setAFrameVec3(element, attribute, x, y, z, fallback = [0, 0, 0], digits = 2) {
+    if (!element) return;
+    const fx = Number.isFinite(x) ? x : fallback[0];
+    const fy = Number.isFinite(y) ? y : fallback[1];
+    const fz = Number.isFinite(z) ? z : fallback[2];
+    element.setAttribute(attribute, `${fx.toFixed(digits)} ${fy.toFixed(digits)} ${fz.toFixed(digits)}`);
   }
 
   function poseQuality(landmarks) {
@@ -691,13 +730,13 @@
       poseLandmarker = await vision.PoseLandmarker.createFromOptions(resolver, {
         baseOptions: {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
-          delegate: "GPU"
+          delegate: POSE_DELEGATE
         },
         runningMode: "VIDEO",
         numPoses: 1,
-        minPoseDetectionConfidence: 0.6,
-        minPosePresenceConfidence: 0.6,
-        minTrackingConfidence: 0.6
+        minPoseDetectionConfidence: 0.52,
+        minPosePresenceConfidence: 0.52,
+        minTrackingConfidence: 0.50
       });
 
       setRoomStatus("ativo");
@@ -723,7 +762,12 @@
       }
     });
     video.srcObject = stream;
+    await new Promise((resolve) => {
+      if (video.readyState >= 1 && video.videoWidth) return resolve();
+      video.addEventListener("loadedmetadata", resolve, { once: true });
+    });
     await video.play();
+    updateCanvasSize();
     return true;
   }
 
@@ -793,7 +837,11 @@
     lastVideoTime = -1;
     baseline = null;
     smoothedLandmarks = null;
+    smoothedWorldLandmarks = null;
     stableRegistrationFrames = 0;
+    calibrationSamples = [];
+    autoCalibrated = false;
+    neutralFrames = 0;
 
     if (stream) {
       for (const track of stream.getTracks()) track.stop();
@@ -807,6 +855,16 @@
     setRoomStatus(roomSocket && roomSocket.readyState === WebSocket.OPEN ? "conectado" : "offline");
     setAction("--");
     setHint("nao diagnostico");
+  }
+
+  function updateCanvasSize() {
+    if (!video.videoWidth || !video.videoHeight) return;
+    const targetWidth = Math.max(320, Math.min(640, video.videoWidth));
+    const targetHeight = Math.round(targetWidth * (video.videoHeight / video.videoWidth));
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
   }
 
   function drawSimulationFrame(landmarks) {
@@ -882,25 +940,32 @@
   }
 
   function smoothLandmarkSet(landmarks, previousSet) {
-    if (!Array.isArray(landmarks)) return null;
-    if (!previousSet || previousSet.length !== landmarks.length) {
-      return landmarks.map((point) => ({ ...point }));
+    const clean = sanitizeLandmarkSet(landmarks);
+    if (!Array.isArray(clean)) return null;
+    if (!previousSet || previousSet.length !== clean.length) {
+      return clean.map((point) => point ? ({ ...point }) : null);
     }
 
     const nextSet = previousSet.slice();
-    for (let index = 0; index < landmarks.length; index += 1) {
-      const next = landmarks[index];
-      const previous = previousSet[index] || next;
+    for (let index = 0; index < clean.length; index += 1) {
+      const next = clean[index];
+      const previous = previousSet[index];
       if (!next) {
-        nextSet[index] = previous;
+        nextSet[index] = previous && finitePoint(previous) ? { ...previous, visibility: Math.max(0, (previous.visibility || 0) - 0.08) } : null;
         continue;
       }
+      if (!previous || !finitePoint(previous)) {
+        nextSet[index] = { ...next };
+        continue;
+      }
+      const visibility = next.visibility == null ? 1 : next.visibility;
+      const adaptive = visibility > 0.75 ? SMOOTHING : SMOOTHING * 0.45;
       nextSet[index] = {
         ...next,
-        x: lerp(previous.x || 0, next.x || 0, SMOOTHING),
-        y: lerp(previous.y || 0, next.y || 0, SMOOTHING),
-        z: lerp(previous.z || 0, next.z || 0, SMOOTHING),
-        visibility: next.visibility
+        x: lerp(previous.x, next.x, adaptive),
+        y: lerp(previous.y, next.y, adaptive),
+        z: lerp(previous.z || 0, next.z || 0, adaptive),
+        visibility
       };
     }
 
@@ -1111,8 +1176,9 @@
     };
   }
 
-  function captureBaseline(features) {
-    baseline = {
+  function baselineFromFeatures(features) {
+    if (!features || !finitePoint(features.bodyCenter) || !finitePoint(features.shoulderCenter)) return null;
+    return {
       centerX: features.bodyCenter.x,
       shoulderY: features.shoulderCenter.y,
       shoulderWidth: features.shoulderWidth,
@@ -1120,11 +1186,81 @@
       bodyHeight: features.bodyHeight,
       stanceWidth: features.stanceWidth
     };
-    setHint("calibrado");
+  }
+
+  function averageBaseline(samples) {
+    if (!samples.length) return null;
+    const keys = ["centerX", "shoulderY", "shoulderWidth", "noseZ", "bodyHeight", "stanceWidth"];
+    const output = {};
+    for (const key of keys) {
+      const values = samples.map((sample) => sample[key]).filter(Number.isFinite);
+      if (!values.length) return null;
+      output[key] = values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+    return output;
+  }
+
+  function captureBaseline(features, silent = false) {
+    const sample = baselineFromFeatures(features);
+    if (!sample) return false;
+    baseline = sample;
+    calibrationSamples = [];
+    autoCalibrated = true;
+    neutralFrames = 0;
+    if (!silent) setHint("calibrado automaticamente");
+    return true;
+  }
+
+  function updateAutoCalibration(features) {
+    if (!features) return false;
+    const sample = baselineFromFeatures(features);
+    if (!sample) return false;
+
+    if (!baseline) {
+      if (features.quality < MIN_CALIBRATION_QUALITY) {
+        calibrationSamples = [];
+        setHint(`auto calibragem: mostre corpo inteiro (${Math.round(features.quality * 100)}%)`);
+        return false;
+      }
+      calibrationSamples.push(sample);
+      if (calibrationSamples.length > AUTO_CALIBRATION_FRAMES) calibrationSamples.shift();
+      const progress = Math.round((calibrationSamples.length / AUTO_CALIBRATION_FRAMES) * 100);
+      setHint(`auto calibrando ${progress}% - fique parado de frente`);
+      if (calibrationSamples.length >= AUTO_CALIBRATION_FRAMES) {
+        baseline = averageBaseline(calibrationSamples);
+        calibrationSamples = [];
+        autoCalibrated = true;
+        neutralFrames = 0;
+        setHint("auto calibrado - pode jogar");
+        return true;
+      }
+      return false;
+    }
+
+    const lateral = Math.abs(features.bodyCenter.x - baseline.centerX);
+    const vertical = Math.abs(features.shoulderCenter.y - baseline.shoulderY);
+    const width = Math.abs(features.shoulderWidth - baseline.shoulderWidth);
+    const neutral = features.quality >= MIN_CALIBRATION_QUALITY && lateral < 0.035 && vertical < 0.045 && width < 0.045;
+    neutralFrames = neutral ? neutralFrames + 1 : 0;
+
+    if (autoCalibrated && neutralFrames > AUTO_RECALIBRATION_FRAMES) {
+      const fresh = baselineFromFeatures(features);
+      if (fresh) {
+        baseline.centerX = lerp(baseline.centerX, fresh.centerX, 0.08);
+        baseline.shoulderY = lerp(baseline.shoulderY, fresh.shoulderY, 0.08);
+        baseline.shoulderWidth = lerp(baseline.shoulderWidth, fresh.shoulderWidth, 0.08);
+        baseline.noseZ = lerp(baseline.noseZ, fresh.noseZ, 0.08);
+        baseline.bodyHeight = lerp(baseline.bodyHeight, fresh.bodyHeight, 0.08);
+        baseline.stanceWidth = lerp(baseline.stanceWidth, fresh.stanceWidth, 0.08);
+        neutralFrames = 0;
+      }
+    }
+
+    return true;
   }
 
   function chooseAction(features) {
-    if (!baseline) captureBaseline(features);
+    if (!updateAutoCalibration(features)) return null;
     if (!baseline) return null;
 
     const invert = Boolean(invertInput && invertInput.checked);
@@ -1270,26 +1406,26 @@
     const yaw = clamp(features.shoulderTwist * 120, -24, 24);
     const roll = clamp(features.shoulderTilt * 0.35, -10, 10);
 
-    avatar.setAttribute("position", `${avatarX.toFixed(2)} ${avatarY.toFixed(2)} -3.2`);
-    avatar.setAttribute("rotation", `0 ${yaw.toFixed(1)} 0`);
+    setAFrameVec3(avatar, "position", avatarX, avatarY, -3.2);
+    setAFrameVec3(avatar, "rotation", 0, yaw, 0, [0, 0, 0], 1);
 
     if (characterModel) {
-      characterModel.setAttribute("rotation", `0 0 ${roll.toFixed(1)}`);
+      setAFrameVec3(characterModel, "rotation", 0, 0, roll, [0, 0, 0], 1);
       characterModel.setAttribute("scale", currentModelScale);
     }
 
     rotateLimbBones(features);
 
-    if (avatarTorso) avatarTorso.setAttribute("rotation", `0 0 ${(features.shoulderTilt).toFixed(1)}`);
-    if (avatarShoulders) avatarShoulders.setAttribute("rotation", `0 0 ${(90 + features.shoulderTilt).toFixed(1)}`);
-    if (avatarHips) avatarHips.setAttribute("rotation", `0 0 ${(90 + features.hipTilt).toFixed(1)}`);
-    if (avatarHead) avatarHead.setAttribute("position", `${(features.headOffsetX * 1.8).toFixed(2)} 0.72 0`);
+    setAFrameVec3(avatarTorso, "rotation", 0, 0, features.shoulderTilt, [0, 0, 0], 1);
+    setAFrameVec3(avatarShoulders, "rotation", 0, 0, 90 + features.shoulderTilt, [0, 0, 90], 1);
+    setAFrameVec3(avatarHips, "rotation", 0, 0, 90 + features.hipTilt, [0, 0, 90], 1);
+    setAFrameVec3(avatarHead, "position", features.headOffsetX * 1.8, 0.72, 0);
 
     if (avatarLeftHand && landmarkOk(features.leftWrist)) {
-      avatarLeftHand.setAttribute("position", `${((features.leftWrist.x - 0.5) * 1.4).toFixed(2)} ${((0.55 - features.leftWrist.y) * 1.25).toFixed(2)} 0`);
+      setAFrameVec3(avatarLeftHand, "position", (features.leftWrist.x - 0.5) * 1.4, (0.55 - features.leftWrist.y) * 1.25, 0);
     }
     if (avatarRightHand && landmarkOk(features.rightWrist)) {
-      avatarRightHand.setAttribute("position", `${((features.rightWrist.x - 0.5) * 1.4).toFixed(2)} ${((0.55 - features.rightWrist.y) * 1.25).toFixed(2)} 0`);
+      setAFrameVec3(avatarRightHand, "position", (features.rightWrist.x - 0.5) * 1.4, (0.55 - features.rightWrist.y) * 1.25, 0);
     }
   }
 
@@ -1414,7 +1550,8 @@
   function frame() {
     if (!enabled) return;
 
-    if (!video.videoWidth || !poseLandmarker) {
+    updateCanvasSize();
+    if (!video.videoWidth || !video.videoHeight || !poseLandmarker) {
       drawSimulationFrame();
       rafId = requestAnimationFrame(frame);
       return;
@@ -1424,7 +1561,17 @@
 
     if (video.currentTime !== lastVideoTime) {
       lastVideoTime = video.currentTime;
-      const result = poseLandmarker.detectForVideo(video, performance.now());
+      let result = null;
+      try {
+        result = poseLandmarker.detectForVideo(video, performance.now());
+      } catch (error) {
+        const now = performance.now();
+        if (now - lastVisionErrorAt > 1200) {
+          console.warn("[Corpus VR] MediaPipe detectForVideo falhou", error);
+          setHint("visao computacional instavel - tentando novamente");
+          lastVisionErrorAt = now;
+        }
+      }
       const rawLandmarks = result && result.landmarks && result.landmarks[0];
       const rawWorldLandmarks = result && result.worldLandmarks && result.worldLandmarks[0];
       const landmarks = smoothLandmarks(mirrorLandmarks(rawLandmarks));
@@ -1468,7 +1615,7 @@
       await ensurePoseLandmarker();
       cacheRigBones();
       setRoomStatus("ativo");
-      setHint("calibre em posicao neutra com corpo inteiro no quadro");
+      setHint("auto calibragem: fique parado de frente com corpo inteiro no quadro");
       frame();
     } catch (error) {
       setRoomStatus("erro");
@@ -1486,7 +1633,10 @@
     calibrateButton.addEventListener("click", () => {
       baseline = null;
       stableRegistrationFrames = 0;
-      setHint("calibrando no proximo frame");
+      calibrationSamples = [];
+      autoCalibrated = false;
+      neutralFrames = 0;
+      setHint("auto calibragem reiniciada: fique parado de frente");
     });
   }
 

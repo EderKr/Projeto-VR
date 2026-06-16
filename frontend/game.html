@@ -253,7 +253,7 @@
           always-on-top="order: 10000"
           fuse="true"
           fuse-timeout="1200"
-          material="shader: flat; color: #FFFFFF; depthTest: false; transparent: true; opacity: 1; renderOrder: 9999"
+          material="shader: flat; color: #FFFFFF; depthTest: false; transparent: true; opacity: 1"
           raycaster="objects: .clickable; far: 8; interval: 40">
         </a-cursor>
 
@@ -572,26 +572,26 @@
     </a-entity>
 
     <a-entity id="menuHistoryScreen" visible="false" position="0 1.45 -2.95" scale="0.80 0.80 0.80">
-      <a-plane width="5.0" height="4.35" color="#07131F" opacity="0.88" radius="0.14" material="shader: flat; depthTest: false; renderOrder: 8"></a-plane>
-      <a-plane position="0 1.8 0.01" width="4.5" height="0.5" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: HISTÓRICO; align: center; fontSize: 201; color: #FFFFFF; padding: 20; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+      <a-plane width="5.0" height="4.35" color="#07131F" opacity="0.88" radius="0.14" material="shader: flat; depthTest: false"></a-plane>
+      <a-plane position="0 1.8 0.01" width="4.5" height="0.5" material="transparent: true; opacity: 0; shader: flat; depthTest: false" canvas-text="value: HISTÓRICO; align: center; fontSize: 201; color: #FFFFFF; padding: 20; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
 
       <a-entity position="-1.0 1.1 0.01">
-        <a-plane id="tabHistoryBtn" class="clickable" gaze-button="action: selectHistoryTab; dwellTime: 400" width="0.9" height="0.35" color="#315D92" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.8" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: Histórico; align: center; fontSize: 86; color: #FFFFFF; padding: 8; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-plane id="tabHistoryBtn" class="clickable" gaze-button="action: selectHistoryTab; dwellTime: 400" width="0.9" height="0.35" color="#315D92" radius="0.06" material="shader: flat; depthTest: false"></a-plane>
+        <a-plane position="0 0 0.02" width="0.8" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false" canvas-text="value: Histórico; align: center; fontSize: 86; color: #FFFFFF; padding: 8; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
       </a-entity>
 
       <a-entity position="1.0 1.1 0.01">
-        <a-plane id="tabAIBtn" class="clickable" gaze-button="action: selectAITab; dwellTime: 400" width="0.9" height="0.35" color="#273242" radius="0.06" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="0.8" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: Assistente IA; align: center; fontSize: 73; color: #FFFFFF; padding: 8; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-plane id="tabAIBtn" class="clickable" gaze-button="action: selectAITab; dwellTime: 400" width="0.9" height="0.35" color="#273242" radius="0.06" material="shader: flat; depthTest: false"></a-plane>
+        <a-plane position="0 0 0.02" width="0.8" height="0.3" material="transparent: true; opacity: 0; shader: flat; depthTest: false" canvas-text="value: Assistente IA; align: center; fontSize: 73; color: #FFFFFF; padding: 8; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
       </a-entity>
 
-      <a-plane id="historyTabContent" position="0 0.3 0.01" width="3.8" height="2.2" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: Carregando histórico...; align: left; fontSize: 78; color: #FFFFFF; padding: 40; whiteSpace: pre-wrap; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+      <a-plane id="historyTabContent" position="0 0.3 0.01" width="3.8" height="2.2" material="transparent: true; opacity: 0; shader: flat; depthTest: false" canvas-text="value: Carregando histórico...; align: left; fontSize: 78; color: #FFFFFF; padding: 40; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
 
-      <a-plane id="aiTabContent" position="0 0.3 0.01" width="3.8" height="2.2" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: Assistente IA\n\nCarregue ou finalize partidas para ver recomendações.; align: left; fontSize: 71; color: #FFFFFF; padding: 40; whiteSpace: pre-wrap; fontFamily: Arial Black, Arial, sans-serif;" visible="false"></a-plane>
+      <a-plane id="aiTabContent" position="0 0.3 0.01" width="3.8" height="2.2" material="transparent: true; opacity: 0; shader: flat; depthTest: false" canvas-text="value: Assistente IA\n\nCarregue ou finalize partidas para ver recomendações.; align: left; fontSize: 71; color: #FFFFFF; padding: 40; fontFamily: Arial Black, Arial, sans-serif;" visible="false"></a-plane>
 
       <a-entity position="0 -1.75 0.01">
-        <a-plane class="clickable" gaze-button="action: backToMainMenu; dwellTime: 500" width="1.5" height="0.5" color="#9A5B18" radius="0.08" material="shader: flat; depthTest: false; renderOrder: 10"></a-plane>
-        <a-plane position="0 0 0.02" width="1.3" height="0.4" material="transparent: true; opacity: 0; shader: flat; depthTest: false; renderOrder: 10" canvas-text="value: VOLTAR; align: center; fontSize: 105; color: #FFFFFF; padding: 10; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-plane class="clickable" gaze-button="action: backToMainMenu; dwellTime: 500" width="1.5" height="0.5" color="#9A5B18" radius="0.08" material="shader: flat; depthTest: false"></a-plane>
+        <a-plane position="0 0 0.02" width="1.3" height="0.4" material="transparent: true; opacity: 0; shader: flat; depthTest: false" canvas-text="value: VOLTAR; align: center; fontSize: 105; color: #FFFFFF; padding: 10; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
       </a-entity>
     </a-entity>
 
@@ -743,7 +743,7 @@
           height="0.26"
           color="#241219"
           opacity="0.98"
-          material="shader: flat; depthTest: false; side: double; renderOrder: 30"
+          material="shader: flat; depthTest: false; side: double"
           radius="0.06">
         </a-plane>
         <a-plane
@@ -753,7 +753,7 @@
           height="0.12"
           color="#D94A3A"
           opacity="0.99"
-          material="shader: flat; depthTest: false; side: double; renderOrder: 31"
+          material="shader: flat; depthTest: false; side: double"
           radius="0.04">
         </a-plane>
         <a-plane
@@ -761,7 +761,7 @@
           position="0 0 0.045"
           width="2.18"
           height="0.15"
-          material="transparent: true; opacity: 0; shader: flat; depthTest: false; side: double; renderOrder: 32"
+          material="transparent: true; opacity: 0; shader: flat; depthTest: false; side: double"
           canvas-text="value: INIMIGO HP 3/3; align: center; fontSize: 71; color: #FFFFFF; padding: 8; fontFamily: Arial Black, Arial, sans-serif;">
         </a-plane>
       </a-entity>
@@ -865,7 +865,7 @@
     <!-- Sun -->
     <a-entity id="sun" position="-6 18 -20">
       <a-light type="point" color="#FFF2B2" intensity="1.0" distance="120"></a-light>
-      <a-sphere radius="1.8" position="0 0 0" color="#FFF2B2" material="shader: flat; emissive: #FFF2B2; emissiveIntensity: 1; transparent: false"></a-sphere>
+      <a-sphere radius="1.8" position="0 0 0" color="#FFF2B2" material="shader: flat; color: #FFF2B2; transparent: false"></a-sphere>
     </a-entity>
 
     <!-- Clouds (spread across sky with varied Y/Z and diagonal movement) -->

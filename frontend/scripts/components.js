@@ -567,7 +567,7 @@ AFRAME.registerComponent("arena-circle", {
         grass.setAttribute("height", `${0.28 + (i % 4) * 0.045}`);
         grass.setAttribute("segments-radial", "5");
         grass.setAttribute("color", i % 2 === 0 ? "#3E8B3E" : "#52A34B");
-        grass.setAttribute("material", "shader: flat; roughness: 1; metalness: 0");
+        grass.setAttribute("material", "shader: flat");
         this.el.appendChild(grass);
       }
     }
@@ -583,7 +583,7 @@ AFRAME.registerComponent("arena-circle", {
       hill.setAttribute("segments-width", "16");
       hill.setAttribute("segments-height", "8");
       hill.setAttribute("color", i % 2 === 0 ? "#2F6F35" : "#3F7F3C");
-      hill.setAttribute("material", "roughness: 1; metalness: 0");
+      hill.setAttribute("material", "shader: flat");
       this.el.appendChild(hill);
     }
 
@@ -599,7 +599,7 @@ AFRAME.registerComponent("arena-circle", {
       mountain.setAttribute("height", `${height}`);
       mountain.setAttribute("segments-radial", "7");
       mountain.setAttribute("color", i % 2 === 0 ? "#53614D" : "#647156");
-      mountain.setAttribute("material", "roughness: 1; metalness: 0");
+      mountain.setAttribute("material", "shader: flat");
       this.el.appendChild(mountain);
 
       const cap = document.createElement("a-cone");
@@ -608,7 +608,7 @@ AFRAME.registerComponent("arena-circle", {
       cap.setAttribute("height", "1.35");
       cap.setAttribute("segments-radial", "7");
       cap.setAttribute("color", "#DCE8EF");
-      cap.setAttribute("material", "roughness: 1; metalness: 0");
+      cap.setAttribute("material", "shader: flat");
       this.el.appendChild(cap);
     }
 
@@ -633,7 +633,7 @@ AFRAME.registerComponent("arena-circle", {
       trunk.setAttribute("radius", `${0.11 + ((i % 4) * 0.025)}`);
       trunk.setAttribute("height", `${height * 0.56}`);
       trunk.setAttribute("color", i % 3 === 0 ? "#4A2F1B" : "#3A2416");
-      trunk.setAttribute("material", "roughness: 1; metalness: 0");
+      trunk.setAttribute("material", "shader: flat");
       tree.appendChild(trunk);
 
       const canopy1 = document.createElement("a-cone");
@@ -642,7 +642,7 @@ AFRAME.registerComponent("arena-circle", {
       canopy1.setAttribute("height", `${height * 0.58}`);
       canopy1.setAttribute("segments-radial", "8");
       canopy1.setAttribute("color", forestPalette[i % forestPalette.length]);
-      canopy1.setAttribute("material", "roughness: 1; metalness: 0");
+      canopy1.setAttribute("material", "shader: flat");
       tree.appendChild(canopy1);
 
       const canopy2 = document.createElement("a-cone");
@@ -651,7 +651,7 @@ AFRAME.registerComponent("arena-circle", {
       canopy2.setAttribute("height", `${height * 0.45}`);
       canopy2.setAttribute("segments-radial", "8");
       canopy2.setAttribute("color", forestPalette[(i + 1) % forestPalette.length]);
-      canopy2.setAttribute("material", "roughness: 1; metalness: 0");
+      canopy2.setAttribute("material", "shader: flat");
       tree.appendChild(canopy2);
 
       this.el.appendChild(tree);
@@ -665,7 +665,7 @@ AFRAME.registerComponent("arena-circle", {
     floor.setAttribute("height", "0.045");
     floor.setAttribute("segments-radial", "96");
     floor.setAttribute("color", "#E6C98B");
-    floor.setAttribute("material", "src: #sandTexture; repeat: 10 10; roughness: 1; metalness: 0; color: #E8CB91");
+    floor.setAttribute("material", "src: #sandTexture; repeat: 10 10; shader: flat; color: #E8CB91");
     this.el.appendChild(floor);
 
     // Marcações, anéis e rúnicas removidos: arena limpa com areia + props.
@@ -681,7 +681,7 @@ AFRAME.registerComponent("arena-circle", {
       blade.setAttribute("height", "0.035");
       blade.setAttribute("depth", "1.05");
       blade.setAttribute("color", "#B9C1C7");
-      blade.setAttribute("material", "roughness: 0.55; metalness: 0.25");
+      blade.setAttribute("material", "shader: flat");
       sword.appendChild(blade);
 
       const guard = document.createElement("a-box");
@@ -713,7 +713,7 @@ AFRAME.registerComponent("arena-circle", {
       body.setAttribute("height", "0.07");
       body.setAttribute("segments-radial", "18");
       body.setAttribute("color", "#6C3A2E");
-      body.setAttribute("material", "roughness: 0.75; metalness: 0.08");
+      body.setAttribute("material", "shader: flat");
       shield.appendChild(body);
 
       const boss = document.createElement("a-sphere");
@@ -721,7 +721,7 @@ AFRAME.registerComponent("arena-circle", {
       boss.setAttribute("radius", "0.16");
       boss.setAttribute("scale", "1 0.35 1");
       boss.setAttribute("color", "#B8A36B");
-      boss.setAttribute("material", "roughness: 0.55; metalness: 0.25");
+      boss.setAttribute("material", "shader: flat");
       shield.appendChild(boss);
 
       this.el.appendChild(shield);
@@ -756,7 +756,7 @@ AFRAME.registerComponent("arena-circle", {
       wall.setAttribute("height", isPillar ? "2.5" : "1.8");
       wall.setAttribute("depth", isPillar ? "0.55" : "0.34");
       wall.setAttribute("color", isPillar ? "#4B3A2B" : (i % 2 === 0 ? "#5E4935" : "#6B543E"));
-      wall.setAttribute("material", "roughness: 0.9; metalness: 0.03");
+      wall.setAttribute("material", "shader: flat");
       this.el.appendChild(wall);
 
       if (isPillar) {
