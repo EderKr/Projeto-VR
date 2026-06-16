@@ -95,6 +95,7 @@ DB_PATH=/data/db.json
 ```
 
 No Coolify, use Docker Compose, aponte o dominio para o servico `app` na porta interna `3000` e configure `AUTH_SECRET` e `POSTGRES_PASSWORD` no painel.
+O `docker-compose.yml` usa `expose` em vez de `ports` para o app, evitando conflito com a porta 3000 do host; o roteamento publico fica a cargo do proxy do Coolify.
 
 ## Rotas principais
 
