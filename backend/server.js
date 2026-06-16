@@ -1265,6 +1265,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/docs/openapi.json" && (req.method === "GET" || req.method === "HEAD")) {
+    serveStaticFile(res, path.join(ROOT_DIR, "openapi.json"));
+    return;
+  }
+
+  if ((requestUrl.pathname === "/api/docs" || requestUrl.pathname === "/api/docs/") && (req.method === "GET" || req.method === "HEAD")) {
+    serveStaticFile(res, path.join(PUBLIC_DIR, "api-docs.html"));
+    return;
+  }
+
   if (requestUrl.pathname === "/api/auth/register" && req.method === "POST") {
     handleRegister(req, res).catch((error) => sendJson(res, 400, { error: error.message }));
     return;

@@ -1,0 +1,1021 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Corpus VR API",
+    "version": "1.2.0",
+    "description": "API HTTP do Corpus VR para autenticacao, historico de desempenho, painel administrativo, convites, salas PC/celular e assistente de estatisticas."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor local"
+    },
+    {
+      "url": "/",
+      "description": "Mesmo host da aplicacao"
+    }
+  ],
+  "tags": [
+    { "name": "Sistema" },
+    { "name": "Autenticacao" },
+    { "name": "Historico" },
+    { "name": "Assistente" },
+    { "name": "Administracao" },
+    { "name": "Salas" },
+    { "name": "WebSocket" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Sistema"],
+        "summary": "Consulta o status da aplicacao e do banco",
+        "responses": {
+          "200": {
+            "description": "Status da aplicacao",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room": {
+      "get": {
+        "tags": ["Salas"],
+        "summary": "Gera links de entrada para uma sala",
+        "parameters": [
+          {
+            "name": "room",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 18,
+              "example": "ABC123"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Links disponiveis para a sala",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoomLinksResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/bootstrap": {
+      "get": {
+        "tags": ["Autenticacao"],
+        "summary": "Informa se a primeira conta Deus pode ser criada sem convite",
+        "responses": {
+          "200": {
+            "description": "Estado do bootstrap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["canCreateFirstGod"],
+                  "properties": {
+                    "canCreateFirstGod": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Autenticacao"],
+        "summary": "Cria uma conta por convite ou cria a primeira conta Deus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/AuthSuccess" },
+          "400": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Autenticacao"],
+        "summary": "Autentica usuario por e-mail e senha",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/AuthSuccess" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Autenticacao"],
+        "summary": "Retorna o usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Usuario autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      },
+      "patch": {
+        "tags": ["Autenticacao"],
+        "summary": "Atualiza nome e data de nascimento da propria conta",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/AuthSuccess" },
+          "400": { "$ref": "#/components/responses/ErrorResponse" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      },
+      "delete": {
+        "tags": ["Autenticacao"],
+        "summary": "Apaga a propria conta e o historico vinculado",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": {
+                  "password": { "type": "string", "example": "1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkResponse" },
+          "400": { "$ref": "#/components/responses/ErrorResponse" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/auth/me/password": {
+      "patch": {
+        "tags": ["Autenticacao"],
+        "summary": "Altera a propria senha",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangePasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkResponse" },
+          "400": { "$ref": "#/components/responses/ErrorResponse" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/history": {
+      "get": {
+        "tags": ["Historico"],
+        "summary": "Lista o historico do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Lista de sessoes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/HistoryEntry" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      },
+      "post": {
+        "tags": ["Historico"],
+        "summary": "Salva uma sessao de desempenho",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/HistoryEntryInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sessao salva",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HistoryEntry" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ErrorResponse" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/history/import": {
+      "post": {
+        "tags": ["Historico"],
+        "summary": "Substitui o historico do usuario por uma lista importada",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["entries"],
+                "properties": {
+                  "entries": {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/HistoryEntryInput" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Historico importado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/HistoryEntry" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/history/insights": {
+      "get": {
+        "tags": ["Historico"],
+        "summary": "Calcula estatisticas agregadas do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Insights do historico",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Insights" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/assistant/chat": {
+      "post": {
+        "tags": ["Assistente"],
+        "summary": "Responde perguntas sobre as estatisticas do usuario",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["question"],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "maxLength": 800,
+                    "example": "Qual movimento eu mais erro?"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resposta do assistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["answer", "insights"],
+                  "properties": {
+                    "answer": { "type": "string" },
+                    "insights": { "$ref": "#/components/schemas/Insights" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ErrorResponse" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": ["Administracao"],
+        "summary": "Lista usuarios cadastrados",
+        "description": "Requer conta admin ou Deus.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["users"],
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/AdminUser" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/admin/users/{userId}": {
+      "delete": {
+        "tags": ["Administracao"],
+        "summary": "Remove uma conta abaixo da hierarquia do usuario autenticado",
+        "description": "Requer conta Deus ou ADM rank 1.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkResponse" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" },
+          "404": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/admin/users/{userId}/role": {
+      "patch": {
+        "tags": ["Administracao"],
+        "summary": "Altera o papel de um usuario abaixo da hierarquia do ator",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateUserRoleRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario atualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ErrorResponse" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" },
+          "404": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/admin/users/{userId}/history": {
+      "get": {
+        "tags": ["Administracao"],
+        "summary": "Consulta o historico de desempenho de um usuario",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserId" }],
+        "responses": {
+          "200": {
+            "description": "Historico do usuario",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminUserHistoryResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" },
+          "404": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      },
+      "delete": {
+        "tags": ["Administracao"],
+        "summary": "Apaga todo o historico de desempenho de um usuario",
+        "description": "Requer conta Deus.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserId" }],
+        "responses": {
+          "200": {
+            "description": "Historico apagado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok", "deleted"],
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "deleted": { "type": "integer", "minimum": 0 }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" },
+          "404": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/admin/invites": {
+      "get": {
+        "tags": ["Administracao"],
+        "summary": "Lista convites ativos",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Convites ativos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["invites"],
+                  "properties": {
+                    "invites": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Invite" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      },
+      "post": {
+        "tags": ["Administracao"],
+        "summary": "Cria convite de cadastro",
+        "description": "Admins criam convites standard/admin. Apenas Deus cria convite god.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["standard", "admin", "god"],
+                    "default": "standard"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Convite criado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["invite"],
+                  "properties": {
+                    "invite": { "$ref": "#/components/schemas/Invite" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/admin/performance/global": {
+      "get": {
+        "tags": ["Administracao"],
+        "summary": "Consulta desempenho global com filtros",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sex",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["male", "female"] }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["keyboard", "vr", "other"] }
+          },
+          { "name": "minAge", "in": "query", "schema": { "type": "number" } },
+          { "name": "maxAge", "in": "query", "schema": { "type": "number" } },
+          { "name": "minAccuracy", "in": "query", "schema": { "type": "number" } },
+          { "name": "maxAccuracy", "in": "query", "schema": { "type": "number" } },
+          { "name": "minReaction", "in": "query", "schema": { "type": "number" } },
+          { "name": "maxReaction", "in": "query", "schema": { "type": "number" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Desempenho global",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GlobalPerformanceResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
+          "403": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/ws": {
+      "get": {
+        "tags": ["WebSocket"],
+        "summary": "Canal WebSocket para sincronizar clientes da mesma sala",
+        "description": "Conecte via WebSocket em ws://host/ws?room=ABC123&role=player. O servidor envia room-ready, peer-joined e peer-left, e retransmite mensagens JSON recebidas para os outros clientes da sala.",
+        "parameters": [
+          {
+            "name": "room",
+            "in": "query",
+            "schema": { "type": "string", "maxLength": 18 }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": { "type": "string", "default": "player" }
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "Upgrade para WebSocket"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "HMAC token"
+      }
+    },
+    "parameters": {
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "example": "1"
+      }
+    },
+    "responses": {
+      "AuthSuccess": {
+        "description": "Sessao autenticada",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/AuthResponse" }
+          }
+        }
+      },
+      "OkResponse": {
+        "description": "Operacao concluida",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["ok"],
+              "properties": {
+                "ok": { "type": "boolean", "example": true }
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "description": "Erro da API",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["ok", "service", "timestamp", "database"],
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "service": { "type": "string", "example": "corpus-vr" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "database": {
+            "type": "object",
+            "properties": {
+              "provider": { "type": "string", "enum": ["json", "postgres"] },
+              "usingPostgres": { "type": "boolean" },
+              "connected": { "type": "boolean" },
+              "dbPath": { "type": "string" },
+              "error": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "RoomLinksResponse": {
+        "type": "object",
+        "required": ["room", "links"],
+        "properties": {
+          "room": { "type": "string", "example": "ABC123" },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["host", "landing", "game", "mirror"],
+              "properties": {
+                "host": { "type": "string", "example": "localhost:3000" },
+                "landing": { "type": "string", "format": "uri" },
+                "game": { "type": "string", "format": "uri" },
+                "mirror": { "type": "string", "format": "uri" }
+              }
+            }
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["name", "email", "birthDate", "password"],
+        "properties": {
+          "inviteToken": { "type": "string", "description": "Opcional apenas para a primeira conta Deus." },
+          "name": { "type": "string", "minLength": 2, "maxLength": 40, "example": "Jogador Teste" },
+          "email": { "type": "string", "format": "email", "example": "jogador@email.com" },
+          "birthDate": { "type": "string", "format": "date", "example": "2000-05-20" },
+          "sex": { "type": "string", "enum": ["male", "female"], "default": "male" },
+          "password": { "type": "string", "minLength": 4, "example": "1234" },
+          "confirmPassword": { "type": "string", "example": "1234" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string", "format": "email", "example": "jogador@email.com" },
+          "password": { "type": "string", "example": "1234" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": ["token", "user"],
+        "properties": {
+          "token": { "type": "string" },
+          "user": { "$ref": "#/components/schemas/User" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": ["id", "username", "displayName", "email", "role", "adminRank", "gender", "sex", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "example": "1" },
+          "username": { "type": "string", "example": "jogador.email.com" },
+          "displayName": { "type": "string", "example": "Jogador Teste" },
+          "email": { "type": "string", "format": "email", "example": "jogador@email.com" },
+          "age": { "type": "integer", "nullable": true, "example": 26 },
+          "birthDate": { "type": "string", "format": "date", "nullable": true },
+          "sex": { "type": "string", "enum": ["male", "female"] },
+          "gender": { "type": "string", "enum": ["male", "female"] },
+          "role": { "type": "string", "enum": ["user", "admin", "god"] },
+          "adminRank": { "type": "integer", "enum": [1, 2] },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AdminUser": {
+        "allOf": [
+          { "$ref": "#/components/schemas/User" },
+          {
+            "type": "object",
+            "properties": {
+              "historyCount": { "type": "integer", "minimum": 0 }
+            }
+          }
+        ]
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "required": ["displayName"],
+        "properties": {
+          "displayName": { "type": "string", "minLength": 2, "maxLength": 40 },
+          "birthDate": { "type": "string", "format": "date", "nullable": true }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": ["currentPassword", "newPassword", "confirmPassword"],
+        "properties": {
+          "currentPassword": { "type": "string" },
+          "newPassword": { "type": "string", "minLength": 4 },
+          "confirmPassword": { "type": "string", "minLength": 4 }
+        }
+      },
+      "UpdateUserRoleRequest": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": { "type": "string", "enum": ["user", "admin", "god"] },
+          "adminRank": { "type": "integer", "enum": [1, 2], "default": 2 },
+          "confirmationName": {
+            "type": "string",
+            "description": "Obrigatorio para promover para Deus; deve bater exatamente com o nome do usuario."
+          }
+        }
+      },
+      "Invite": {
+        "type": "object",
+        "required": ["id", "token", "type", "createdAt", "expiresAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "token": { "type": "string" },
+          "type": { "type": "string", "enum": ["standard", "admin", "god"] },
+          "createdBy": { "type": "string", "nullable": true },
+          "usedBy": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "usedAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "HistoryEntryInput": {
+        "type": "object",
+        "required": ["phase", "status"],
+        "properties": {
+          "id": { "type": "string", "maxLength": 80 },
+          "phase": { "type": "integer", "minimum": 1, "example": 1 },
+          "customMode": { "type": "boolean", "default": false },
+          "difficultyPhase": { "type": "integer", "minimum": 1, "example": 1 },
+          "status": { "type": "string", "enum": ["concluida", "derrota", "interrompida"] },
+          "livesLeft": { "oneOf": [{ "type": "number" }, { "type": "string", "enum": ["INF"] }] },
+          "enemyHits": { "type": "number", "minimum": 0 },
+          "enemyHitsNeeded": { "oneOf": [{ "type": "number" }, { "type": "string", "enum": ["INF"] }] },
+          "hits": { "type": "integer", "minimum": 0 },
+          "misses": { "type": "integer", "minimum": 0 },
+          "attempts": { "type": "integer", "minimum": 0 },
+          "accuracy": { "type": "number", "minimum": 0, "maximum": 100 },
+          "duration": { "type": "number", "minimum": 0, "description": "Duracao em segundos." },
+          "avgReaction": { "type": "number", "nullable": true, "description": "Tempo medio de reacao em segundos." },
+          "actions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ActionItem" }
+          },
+          "actionBreakdown": { "$ref": "#/components/schemas/ActionBreakdown" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "HistoryEntry": {
+        "allOf": [
+          { "$ref": "#/components/schemas/HistoryEntryInput" },
+          {
+            "type": "object",
+            "properties": {
+              "userId": { "type": "string", "nullable": true },
+              "playerName": { "type": "string", "nullable": true }
+            }
+          }
+        ]
+      },
+      "ActionItem": {
+        "type": "object",
+        "required": ["id", "phase", "expectedAction", "outcome", "correct", "source", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "maxLength": 80 },
+          "userId": { "type": "string", "nullable": true },
+          "playerName": { "type": "string", "nullable": true },
+          "phase": { "type": "integer", "minimum": 1 },
+          "expectedAction": { "$ref": "#/components/schemas/ActionType" },
+          "actualAction": {
+            "nullable": true,
+            "oneOf": [{ "$ref": "#/components/schemas/ActionType" }, { "type": "string" }]
+          },
+          "source": { "type": "string", "example": "keyboard" },
+          "outcome": { "type": "string", "enum": ["success", "miss", "timeout"] },
+          "correct": { "type": "boolean" },
+          "reactionTime": { "type": "number", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ActionType": {
+        "type": "string",
+        "enum": ["attack", "dodgeLeft", "dodgeRight", "duck", "jump"]
+      },
+      "ActionStats": {
+        "type": "object",
+        "required": ["attempts", "hits", "misses", "timeouts", "wrongActions", "accuracy", "avgReaction"],
+        "properties": {
+          "attempts": { "type": "integer", "minimum": 0 },
+          "hits": { "type": "integer", "minimum": 0 },
+          "misses": { "type": "integer", "minimum": 0 },
+          "timeouts": { "type": "integer", "minimum": 0 },
+          "wrongActions": { "type": "integer", "minimum": 0 },
+          "accuracy": { "type": "number", "minimum": 0, "maximum": 100 },
+          "avgReaction": { "type": "number", "nullable": true }
+        }
+      },
+      "AggregateActionStats": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ActionStats" },
+          {
+            "type": "object",
+            "properties": {
+              "timeoutRate": { "type": "number", "minimum": 0, "maximum": 100 },
+              "missRate": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          }
+        ]
+      },
+      "ActionBreakdown": {
+        "type": "object",
+        "properties": {
+          "attack": { "$ref": "#/components/schemas/ActionStats" },
+          "dodgeLeft": { "$ref": "#/components/schemas/ActionStats" },
+          "dodgeRight": { "$ref": "#/components/schemas/ActionStats" },
+          "duck": { "$ref": "#/components/schemas/ActionStats" },
+          "jump": { "$ref": "#/components/schemas/ActionStats" }
+        }
+      },
+      "AggregateActionBreakdown": {
+        "type": "object",
+        "properties": {
+          "attack": { "$ref": "#/components/schemas/AggregateActionStats" },
+          "dodgeLeft": { "$ref": "#/components/schemas/AggregateActionStats" },
+          "dodgeRight": { "$ref": "#/components/schemas/AggregateActionStats" },
+          "duck": { "$ref": "#/components/schemas/AggregateActionStats" },
+          "jump": { "$ref": "#/components/schemas/AggregateActionStats" }
+        }
+      },
+      "Insights": {
+        "type": "object",
+        "required": ["sampleSize", "totals", "byAction", "latestEntry"],
+        "properties": {
+          "sampleSize": { "type": "integer", "minimum": 0 },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "attempts": { "type": "integer", "minimum": 0 },
+              "hits": { "type": "integer", "minimum": 0 },
+              "misses": { "type": "integer", "minimum": 0 },
+              "timeouts": { "type": "integer", "minimum": 0 },
+              "overallAccuracy": { "type": "number" },
+              "overallAvgReaction": { "type": "number", "nullable": true }
+            }
+          },
+          "byAction": { "$ref": "#/components/schemas/AggregateActionBreakdown" },
+          "latestEntry": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/LatestEntry" }]
+          }
+        }
+      },
+      "LatestEntry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "phase": { "type": "integer" },
+          "status": { "type": "string", "enum": ["concluida", "derrota", "interrompida"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "accuracy": { "type": "number" },
+          "avgReaction": { "type": "number", "nullable": true },
+          "actionBreakdown": { "$ref": "#/components/schemas/ActionBreakdown" }
+        }
+      },
+      "AdminUserHistoryResponse": {
+        "type": "object",
+        "required": ["user", "history", "insights"],
+        "properties": {
+          "user": { "$ref": "#/components/schemas/User" },
+          "history": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/HistoryEntry" }
+          },
+          "insights": { "$ref": "#/components/schemas/Insights" }
+        }
+      },
+      "GlobalPerformanceResponse": {
+        "type": "object",
+        "required": ["filters", "summary", "byAction", "users"],
+        "properties": {
+          "filters": {
+            "type": "object",
+            "properties": {
+              "sex": { "type": "string" },
+              "source": { "type": "string" },
+              "minAge": { "type": "number", "nullable": true },
+              "maxAge": { "type": "number", "nullable": true },
+              "minAccuracy": { "type": "number", "nullable": true },
+              "maxAccuracy": { "type": "number", "nullable": true },
+              "minReaction": { "type": "number", "nullable": true },
+              "maxReaction": { "type": "number", "nullable": true }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "users": { "type": "integer" },
+              "sessions": { "type": "integer" },
+              "actions": { "type": "integer" },
+              "averageAccuracy": { "type": "number" },
+              "averageReaction": { "type": "number", "nullable": true }
+            }
+          },
+          "byAction": { "$ref": "#/components/schemas/AggregateActionBreakdown" },
+          "users": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/GlobalUserPerformance" }
+          }
+        }
+      },
+      "GlobalUserPerformance": {
+        "type": "object",
+        "properties": {
+          "user": { "$ref": "#/components/schemas/User" },
+          "sessions": { "type": "integer" },
+          "totals": { "$ref": "#/components/schemas/Insights/properties/totals" },
+          "byAction": { "$ref": "#/components/schemas/AggregateActionBreakdown" },
+          "latestEntry": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/LatestEntry" }]
+          }
+        }
+      }
+    }
+  }
+}
