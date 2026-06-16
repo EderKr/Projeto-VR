@@ -302,8 +302,8 @@ function safeUser(row = {}) {
 function validateNewUser(profile = {}) {
   const name = normalizeDisplayName(profile.name || profile.displayName);
   const email = normalizeEmail(profile.email);
-  const age = Number(profile.age);
-  const birthDate = normalizeBirthDate(profile.birthDate || profile.birth_date || "", { allowEmpty: true });
+  const birthDate = normalizeBirthDate(profile.birthDate || profile.birth_date || "", { allowEmpty: false });
+  const age = calculateAgeFromBirthDate(birthDate);
   const sex = normalizeGender(profile.sex || profile.gender);
   const passwordValue = String(profile.password || "");
   const confirmPasswordValue = String(profile.confirmPassword || "");
@@ -316,7 +316,7 @@ function validateNewUser(profile = {}) {
     throw new Error("Informe um e-mail valido.");
   }
   if (!Number.isInteger(age) || age < 1 || age > 120) {
-    throw new Error("Informe uma idade valida.");
+    throw new Error("Informe uma data de nascimento valida.");
   }
   if (confirmPasswordValue && passwordValue !== confirmPasswordValue) {
     throw new Error("A confirmacao de senha nao confere.");
@@ -329,7 +329,7 @@ function validateNewUser(profile = {}) {
     username: normalizedUsername,
     displayName: name,
     email,
-    age: birthDate ? calculateAgeFromBirthDate(birthDate) : age,
+    age,
     birthDate,
     sex,
     gender: sex,

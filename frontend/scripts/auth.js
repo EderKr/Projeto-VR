@@ -85,6 +85,8 @@ function setAuthMode(mode) {
     inviteEl.placeholder = bootstrapGod ? "dispensado para a primeira conta Deus" : "código do convite";
   }
 
+  updateRegisterAgePreview();
+
   setAuthMessage(
     isRegister
       ? (bootstrapGod ? "Como ainda não há conta Deus, esta conta será criada como Deus." : "Use o link de convite recebido para criar sua conta.")
@@ -110,6 +112,15 @@ function formatAgeLabel(user = {}) {
   const birthAge = calculateAgeFromBirthDate(user.birthDate);
   const age = birthAge == null ? user.age : birthAge;
   return age == null || Number.isNaN(Number(age)) ? "--" : `${age} anos`;
+}
+
+function updateRegisterAgePreview() {
+  const birthDateEl = document.getElementById("registerBirthDate");
+  const agePreviewEl = document.getElementById("registerAgePreview");
+  if (!birthDateEl || !agePreviewEl) return;
+
+  const age = calculateAgeFromBirthDate(birthDateEl.value);
+  agePreviewEl.textContent = age == null ? "--" : `${age} anos`;
 }
 
 function updateAccountPage() {
@@ -245,7 +256,7 @@ function getRegisterPayload() {
     inviteToken: getFieldValue("registerInvite"),
     name: getFieldValue("registerName"),
     email: getFieldValue("loginEmail"),
-    age: Number(getFieldValue("registerAge")),
+    birthDate: getFieldValue("registerBirthDate"),
     sex: getFieldValue("registerSex"),
     password: getFieldValue("loginPassword"),
     confirmPassword: getFieldValue("registerConfirmPassword")
@@ -274,6 +285,10 @@ async function submitAuth(mode = authState.mode) {
   }
   if (isRegister && !payload.inviteToken && !bootstrapGod) {
     setAuthMessage("Use um link de convite valido para se cadastrar.", "error");
+    return;
+  }
+  if (isRegister && !payload.birthDate) {
+    setAuthMessage("Informe sua data de nascimento.", "error");
     return;
   }
 
@@ -436,6 +451,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const accountPasswordForm = document.getElementById("accountPasswordForm");
   const accountBirthDate = document.getElementById("accountBirthDate");
   const accountAge = document.getElementById("accountAge");
+  const registerBirthDate = document.getElementById("registerBirthDate");
   const form = document.getElementById("loginForm");
   const inviteToken = getInviteFromUrl();
 
@@ -472,6 +488,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const age = calculateAgeFromBirthDate(accountBirthDate.value);
       accountAge.textContent = age == null ? "--" : `${age} anos`;
     });
+  }
+  if (registerBirthDate) {
+    registerBirthDate.addEventListener("input", updateRegisterAgePreview);
   }
   if (form) {
     form.addEventListener("submit", (event) => {

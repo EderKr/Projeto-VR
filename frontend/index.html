@@ -45,8 +45,12 @@
         <input id="loginEmail" name="email" type="email" maxlength="120" autocomplete="email" placeholder="seu@email.com" required />
 
         <div class="register-only" hidden>
-          <label for="registerAge">Idade</label>
-          <input id="registerAge" name="age" type="number" min="1" max="120" autocomplete="off" placeholder="idade" data-required="true" />
+          <label for="registerBirthDate">Data de nascimento</label>
+          <input id="registerBirthDate" name="birthDate" type="date" autocomplete="bday" data-required="true" />
+          <div class="register-age-preview">
+            <span>Idade atual</span>
+            <strong id="registerAgePreview">--</strong>
+          </div>
 
           <label for="registerSex">Sexo</label>
           <select id="registerSex" name="sex" autocomplete="sex" data-required="true">
@@ -213,7 +217,7 @@
 
   </main>
 
-  <script src="scripts/auth.js?v=20260616-account-page"></script>
+  <script src="scripts/auth.js?v=20260616-register-birthdate"></script>
   <script src="scripts/landing.js?v=20260616-stats-page"></script>
 </body>
 </html>
