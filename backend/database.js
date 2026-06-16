@@ -665,6 +665,25 @@ async function listPerformanceHistory() {
     .sort((a, b) => String(b.createdAt || b.created_at || "").localeCompare(String(a.createdAt || a.created_at || "")));
 }
 
+async function deletePerformanceHistoryByUser(userId) {
+  const normalizedUserId = String(userId || "");
+  if (!normalizedUserId) throw new Error("Usuario nao encontrado.");
+
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    const result = await pool.query("delete from performance_history where user_id = $1", [normalizedUserId]);
+    return Number(result.rowCount) || 0;
+  }
+
+  const db = readLocalDb();
+  const before = (db.performanceHistory || []).length;
+  db.performanceHistory = (db.performanceHistory || [])
+    .filter((entry) => String(entry.userId || entry.user_id || "") !== normalizedUserId);
+  const deleted = before - db.performanceHistory.length;
+  if (deleted > 0) writeLocalDb(db);
+  return deleted;
+}
+
 async function saveHistory(entry, user = null) {
   const payload = normalizeHistoryEntry({
     ...entry,
@@ -984,6 +1003,7 @@ module.exports = {
   authenticateUser,
   createInvite,
   createUser,
+  deletePerformanceHistoryByUser,
   deleteUserAccount,
   deleteUserById,
   getUserById,

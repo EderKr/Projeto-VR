@@ -1562,6 +1562,12 @@ body.landing-page {
   margin-top: 4px;
 }
 
+.performance-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .performance-global-actions {
   margin-bottom: 14px;
 }

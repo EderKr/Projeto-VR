@@ -125,7 +125,12 @@ function updateAccountPage() {
   if (loggedInEl) loggedInEl.hidden = !isLoggedIn();
   if (loggedOutEl) loggedOutEl.hidden = isLoggedIn();
 
-  if (!isLoggedIn()) return;
+  if (!isLoggedIn()) {
+    if (document.body.classList.contains("account-page")) {
+      window.location.replace("/");
+    }
+    return;
+  }
 
   if (emailEl) emailEl.textContent = authState.user.email || authState.user.username || "--";
   if (ageEl) ageEl.textContent = formatAgeLabel(authState.user);

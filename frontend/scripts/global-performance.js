@@ -71,6 +71,34 @@ async function fetchGlobalPerformance() {
   return parsed;
 }
 
+async function deleteUserPerformance(userId, userName) {
+  if (!isGod()) {
+    setGlobalPerformanceMessage("Somente contas Deus podem apagar estatísticas.", "error");
+    return;
+  }
+
+  const confirmed = window.confirm(`Apagar todas as estatísticas de ${userName || "este usuário"}? A conta continuará ativa.`);
+  if (!confirmed) return;
+
+  setGlobalPerformanceMessage("Apagando estatísticas...", "info");
+  try {
+    const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/history`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+      cache: "no-store"
+    });
+    const parsed = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(parsed.error || "Não foi possível apagar as estatísticas.");
+    }
+
+    setGlobalPerformanceMessage("Estatísticas apagadas.", "success");
+    await loadGlobalPerformance();
+  } catch (error) {
+    setGlobalPerformanceMessage(error.message || "Erro ao apagar estatísticas.", "error");
+  }
+}
+
 function renderSummary(payload = {}) {
   const summary = payload.summary || {};
   const summaryEl = document.getElementById("globalPerformanceSummary");
@@ -126,10 +154,13 @@ function renderUsers(payload = {}) {
     return;
   }
 
+  const canDeleteStats = typeof isGod === "function" && isGod();
+
   tbody.innerHTML = rows.map((row, index) => {
     const user = row.user || {};
     const totals = row.totals || {};
     const name = user.displayName || user.email || user.username || "Usuário";
+    const userId = user.id || "";
     return `
       <tr>
         <td>${escapeHtml(name)}</td>
@@ -139,7 +170,12 @@ function renderUsers(payload = {}) {
         <td>${totals.attempts || 0}</td>
         <td>${formatGlobalPercent(totals.overallAccuracy)}</td>
         <td>${formatGlobalSeconds(totals.overallAvgReaction)}</td>
-        <td><button class="landing-mini-button" type="button" data-performance-detail="${index}">Detalhes</button></td>
+        <td>
+          <div class="performance-row-actions">
+            <button class="landing-mini-button" type="button" data-performance-detail="${index}">Detalhes</button>
+            ${canDeleteStats && userId ? `<button class="landing-mini-button danger-button" type="button" data-performance-delete="${escapeHtml(userId)}" data-performance-name="${escapeHtml(name)}">Apagar estatísticas</button>` : ""}
+          </div>
+        </td>
       </tr>
       <tr class="performance-detail-row" data-performance-detail-row="${index}" hidden>
         <td colspan="8">${renderUserDetails(row)}</td>
@@ -153,6 +189,12 @@ function renderUsers(payload = {}) {
       if (!detailRow) return;
       detailRow.hidden = !detailRow.hidden;
       button.textContent = detailRow.hidden ? "Detalhes" : "Ocultar";
+    });
+  });
+
+  tbody.querySelectorAll("[data-performance-delete]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void deleteUserPerformance(button.dataset.performanceDelete, button.dataset.performanceName);
     });
   });
 }
@@ -206,3 +248,4 @@ document.addEventListener("DOMContentLoaded", () => {
 window.addEventListener("auth-state-change", () => {
   void loadGlobalPerformance();
 });
+

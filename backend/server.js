@@ -12,6 +12,7 @@ const {
   authenticateUser,
   createInvite,
   createUser,
+  deletePerformanceHistoryByUser,
   deleteUserAccount,
   deleteUserById,
   getInviteByToken,
@@ -1031,6 +1032,20 @@ async function handleAdminUserHistoryGet(req, res, userId) {
   });
 }
 
+async function handleAdminUserHistoryDelete(req, res, userId) {
+  const user = await requireGodUser(req, res);
+  if (!user) return;
+
+  const target = await getUserById(userId);
+  if (!target) {
+    sendJson(res, 404, { error: "Usuario nao encontrado." });
+    return;
+  }
+
+  const deleted = await deletePerformanceHistoryByUser(target.id);
+  sendJson(res, 200, { ok: true, deleted });
+}
+
 async function handleAdminInvitesGet(req, res) {
   const user = await requireAdminUser(req, res);
   if (!user) return;
@@ -1304,6 +1319,12 @@ const server = http.createServer((req, res) => {
   if (requestUrl.pathname.startsWith("/api/admin/users/") && requestUrl.pathname.endsWith("/history") && req.method === "GET") {
     const userId = decodeURIComponent(requestUrl.pathname.slice("/api/admin/users/".length, -"/history".length));
     handleAdminUserHistoryGet(req, res, userId).catch((error) => sendJson(res, 500, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/admin/users/") && requestUrl.pathname.endsWith("/history") && req.method === "DELETE") {
+    const userId = decodeURIComponent(requestUrl.pathname.slice("/api/admin/users/".length, -"/history".length));
+    handleAdminUserHistoryDelete(req, res, userId).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 
