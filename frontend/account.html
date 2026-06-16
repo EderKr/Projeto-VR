@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corpus VR | Conta</title>
+  <link rel="stylesheet" href="style.css?v=20260616-account-page" />
+</head>
+<body class="landing-page account-page">
+  <header class="landing-topbar">
+    <a class="landing-brand landing-brand-link" href="/">
+      <span class="landing-brand-mark" aria-hidden="true"></span>
+      <div>
+        <strong>Corpus VR</strong>
+        <span>Hub corporal</span>
+      </div>
+    </a>
+
+    <div class="landing-user-row">
+      <a class="landing-mini-button" href="/">In&iacute;cio</a>
+      <a class="landing-mini-button" href="/stats.html">Estat&iacute;sticas</a>
+      <a id="adminLink" class="landing-mini-button landing-admin-link" href="/admin" style="display: none;">Admin</a>
+      <a id="userBadge" class="user-badge landing-user-badge" href="/account.html" aria-live="polite" aria-label="Abrir conta"></a>
+    </div>
+  </header>
+
+  <main class="account-shell">
+    <section class="landing-panel account-panel" id="accountPanel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Conta</span>
+        <h1>Minha conta</h1>
+      </div>
+
+      <div id="accountLoggedOut" class="account-empty" hidden>
+        <p>Entre com sua conta para alterar seus dados.</p>
+        <a class="landing-primary-button" href="/">Entrar</a>
+      </div>
+
+      <div id="accountLoggedIn" hidden>
+        <form id="accountProfileForm" class="landing-auth-form account-form">
+          <div class="account-summary">
+            <div>
+              <span>E-mail</span>
+              <strong id="accountEmail">--</strong>
+            </div>
+            <div>
+              <span>Idade</span>
+              <strong id="accountAge">--</strong>
+            </div>
+          </div>
+
+          <label for="accountDisplayName">Nome de usu&aacute;rio</label>
+          <input id="accountDisplayName" name="displayName" type="text" minlength="2" maxlength="40" autocomplete="name" required />
+
+          <label for="accountBirthDate">Data de nascimento</label>
+          <input id="accountBirthDate" name="birthDate" type="date" autocomplete="bday" />
+
+          <div class="landing-actions account-actions">
+            <button id="accountSaveButton" class="landing-primary-button" type="submit">Salvar conta</button>
+            <a class="landing-secondary-button" href="/">Voltar</a>
+          </div>
+        </form>
+
+        <details class="account-password-details">
+          <summary>Alterar senha</summary>
+          <form id="accountPasswordForm" class="landing-auth-form account-form">
+            <label for="accountCurrentPassword">Senha atual</label>
+            <input id="accountCurrentPassword" name="currentPassword" type="password" minlength="4" autocomplete="current-password" />
+
+            <label for="accountNewPassword">Nova senha</label>
+            <input id="accountNewPassword" name="newPassword" type="password" minlength="4" autocomplete="new-password" />
+
+            <label for="accountConfirmPassword">Confirmar nova senha</label>
+            <input id="accountConfirmPassword" name="confirmPassword" type="password" minlength="4" autocomplete="new-password" />
+
+            <button id="accountPasswordButton" class="landing-primary-button account-full-button" type="submit">Atualizar senha</button>
+          </form>
+        </details>
+
+        <div class="account-danger-zone">
+          <button id="logoutButton" class="landing-secondary-button account-full-button" type="button">Sair</button>
+          <button id="deleteAccountButton" class="danger-button account-full-button" type="button">Apagar conta</button>
+        </div>
+
+        <p id="accountMessage" class="login-message landing-message" data-type="info">Atualize seus dados quando precisar.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="scripts/auth.js?v=20260616-account-page"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@ create table if not exists app_users (
   display_name text not null,
   email text,
   age integer,
+  birth_date date,
   sex text not null default 'male',
   role text not null default 'user',
   admin_rank integer not null default 2,

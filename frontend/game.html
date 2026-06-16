@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/aframe-extras@7.6.0/dist/aframe-extras.min.js"></script>
   <base href="/">
 
-  <link rel="stylesheet" href="/style.css?v=20260616-hide-pose-mobile-landscape" />
+  <link rel="stylesheet" href="/style.css?v=20260616-account-page" />
   <style>
     body,
     button,
@@ -37,9 +37,8 @@
 
   <button id="pauseMenuDesktopToggle" class="pause-icon-button" type="button" aria-label="Abrir menu de pausa">II</button>
   <a id="adminLink" class="logout-button admin-game-link" href="/admin" style="display: none;">Admin</a>
-  <button id="logoutButton" class="logout-button" type="button">Sair</button>
 
-  <div id="userBadge" class="user-badge" aria-live="polite"></div>
+  <a id="userBadge" class="user-badge" href="/account.html" aria-live="polite" aria-label="Abrir conta"></a>
 
   <section id="poseControlPanel" class="pose-control-panel" aria-label="Controle corporal">
     <div class="pose-control-header">
@@ -105,7 +104,6 @@
         <button id="registerButton" type="button">Usar convite</button>
       </div>
 
-      <button id="deleteAccountButton" class="danger-button account-delete-inline" type="button">Apagar minha conta</button>
 
       <p id="loginMessage" class="login-message" data-type="info">O histórico será salvo separadamente para cada usuário.</p>
     </form>
@@ -921,7 +919,7 @@
     </a-entity>
   </a-scene>
 
-  <script src="/scripts/auth.js?v=20260616-email-login-only"></script>
+  <script src="/scripts/auth.js?v=20260616-account-page"></script>
   <script src="/scripts/state.js?v=20260616-dwarf-sfx"></script>
   <script src="/scripts/ui.js?v=20260616-dwarf-enemy"></script>
   <script src="/scripts/gameplay.js?v=20260616-dwarf-sfx"></script>

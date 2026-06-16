@@ -34,7 +34,7 @@ function isGod() {
 }
 
 function setAuthMessage(message, type = "info") {
-  const messageEl = document.getElementById("loginMessage");
+  const messageEl = document.getElementById("loginMessage") || document.getElementById("accountMessage");
   if (!messageEl) return;
   messageEl.textContent = message || "";
   messageEl.dataset.type = type;
@@ -93,6 +93,46 @@ function setAuthMode(mode) {
   );
 }
 
+function calculateAgeFromBirthDate(value) {
+  const raw = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const [year, month, day] = raw.split("-").map(Number);
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const hadBirthdayThisYear =
+    today.getMonth() + 1 > month
+    || (today.getMonth() + 1 === month && today.getDate() >= day);
+  if (!hadBirthdayThisYear) age -= 1;
+  return Number.isFinite(age) && age >= 0 ? age : null;
+}
+
+function formatAgeLabel(user = {}) {
+  const birthAge = calculateAgeFromBirthDate(user.birthDate);
+  const age = birthAge == null ? user.age : birthAge;
+  return age == null || Number.isNaN(Number(age)) ? "--" : `${age} anos`;
+}
+
+function updateAccountPage() {
+  const loggedInEl = document.getElementById("accountLoggedIn");
+  const loggedOutEl = document.getElementById("accountLoggedOut");
+  const emailEl = document.getElementById("accountEmail");
+  const ageEl = document.getElementById("accountAge");
+  const nameEl = document.getElementById("accountDisplayName");
+  const birthDateEl = document.getElementById("accountBirthDate");
+
+  if (!loggedInEl && !loggedOutEl) return;
+
+  if (loggedInEl) loggedInEl.hidden = !isLoggedIn();
+  if (loggedOutEl) loggedOutEl.hidden = isLoggedIn();
+
+  if (!isLoggedIn()) return;
+
+  if (emailEl) emailEl.textContent = authState.user.email || authState.user.username || "--";
+  if (ageEl) ageEl.textContent = formatAgeLabel(authState.user);
+  if (nameEl) nameEl.value = authState.user.displayName || "";
+  if (birthDateEl) birthDateEl.value = authState.user.birthDate || "";
+}
+
 function updateAuthUI() {
   const overlay = document.getElementById("loginOverlay");
   const userBadge = document.getElementById("userBadge");
@@ -112,7 +152,7 @@ function updateAuthUI() {
   }
 
   if (logoutButton) {
-    logoutButton.style.display = isLoggedIn() ? "block" : "none";
+    logoutButton.style.display = isLoggedIn() ? "inline-flex" : "none";
   }
 
   if (deleteAccountButton) {
@@ -128,6 +168,8 @@ function updateAuthUI() {
       ? "Login confirmado. Você já pode iniciar o jogo."
       : "Entre com sua conta ou use um convite para se cadastrar.";
   }
+
+  updateAccountPage();
 
   window.dispatchEvent(new CustomEvent("auth-state-change", {
     detail: {
@@ -255,6 +297,80 @@ async function submitAuth(mode = authState.mode) {
   }
 }
 
+async function submitAccountProfile() {
+  if (!isLoggedIn()) {
+    setAuthMessage("Entre antes de alterar a conta.", "error");
+    return;
+  }
+
+  const displayName = getFieldValue("accountDisplayName");
+  const birthDate = getFieldValue("accountBirthDate");
+
+  if (displayName.length < 2) {
+    setAuthMessage("Informe um nome com pelo menos 2 caracteres.", "error");
+    return;
+  }
+
+  setAuthMessage("Salvando conta...", "info");
+
+  try {
+    const response = await fetch("/api/auth/me", {
+      method: "PATCH",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ displayName, birthDate })
+    });
+    const parsed = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(parsed.error || "Nao foi possivel atualizar a conta.");
+    }
+
+    saveAuthSession(parsed);
+    setAuthMessage("Conta atualizada com sucesso.", "success");
+  } catch (error) {
+    setAuthMessage(error.message || "Erro ao atualizar conta.", "error");
+  }
+}
+
+async function submitPasswordChange() {
+  if (!isLoggedIn()) {
+    setAuthMessage("Entre antes de alterar a senha.", "error");
+    return;
+  }
+
+  const currentPassword = getFieldValue("accountCurrentPassword");
+  const newPassword = getFieldValue("accountNewPassword");
+  const confirmPassword = getFieldValue("accountConfirmPassword");
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    setAuthMessage("Preencha todos os campos de senha.", "error");
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    setAuthMessage("A confirmacao da nova senha nao confere.", "error");
+    return;
+  }
+
+  setAuthMessage("Atualizando senha...", "info");
+
+  try {
+    const response = await fetch("/api/auth/me/password", {
+      method: "PATCH",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+    });
+    const parsed = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(parsed.error || "Nao foi possivel atualizar a senha.");
+    }
+
+    const form = document.getElementById("accountPasswordForm");
+    if (form) form.reset();
+    setAuthMessage("Senha atualizada com sucesso.", "success");
+  } catch (error) {
+    setAuthMessage(error.message || "Erro ao atualizar senha.", "error");
+  }
+}
+
 async function validateStoredSession() {
   if (!authState.token) {
     updateAuthUI();
@@ -311,6 +427,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const registerButton = document.getElementById("registerButton");
   const logoutButton = document.getElementById("logoutButton");
   const deleteAccountButton = document.getElementById("deleteAccountButton");
+  const accountProfileForm = document.getElementById("accountProfileForm");
+  const accountPasswordForm = document.getElementById("accountPasswordForm");
+  const accountBirthDate = document.getElementById("accountBirthDate");
+  const accountAge = document.getElementById("accountAge");
   const form = document.getElementById("loginForm");
   const inviteToken = getInviteFromUrl();
 
@@ -330,6 +450,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   if (logoutButton) logoutButton.addEventListener("click", clearAuthSession);
   if (deleteAccountButton) deleteAccountButton.addEventListener("click", deleteOwnAccount);
+  if (accountProfileForm) {
+    accountProfileForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitAccountProfile();
+    });
+  }
+  if (accountPasswordForm) {
+    accountPasswordForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitPasswordChange();
+    });
+  }
+  if (accountBirthDate && accountAge) {
+    accountBirthDate.addEventListener("input", () => {
+      const age = calculateAgeFromBirthDate(accountBirthDate.value);
+      accountAge.textContent = age == null ? "--" : `${age} anos`;
+    });
+  }
   if (form) {
     form.addEventListener("submit", (event) => {
       event.preventDefault();

@@ -456,6 +456,11 @@ html, body {
   pointer-events: none;
 }
 
+.user-badge[href] {
+  pointer-events: auto;
+  text-decoration: none;
+}
+
 .logout-button {
   position: fixed;
   top: 12px;
@@ -701,6 +706,7 @@ body.landing-page {
   max-width: min(260px, 42vw);
   min-height: 40px;
   align-items: center;
+  text-decoration: none;
 }
 
 .landing-logout {
@@ -834,6 +840,10 @@ body.landing-page {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.landing-auth-form .landing-actions {
+  margin-top: 18px;
+}
+
 .landing-primary-button,
 .landing-secondary-button,
 .landing-tool-button,
@@ -860,6 +870,88 @@ body.landing-page {
 .landing-mini-button {
   background: rgba(255, 255, 255, 0.08);
   font-weight: 900;
+}
+
+.account-shell {
+  width: min(760px, calc(100% - 32px));
+  margin: 22px auto 34px;
+}
+
+.account-panel {
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.account-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.account-summary div,
+.account-password-details,
+.account-danger-zone,
+.account-empty {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 14px;
+}
+
+.account-summary span {
+  display: block;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.84rem;
+}
+
+.account-summary strong {
+  display: block;
+  margin-top: 6px;
+  color: #fff;
+  font-size: 1.08rem;
+  overflow-wrap: anywhere;
+}
+
+.account-password-details,
+.account-danger-zone {
+  margin-top: 14px;
+}
+
+.account-password-details summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: #ffe8b6;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.account-password-details[open] summary {
+  margin-bottom: 6px;
+}
+
+.account-full-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+}
+
+.account-danger-zone {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.account-empty {
+  display: grid;
+  gap: 14px;
+}
+
+.account-empty p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .landing-tool-button {
@@ -1627,7 +1719,9 @@ body.landing-page {
   }
 
   .landing-mirror-actions,
-  .landing-pose-grid {
+  .landing-pose-grid,
+  .account-summary,
+  .account-danger-zone {
     grid-template-columns: 1fr;
   }
 

@@ -22,6 +22,8 @@ const {
   listPerformanceHistory,
   listUsers,
   saveHistory,
+  updateOwnPassword,
+  updateOwnProfile,
   updateUserRole,
   useInvite,
   replaceHistory
@@ -962,6 +964,22 @@ async function handleMe(req, res) {
   sendJson(res, 200, { user });
 }
 
+async function handleUpdateMe(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const body = await collectRequestBody(req);
+  const updatedUser = await updateOwnProfile(user.id, body);
+  sendAuthResponse(res, updatedUser);
+}
+
+async function handleUpdatePassword(req, res) {
+  const user = await requireAuthenticatedUser(req, res);
+  if (!user) return;
+  const body = await collectRequestBody(req);
+  await updateOwnPassword(user.id, body.currentPassword, body.newPassword, body.confirmPassword);
+  sendJson(res, 200, { ok: true });
+}
+
 async function handleDeleteMe(req, res) {
   const user = await requireAuthenticatedUser(req, res);
   if (!user) return;
@@ -1249,6 +1267,16 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/api/auth/me" && req.method === "GET") {
     handleMe(req, res).catch((error) => sendJson(res, 401, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/me" && req.method === "PATCH") {
+    handleUpdateMe(req, res).catch((error) => sendJson(res, 400, { error: error.message }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/auth/me/password" && req.method === "PATCH") {
+    handleUpdatePassword(req, res).catch((error) => sendJson(res, 400, { error: error.message }));
     return;
   }
 

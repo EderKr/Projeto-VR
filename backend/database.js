@@ -57,6 +57,7 @@ async function ensurePostgresSchema() {
       display_name text not null,
       email text,
       age integer,
+      birth_date date,
       sex text not null default 'male',
       role text not null default 'user',
       admin_rank integer not null default 2,
@@ -102,6 +103,7 @@ async function ensurePostgresSchema() {
     alter table app_users add column if not exists gender text not null default 'male';
     alter table app_users add column if not exists email text;
     alter table app_users add column if not exists age integer;
+    alter table app_users add column if not exists birth_date date;
     alter table app_users add column if not exists sex text not null default 'male';
     alter table app_users add column if not exists role text not null default 'user';
     alter table app_users add column if not exists admin_rank integer not null default 2;
@@ -189,6 +191,52 @@ function normalizeDisplayName(username) {
   return String(username || "Jogador").trim().slice(0, 40) || "Jogador";
 }
 
+function normalizeBirthDate(value, { allowEmpty = true } = {}) {
+  const raw = String(value || "").trim();
+  if (!raw) return allowEmpty ? null : "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    throw new Error("Informe uma data de nascimento valida.");
+  }
+
+  const [year, month, day] = raw.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) {
+    throw new Error("Informe uma data de nascimento valida.");
+  }
+
+  const today = new Date();
+  const todayUtc = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  if (date > todayUtc) {
+    throw new Error("A data de nascimento nao pode ser futura.");
+  }
+
+  const age = calculateAgeFromBirthDate(raw);
+  if (age > 120) {
+    throw new Error("Informe uma data de nascimento valida.");
+  }
+
+  return raw;
+}
+
+function calculateAgeFromBirthDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const [year, month, day] = raw.split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const hadBirthdayThisYear =
+    today.getMonth() + 1 > month
+    || (today.getMonth() + 1 === month && today.getDate() >= day);
+  if (!hadBirthdayThisYear) age -= 1;
+  return Math.max(0, age);
+}
+
 function normalizeGender(value) {
   return String(value || "").trim().toLowerCase() === "female" ? "female" : "male";
 }
@@ -216,6 +264,8 @@ function migrateLocalDb(db) {
     if (!user.email) user.email = user.username;
     if (!user.sex) user.sex = user.gender || "male";
     if (!user.gender) user.gender = normalizeGender(user.sex);
+    if (!user.birth_date && user.birthDate) user.birth_date = user.birthDate;
+    if (user.birth_date) user.age = calculateAgeFromBirthDate(user.birth_date);
     if (!user.role) user.role = "user";
     if (!user.admin_rank && !user.adminRank) user.admin_rank = 2;
   }
@@ -230,12 +280,17 @@ function createPasswordHash(password, salt = crypto.randomBytes(16).toString("he
 
 function safeUser(row = {}) {
   if (!row) return null;
+  const rawBirthDate = row.birth_date || row.birthDate || null;
+  const birthDate = rawBirthDate instanceof Date
+    ? rawBirthDate.toISOString().slice(0, 10)
+    : (rawBirthDate ? String(rawBirthDate).slice(0, 10) : null);
   return {
     id: String(row.id),
     username: row.username,
     displayName: row.display_name || row.displayName || row.username,
     email: row.email || row.username,
-    age: row.age == null ? null : Number(row.age),
+    age: birthDate ? calculateAgeFromBirthDate(birthDate) : (row.age == null ? null : Number(row.age)),
+    birthDate,
     sex: normalizeGender(row.sex || row.gender),
     gender: normalizeGender(row.gender || row.sex),
     role: normalizeRole(row.role),
@@ -248,6 +303,7 @@ function validateNewUser(profile = {}) {
   const name = normalizeDisplayName(profile.name || profile.displayName);
   const email = normalizeEmail(profile.email);
   const age = Number(profile.age);
+  const birthDate = normalizeBirthDate(profile.birthDate || profile.birth_date || "", { allowEmpty: true });
   const sex = normalizeGender(profile.sex || profile.gender);
   const passwordValue = String(profile.password || "");
   const confirmPasswordValue = String(profile.confirmPassword || "");
@@ -273,7 +329,8 @@ function validateNewUser(profile = {}) {
     username: normalizedUsername,
     displayName: name,
     email,
-    age,
+    age: birthDate ? calculateAgeFromBirthDate(birthDate) : age,
+    birthDate,
     sex,
     gender: sex,
     password: passwordValue
@@ -357,7 +414,7 @@ async function getUserById(userId) {
 
   const pool = await ensurePostgresSchema();
   if (pool) {
-    const { rows } = await pool.query("select id, username, display_name, email, age, sex, role, admin_rank, gender, created_at from app_users where id = $1 limit 1", [id]);
+    const { rows } = await pool.query("select id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at from app_users where id = $1 limit 1", [id]);
     return safeUser(rows[0]);
   }
 
@@ -379,10 +436,10 @@ async function createUser(profile = {}, invite = null) {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(
-      `insert into app_users (username, display_name, email, age, sex, role, admin_rank, gender, password_hash, password_salt)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       returning id, username, display_name, email, age, sex, role, admin_rank, gender, created_at`,
-      [valid.username, valid.displayName, valid.email, valid.age, valid.sex, role, 2, valid.gender, hash, salt]
+      `insert into app_users (username, display_name, email, age, birth_date, sex, role, admin_rank, gender, password_hash, password_salt)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at`,
+      [valid.username, valid.displayName, valid.email, valid.age, valid.birthDate, valid.sex, role, 2, valid.gender, hash, salt]
     );
     return safeUser(rows[0]);
   }
@@ -395,6 +452,7 @@ async function createUser(profile = {}, invite = null) {
     display_name: valid.displayName,
     email: valid.email,
     age: valid.age,
+    birth_date: valid.birthDate,
     sex: valid.sex,
     role,
     admin_rank: 2,
@@ -477,6 +535,81 @@ async function deleteUserById(userId) {
   return true;
 }
 
+async function updateOwnProfile(userId, profile = {}) {
+  const displayName = normalizeDisplayName(profile.displayName || profile.name);
+  const birthDate = normalizeBirthDate(profile.birthDate || profile.birth_date || "", { allowEmpty: true });
+  const age = birthDate ? calculateAgeFromBirthDate(birthDate) : null;
+
+  if (displayName.length < 2) {
+    throw new Error("Informe um nome com pelo menos 2 caracteres.");
+  }
+
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    const { rows } = await pool.query(
+      `update app_users
+       set display_name = $2,
+           birth_date = $3,
+           age = $4
+       where id = $1
+       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at`,
+      [String(userId), displayName, birthDate, age]
+    );
+    if (!rows[0]) throw new Error("Usuario nao encontrado.");
+    return safeUser(rows[0]);
+  }
+
+  const db = readLocalDb();
+  const user = (db.users || []).find((item) => String(item.id) === String(userId));
+  if (!user) throw new Error("Usuario nao encontrado.");
+  user.display_name = displayName;
+  user.birth_date = birthDate;
+  user.age = age;
+  writeLocalDb(db);
+  return safeUser(user);
+}
+
+async function updateOwnPassword(userId, currentPassword, newPassword, confirmPassword) {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("Usuario nao encontrado.");
+  }
+
+  const currentPasswordValue = String(currentPassword || "");
+  const newPasswordValue = String(newPassword || "");
+  const confirmPasswordValue = String(confirmPassword || "");
+
+  if (!currentPasswordValue) {
+    throw new Error("Informe sua senha atual.");
+  }
+  if (newPasswordValue.length < 4) {
+    throw new Error("A nova senha precisa ter pelo menos 4 caracteres.");
+  }
+  if (newPasswordValue !== confirmPasswordValue) {
+    throw new Error("A confirmacao da nova senha nao confere.");
+  }
+
+  await authenticateUser(user.email || user.username, currentPasswordValue);
+  const { hash, salt } = createPasswordHash(newPasswordValue);
+
+  const pool = await ensurePostgresSchema();
+  if (pool) {
+    await pool.query(
+      "update app_users set password_hash = $2, password_salt = $3 where id = $1",
+      [String(userId), hash, salt]
+    );
+    return true;
+  }
+
+  const db = readLocalDb();
+  const localUser = (db.users || []).find((item) => String(item.id) === String(userId));
+  if (!localUser) throw new Error("Usuario nao encontrado.");
+  localUser.password_hash = hash;
+  localUser.password_salt = salt;
+  writeLocalDb(db);
+  return true;
+}
+
 async function updateUserRole(userId, role, adminRank = 2) {
   const normalizedRole = normalizeRole(role);
   const normalizedRank = normalizeAdminRank(adminRank);
@@ -487,7 +620,7 @@ async function updateUserRole(userId, role, adminRank = 2) {
       `update app_users
        set role = $2, admin_rank = $3
        where id = $1
-       returning id, username, display_name, email, age, sex, role, admin_rank, gender, created_at`,
+       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at`,
       [String(userId), normalizedRole, normalizedRank]
     );
     if (!rows[0]) throw new Error("Usuario nao encontrado.");
@@ -800,7 +933,7 @@ async function listUsers() {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(`
-      select u.id, u.username, u.display_name, u.email, u.age, u.sex, u.role, u.admin_rank, u.gender, u.created_at,
+      select u.id, u.username, u.display_name, u.email, u.age, u.birth_date, u.sex, u.role, u.admin_rank, u.gender, u.created_at,
         count(h.id)::int as history_count
       from app_users u
       left join performance_history h on h.user_id = u.id
@@ -861,6 +994,8 @@ module.exports = {
   listPerformanceHistory,
   listUsers,
   saveHistory,
+  updateOwnPassword,
+  updateOwnProfile,
   updateUserRole,
   useInvite,
   replaceHistory
