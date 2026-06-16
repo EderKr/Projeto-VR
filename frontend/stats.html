@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corpus VR | Meus dados</title>
+  <link rel="stylesheet" href="/style.css?v=20260616-instructions-wide" />
+</head>
+<body class="landing-page landing-stats-page">
+  <header class="landing-topbar">
+    <a class="landing-brand landing-brand-link" href="/" aria-label="Ir para o início">
+      <span class="landing-brand-mark" aria-hidden="true"></span>
+      <div>
+        <strong>Corpus VR</strong>
+        <span>Meus dados</span>
+      </div>
+    </a>
+
+    <div class="landing-user-row">
+      <a id="adminLink" class="landing-mini-button landing-admin-link" href="/admin" style="display: none;">Admin</a>
+      <div id="userBadge" class="user-badge landing-user-badge" aria-live="polite"></div>
+      <button id="deleteAccountButton" class="logout-button landing-logout danger-button" type="button">Apagar conta</button>
+      <button id="logoutButton" class="logout-button landing-logout" type="button">Sair</button>
+    </div>
+  </header>
+
+  <main class="landing-grid landing-stats-grid">
+    <section class="landing-panel landing-stats-panel">
+      <div class="landing-section-head row">
+        <div>
+          <span class="landing-kicker">Estatísticas</span>
+          <h1>Desempenho</h1>
+        </div>
+        <button id="refreshStatsButton" class="landing-mini-button" type="button">Atualizar</button>
+      </div>
+
+      <div class="landing-stat-grid">
+        <div class="landing-stat-card">
+          <span>Ações</span>
+          <strong id="statAttempts">0</strong>
+        </div>
+        <div class="landing-stat-card">
+          <span>Precisão</span>
+          <strong id="statAccuracy">0%</strong>
+        </div>
+        <div class="landing-stat-card">
+          <span>Reação média</span>
+          <strong id="statReaction">--</strong>
+        </div>
+        <div class="landing-stat-card">
+          <span>Sessões</span>
+          <strong id="statSessions">0</strong>
+        </div>
+      </div>
+
+      <div id="statsSummary" class="landing-stats-summary">Entre para carregar seus dados.</div>
+    </section>
+
+    <section class="landing-panel landing-chat-panel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Chat</span>
+        <h2>Perguntar sobre meus dados</h2>
+      </div>
+
+      <div id="chatTranscript" class="landing-chat-transcript" aria-live="polite">
+        <div class="landing-chat-message assistant">Entre e pergunte algo como: qual movimento eu erro mais?</div>
+      </div>
+
+      <form id="statsChatForm" class="landing-chat-form">
+        <input id="statsChatInput" type="text" autocomplete="off" placeholder="Pergunte sobre sua precisão, reação ou erros" />
+        <button class="landing-primary-button" type="submit">Enviar</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/scripts/auth.js?v=20260616-email-login-only"></script>
+  <script src="/scripts/landing.js?v=20260616-stats-page"></script>
+</body>
+</html>

@@ -160,6 +160,7 @@
   }
 
   function resetStats() {
+    if (!statAttempts || !statAccuracy || !statReaction || !statSessions || !statsSummary) return;
     statAttempts.textContent = "0";
     statAccuracy.textContent = "0%";
     statReaction.textContent = "--";
@@ -187,6 +188,7 @@
 
   async function loadStats() {
     setSessionStatus();
+    if (!statAttempts || !statAccuracy || !statReaction || !statSessions || !statsSummary) return;
     if (!isSessionReady()) {
       resetStats();
       return;
@@ -220,6 +222,7 @@
   }
 
   function appendChatMessage(role, text) {
+    if (!chatTranscript) return null;
     const message = document.createElement("div");
     message.className = `landing-chat-message ${role}`;
     message.textContent = text;
@@ -236,6 +239,7 @@
 
     appendChatMessage("user", question);
     const pending = appendChatMessage("assistant", "Lendo suas estatísticas...");
+    if (!pending) return;
 
     try {
       const response = await fetch("/api/assistant/chat", {
@@ -624,6 +628,7 @@
     if (statsChatForm) {
       statsChatForm.addEventListener("submit", (event) => {
         event.preventDefault();
+        if (!statsChatInput) return;
         const question = statsChatInput.value.trim();
         if (!question) return;
         statsChatInput.value = "";

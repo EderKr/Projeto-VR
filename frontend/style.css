@@ -716,6 +716,9 @@ body.landing-page {
 .landing-grid {
   display: grid;
   grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr) minmax(340px, 1fr);
+  grid-template-areas:
+    "auth launch camera"
+    "auth instructions instructions";
   gap: 16px;
   width: min(1380px, calc(100% - 32px));
   margin: 22px auto 34px;
@@ -731,12 +734,27 @@ body.landing-page {
 }
 
 .landing-auth-panel {
+  grid-area: auth;
+  order: 1;
+}
+
+.landing-launch-panel {
+  grid-area: launch;
+  order: 2;
+}
+
+.landing-camera-panel {
+  grid-area: camera;
+  order: 3;
+}
+
+.landing-chat-panel {
   grid-row: span 2;
 }
 
-.landing-camera-panel,
-.landing-chat-panel {
-  grid-row: span 2;
+.landing-instructions-panel {
+  grid-area: instructions;
+  order: 4;
 }
 
 .landing-section-head {
@@ -1059,6 +1077,78 @@ body.landing-page {
   color: rgba(255, 255, 255, 0.86);
   line-height: 1.45;
   padding: 12px;
+}
+
+.landing-instructions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.landing-instruction-block {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 13px;
+}
+
+.landing-instruction-block h3 {
+  margin: 0 0 7px;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.landing-instruction-block p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.landing-key-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.landing-key-grid span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.landing-key-grid kbd {
+  min-width: 34px;
+  border: 1px solid rgba(242, 140, 40, 0.36);
+  border-radius: 6px;
+  background: rgba(242, 140, 40, 0.14);
+  color: #ffe8b6;
+  font-family: Arial, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.landing-stats-grid {
+  grid-template-columns: minmax(320px, 0.8fr) minmax(420px, 1.2fr);
+  max-width: 1120px;
+}
+
+.landing-stats-page .landing-stats-panel,
+.landing-stats-page .landing-chat-panel {
+  grid-row: auto;
+}
+
+.landing-stats-status {
+  margin-bottom: 12px;
 }
 
 .landing-chat-panel {
@@ -1454,6 +1544,31 @@ body.landing-page {
 @media (max-width: 1120px) {
   .landing-grid {
     grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);
+    grid-template-areas:
+      "auth launch"
+      "auth camera"
+      "instructions instructions";
+  }
+
+  .landing-auth-panel {
+    grid-area: auth;
+  }
+
+  .landing-launch-panel {
+    grid-area: launch;
+  }
+
+  .landing-camera-panel {
+    grid-area: camera;
+  }
+
+  .landing-instructions-panel {
+    grid-area: instructions;
+  }
+
+  .landing-stats-grid {
+    grid-template-columns: 1fr;
+    max-width: 760px;
   }
 
   .landing-chat-panel {
@@ -1478,8 +1593,23 @@ body.landing-page {
 
   .landing-grid {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "auth"
+      "launch"
+      "camera"
+      "instructions";
     width: min(100% - 24px, 620px);
     margin-top: 14px;
+  }
+
+  .landing-auth-panel { grid-area: auth; }
+  .landing-launch-panel { grid-area: launch; }
+  .landing-camera-panel { grid-area: camera; }
+  .landing-instructions-panel { grid-area: instructions; }
+
+  .landing-instructions-grid,
+  .landing-key-grid {
+    grid-template-columns: 1fr;
   }
 
   .landing-actions,

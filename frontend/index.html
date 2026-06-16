@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Corpus VR | Início</title>
-  <link rel="stylesheet" href="style.css?v=20260612-accents" />
+  <link rel="stylesheet" href="style.css?v=20260616-instructions-wide" />
 </head>
 <body class="landing-page">
   <header class="landing-topbar">
@@ -17,6 +17,7 @@
     </div>
 
     <div class="landing-user-row">
+      <a class="landing-mini-button" href="/stats.html">Estatísticas</a>
       <a id="adminLink" class="landing-mini-button landing-admin-link" href="/admin" style="display: none;">Admin</a>
       <div id="userBadge" class="user-badge landing-user-badge" aria-live="polite"></div>
       <button id="deleteAccountButton" class="logout-button landing-logout danger-button" type="button">Apagar conta</button>
@@ -116,6 +117,46 @@
       </div>
     </section>
 
+    <section class="landing-panel landing-instructions-panel">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Instruções</span>
+        <h2>Como jogar</h2>
+      </div>
+
+      <div class="landing-instructions-grid">
+        <article class="landing-instruction-block">
+          <h3>Antes de começar</h3>
+          <p>Calibre a cabeça antes da partida. A calibração define sua posição neutra e ajuda o jogo a entender agachar, pular, desviar e atacar corretamente.</p>
+        </article>
+
+        <article class="landing-instruction-block">
+          <h3>Durante a luta</h3>
+          <p>Observe o ataque do inimigo. Incline o corpo para os lados para desviar, agache quando o golpe vier alto e pule quando o ataque vier baixo. Para atacar, dê uma cabeçada quando o inimigo ficar vulnerável.</p>
+        </article>
+
+        <article class="landing-instruction-block">
+          <h3>Teclado</h3>
+          <div class="landing-key-grid" aria-label="Controles de teclado">
+            <span><kbd>←</kbd> desviar para a esquerda</span>
+            <span><kbd>→</kbd> desviar para a direita</span>
+            <span><kbd>↓</kbd> agachar</span>
+            <span><kbd>Espaço</kbd> pular</span>
+            <span><kbd>↑</kbd> atacar</span>
+          </div>
+        </article>
+
+        <article class="landing-instruction-block">
+          <h3>Modo personalizado</h3>
+          <p>No jogo, abra o menu de personalizar partida para escolher o inimigo, ajustar vidas, definir quantos ataques são necessários para vencer e ativar valores infinitos quando quiser treinar sem limite.</p>
+        </article>
+
+        <article class="landing-instruction-block">
+          <h3>Histórico</h3>
+          <p>Ao jogar conectado, suas partidas são salvas no histórico. Ele mostra ações, acertos, erros, precisão e reação média para acompanhar sua evolução.</p>
+        </article>
+      </div>
+    </section>
+
     <section class="landing-panel landing-camera-panel">
       <div class="landing-section-head">
         <span class="landing-kicker">Visão computacional</span>
@@ -172,55 +213,9 @@
       </div>
     </section>
 
-    <section class="landing-panel landing-stats-panel">
-      <div class="landing-section-head row">
-        <div>
-          <span class="landing-kicker">Estatísticas</span>
-          <h2>Desempenho</h2>
-        </div>
-        <button id="refreshStatsButton" class="landing-mini-button" type="button">Atualizar</button>
-      </div>
-
-      <div class="landing-stat-grid">
-        <div class="landing-stat-card">
-          <span>Ações</span>
-          <strong id="statAttempts">0</strong>
-        </div>
-        <div class="landing-stat-card">
-          <span>Precisão</span>
-          <strong id="statAccuracy">0%</strong>
-        </div>
-        <div class="landing-stat-card">
-          <span>Reação média</span>
-          <strong id="statReaction">--</strong>
-        </div>
-        <div class="landing-stat-card">
-          <span>Sessões</span>
-          <strong id="statSessions">0</strong>
-        </div>
-      </div>
-
-      <div id="statsSummary" class="landing-stats-summary">Entre para carregar seus dados.</div>
-    </section>
-
-    <section class="landing-panel landing-chat-panel">
-      <div class="landing-section-head">
-        <span class="landing-kicker">Chat</span>
-        <h2>Perguntar sobre meus dados</h2>
-      </div>
-
-      <div id="chatTranscript" class="landing-chat-transcript" aria-live="polite">
-        <div class="landing-chat-message assistant">Entre e pergunte algo como: qual movimento eu erro mais?</div>
-      </div>
-
-      <form id="statsChatForm" class="landing-chat-form">
-        <input id="statsChatInput" type="text" autocomplete="off" placeholder="Pergunte sobre sua precisão, reação ou erros" />
-        <button class="landing-primary-button" type="submit">Enviar</button>
-      </form>
-    </section>
   </main>
 
   <script src="scripts/auth.js?v=20260616-email-login-only"></script>
-  <script src="scripts/landing.js?v=20260612-accents"></script>
+  <script src="scripts/landing.js?v=20260616-stats-page"></script>
 </body>
 </html>

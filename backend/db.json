@@ -13,6 +13,20 @@
       "password_hash": "bfda9d3579e84542e555a3f818adf9f4730e6a1c26ae50306db63d16e9f93ea9",
       "password_salt": "2053295d487d64b5f0352ba666813a75",
       "created_at": "2026-06-16T17:10:53.642Z"
+    },
+    {
+      "id": 2,
+      "username": "a.gmail.com",
+      "display_name": "aa",
+      "email": "a@gmail.com",
+      "age": 21,
+      "sex": "male",
+      "role": "user",
+      "admin_rank": 2,
+      "gender": "male",
+      "password_hash": "3542fe71b66edcb4503b95b23c7bbea6790b28dcbfbe84726b0067559f06dae1",
+      "password_salt": "3dfe7881d72d790453c16c2582fba40d",
+      "created_at": "2026-06-16T17:45:24.329Z"
     }
   ],
   "invites": [],
