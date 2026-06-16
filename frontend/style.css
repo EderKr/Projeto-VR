@@ -314,9 +314,16 @@ html, body {
     padding: 9px 11px;
   }
 
+  .game-logo {
+    font-size: 1.22rem;
+    font-weight: 900;
+  }
+
   .game-help {
     white-space: normal;
     line-height: 1.25;
+    font-size: 1rem;
+    font-weight: 800;
   }
 
   .pause-menu-overlay { padding-top: 66px; }
@@ -1676,6 +1683,61 @@ body.landing-page {
   .landing-topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .landing-brand strong {
+    font-size: 1.22rem;
+  }
+
+  .landing-brand span:not(.landing-brand-mark) {
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .landing-section-head h1,
+  .landing-section-head h2 {
+    font-size: 1.85rem;
+    font-weight: 900;
+  }
+
+  .landing-copy,
+  .landing-instruction-block p,
+  .landing-room-hint,
+  .landing-message {
+    font-size: 1.02rem;
+    font-weight: 700;
+  }
+
+  .landing-auth-form label,
+  .landing-room-block label {
+    font-size: 1.02rem;
+    font-weight: 900;
+  }
+
+  .landing-primary-button,
+  .landing-secondary-button,
+  .landing-tool-button,
+  .landing-mini-button {
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .landing-tool-button span,
+  .landing-status-strip span,
+  .landing-cv-metrics span,
+  .landing-stat-card span,
+  .landing-pose-grid span {
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  .landing-tool-button strong,
+  .landing-status-strip strong,
+  .landing-cv-metrics strong,
+  .landing-pose-grid strong,
+  .landing-stat-card strong {
+    font-size: 1.42rem;
+    font-weight: 900;
   }
 
   .landing-user-row {
