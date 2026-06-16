@@ -1122,6 +1122,29 @@ function normalizeClientRole(value) {
   return role || "player";
 }
 
+function normalizeExternalOrigin(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    return new URL(raw).origin;
+  } catch (error) {
+    return "";
+  }
+}
+
+function getForwardedOrigin(req) {
+  const configuredOrigin = normalizeExternalOrigin(process.env.SERVICE_FQDN_APP_3000)
+    || normalizeExternalOrigin(process.env.APP_URL)
+    || normalizeExternalOrigin(process.env.PUBLIC_URL);
+  if (configuredOrigin) return configuredOrigin;
+
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0].trim();
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const host = forwardedHost || req.headers.host || `localhost:${PORT}`;
+  const proto = forwardedProto || (req.socket && req.socket.encrypted ? "https" : "http");
+  return `${proto}://${host}`;
+}
+
 function getNetworkHosts(req) {
   const hosts = new Set();
   const hostHeader = req.headers.host || `localhost:${PORT}`;
@@ -1140,13 +1163,23 @@ function getNetworkHosts(req) {
 
 function buildRoomLinks(req, room) {
   const roomCode = normalizeRoomCode(room);
+  const externalOrigin = getForwardedOrigin(req);
+  const usingForwardedHost = Boolean(req.headers["x-forwarded-host"] || process.env.SERVICE_FQDN_APP_3000 || process.env.APP_URL || process.env.PUBLIC_URL);
+  const origins = new Set([externalOrigin]);
+
+  if (!usingForwardedHost) {
+    for (const host of getNetworkHosts(req)) {
+      origins.add(`http://${host}`);
+    }
+  }
+
   return {
     room: roomCode,
-    links: getNetworkHosts(req).map((host) => ({
-      host,
-      landing: `http://${host}/?room=${encodeURIComponent(roomCode)}`,
-      game: `http://${host}/game?room=${encodeURIComponent(roomCode)}`,
-      mirror: `http://${host}/game?room=${encodeURIComponent(roomCode)}&mirror=1`
+    links: Array.from(origins).filter(Boolean).map((origin) => ({
+      host: new URL(origin).host,
+      landing: `${origin}/?room=${encodeURIComponent(roomCode)}`,
+      game: `${origin}/game?room=${encodeURIComponent(roomCode)}`,
+      mirror: `${origin}/game?room=${encodeURIComponent(roomCode)}&mirror=1`
     }))
   };
 }
