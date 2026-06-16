@@ -67,11 +67,11 @@ function setAuthMode(mode) {
   const inviteEl = document.getElementById("registerInvite");
 
   if (emailEl) {
-    emailEl.type = isRegister ? "email" : "text";
-    emailEl.autocomplete = isRegister ? "email" : "username";
-    emailEl.placeholder = isRegister ? "voce@email.com" : "e-mail ou usuário";
+    emailEl.type = "email";
+    emailEl.autocomplete = "email";
+    emailEl.placeholder = isRegister ? "voce@email.com" : "seu@email.com";
   }
-  if (emailLabelEl) emailLabelEl.textContent = isRegister ? "E-mail" : "E-mail ou usuário";
+  if (emailLabelEl) emailLabelEl.textContent = "E-mail";
   if (passwordEl) passwordEl.autocomplete = isRegister ? "new-password" : "current-password";
   if (titleEl) titleEl.textContent = isRegister ? (bootstrapGod ? "Criar conta Deus" : "Criar conta por convite") : "Entrar";
   if (submitEl) submitEl.textContent = isRegister ? "Criar conta" : "Entrar";

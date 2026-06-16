@@ -1,5 +1,20 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": 1,
+      "username": "eder.kramer.gmail.com",
+      "display_name": "eder_kr",
+      "email": "eder.kramer@gmail.com",
+      "age": 21,
+      "sex": "male",
+      "role": "god",
+      "admin_rank": 2,
+      "gender": "male",
+      "password_hash": "bfda9d3579e84542e555a3f818adf9f4730e6a1c26ae50306db63d16e9f93ea9",
+      "password_salt": "2053295d487d64b5f0352ba666813a75",
+      "created_at": "2026-06-16T17:10:53.642Z"
+    }
+  ],
   "invites": [],
   "performanceHistory": []
 }
