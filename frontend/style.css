@@ -595,6 +595,12 @@ html, body {
   }
 }
 
+@media (max-height: 520px) and (pointer: coarse) {
+  .pose-control-panel {
+    display: none;
+  }
+}
+
 /* Landing operacional */
 body.landing-page {
   position: fixed;
