@@ -38,7 +38,6 @@ html, body {
   color: var(--text);
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(12px) saturate(130%);
-  pointer-events: none;
 }
 
 .game-logo {
@@ -47,6 +46,13 @@ html, body {
   letter-spacing: 0.03em;
   white-space: nowrap;
   text-shadow: 0 1px 18px rgba(255, 232, 182, 0.22);
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.game-logo:hover {
+  filter: brightness(1.12);
 }
 
 .game-help {
