@@ -591,19 +591,7 @@ html, body {
 
 @media (max-width: 520px) {
   .pose-control-panel {
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    width: auto;
-  }
-
-  .pose-control-actions {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .pose-control-check {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
+    display: none;
   }
 }
 
