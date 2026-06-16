@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Corpus VR | Conta</title>
-  <link rel="stylesheet" href="style.css?v=20260616-account-page" />
+  <link rel="stylesheet" href="style.css?v=20260616-swagger-god-button" />
 </head>
 <body class="landing-page account-page">
   <header class="landing-topbar">
@@ -55,6 +55,16 @@
           </div>
         </form>
 
+
+        <section id="apiDocsPanel" class="account-api-box" hidden aria-label="Acesso da conta Deus à API">
+          <div>
+            <span>Área Deus</span>
+            <strong>Documentação da API</strong>
+            <p>Abra o Swagger para testar as rotas do backend com o token da sua conta.</p>
+          </div>
+          <a id="apiDocsButton" class="landing-primary-button account-api-button" href="/api/docs">Abrir Swagger</a>
+        </section>
+
         <details class="account-password-details">
           <summary>Alterar senha</summary>
           <form id="accountPasswordForm" class="landing-auth-form account-form">
@@ -81,6 +91,6 @@
     </section>
   </main>
 
-  <script src="scripts/auth.js?v=20260616-account-page"></script>
+  <script src="scripts/auth.js?v=20260616-swagger-god-button"></script>
 </body>
 </html>

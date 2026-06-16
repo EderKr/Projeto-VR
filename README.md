@@ -100,12 +100,38 @@ O `docker-compose.yml` usa `expose` em vez de `ports` para o app, evitando confl
 ## Rotas principais
 
 ```text
-/                    landing page
-/game                jogo WebXR
-/game?mirror=1       espelho corporal no jogo
-/api/health          status da aplicacao e banco
-/api/assistant/chat  chat sobre estatisticas do usuario
-/ws                  salas PC/celular via WebSocket
+/                         landing page
+/game                     jogo WebXR
+/game?mirror=1            espelho corporal no jogo
+/api/health               status da aplicacao e banco
+/api/docs                 documentacao Swagger UI
+/api/docs/openapi.json    especificacao OpenAPI 3.0 em JSON
+/api/assistant/chat       chat sobre estatisticas do usuario
+/ws                       salas PC/celular via WebSocket
 ```
+
+## Documentacao Swagger
+
+Depois de iniciar o backend, entre com uma conta **Deus** (`role: "god"`), abra **Minha conta** e clique em **Abrir Swagger**.
+
+```text
+http://localhost:3000/api/docs
+```
+
+A pagina usa Swagger UI no mesmo tema do projeto e carrega a especificacao protegida em:
+
+```text
+http://localhost:3000/api/docs/openapi.json
+```
+
+Aliases tambem disponiveis:
+
+```text
+/docs
+/swagger
+/openapi.json
+```
+
+O OpenAPI JSON exige token Bearer de conta Deus. A tela do Swagger reaproveita automaticamente o token salvo no navegador e tambem injeta esse token nos testes das rotas protegidas.
 
 As leituras de pose sao experimentais e nao sao diagnostico medico. Elas servem para observar movimento, assimetria e controle corporal durante a simulacao.

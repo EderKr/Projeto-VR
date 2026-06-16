@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Corpus VR | API Swagger</title>
+    <link rel="stylesheet" href="style.css?v=20260616-swagger-god-button" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        height: auto;
+        overflow: auto;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(242, 140, 40, 0.18), transparent 34rem),
+          radial-gradient(circle at 85% 8%, rgba(255, 232, 182, 0.10), transparent 30rem),
+          linear-gradient(180deg, #121316 0%, #070d13 100%);
+      }
+
+      body.api-docs-page {
+        color: #fff;
+      }
+
+      .api-docs-shell {
+        min-height: 100vh;
+      }
+
+      .api-docs-user {
+        color: rgba(255, 255, 255, 0.72);
+        font-weight: 800;
+      }
+
+      .api-docs-layout {
+        display: grid;
+        gap: 16px;
+        width: min(1240px, calc(100% - 32px));
+        margin: 22px auto 34px;
+      }
+
+      .api-docs-hero {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .api-docs-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 0% 0%, rgba(255, 232, 182, 0.10), transparent 30%),
+          radial-gradient(circle at 100% 0%, rgba(242, 140, 40, 0.12), transparent 28%);
+      }
+
+      .api-docs-hero > * {
+        position: relative;
+      }
+
+      .api-docs-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .api-docs-meta div,
+      .api-docs-access {
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.045);
+        padding: 12px;
+      }
+
+      .api-docs-meta span,
+      .api-docs-access span {
+        display: block;
+        color: rgba(255, 255, 255, 0.68);
+        font-size: 0.84rem;
+      }
+
+      .api-docs-meta strong,
+      .api-docs-access strong {
+        display: block;
+        margin-top: 6px;
+        color: #ffe8b6;
+        font-size: 1rem;
+        overflow-wrap: anywhere;
+      }
+
+      .api-docs-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .api-docs-toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .api-docs-panel {
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .api-docs-status {
+        margin: 0;
+        border: 1px solid rgba(242, 140, 40, 0.22);
+        border-radius: 8px;
+        background: rgba(242, 140, 40, 0.08);
+        color: rgba(255, 255, 255, 0.86);
+        line-height: 1.5;
+        padding: 12px;
+      }
+
+      .api-docs-status[data-type="error"] {
+        border-color: rgba(255, 87, 87, 0.35);
+        background: rgba(255, 87, 87, 0.10);
+        color: #ffd3d3;
+      }
+
+      .api-docs-status[data-type="success"] {
+        border-color: rgba(93, 232, 155, 0.35);
+        background: rgba(93, 232, 155, 0.10);
+        color: #d7ffe9;
+      }
+
+      .api-docs-access {
+        display: none;
+        margin-top: 12px;
+      }
+
+      .api-docs-access.visible {
+        display: block;
+      }
+
+      #swagger-ui {
+        min-height: 440px;
+        background:
+          linear-gradient(180deg, rgba(37, 39, 43, 0.96), rgba(18, 19, 22, 0.96));
+      }
+
+      .swagger-ui {
+        color: rgba(255, 255, 255, 0.90);
+        font-family: inherit;
+      }
+
+      .swagger-ui .topbar {
+        display: none;
+      }
+
+      .swagger-ui .wrapper {
+        max-width: none;
+        padding: 0 18px 24px;
+      }
+
+      .swagger-ui .info {
+        margin: 0 0 16px;
+        padding: 22px 0 10px;
+      }
+
+      .swagger-ui .info .title,
+      .swagger-ui .info h1,
+      .swagger-ui .info h2,
+      .swagger-ui .info h3,
+      .swagger-ui .opblock-tag,
+      .swagger-ui .opblock .opblock-summary-description,
+      .swagger-ui .opblock .opblock-summary-operation-id,
+      .swagger-ui .tab li,
+      .swagger-ui label,
+      .swagger-ui .parameter__name,
+      .swagger-ui .parameter__type,
+      .swagger-ui table thead tr td,
+      .swagger-ui table thead tr th,
+      .swagger-ui .response-col_status,
+      .swagger-ui .response-col_description,
+      .swagger-ui .responses-inner h4,
+      .swagger-ui .responses-inner h5,
+      .swagger-ui section.models h4,
+      .swagger-ui section.models h5,
+      .swagger-ui .model-title,
+      .swagger-ui .model {
+        color: #fff;
+        font-family: inherit;
+      }
+
+      .swagger-ui .info .title small,
+      .swagger-ui .info .title small pre {
+        background: rgba(242, 140, 40, 0.16);
+        color: #ffe8b6;
+        border-radius: 999px;
+      }
+
+      .swagger-ui .info p,
+      .swagger-ui .markdown p,
+      .swagger-ui .renderedMarkdown p,
+      .swagger-ui .opblock-description-wrapper p,
+      .swagger-ui .opblock-external-docs-wrapper p,
+      .swagger-ui .opblock-title_normal p,
+      .swagger-ui .parameter__deprecated,
+      .swagger-ui .parameter__in,
+      .swagger-ui .responses-inner p,
+      .swagger-ui .model .property,
+      .swagger-ui .model-toggle::after {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .swagger-ui a,
+      .swagger-ui .info a {
+        color: #ffe8b6;
+      }
+
+      .swagger-ui .scheme-container,
+      .swagger-ui section.models,
+      .swagger-ui .opblock,
+      .swagger-ui .dialog-ux .modal-ux,
+      .swagger-ui .auth-container {
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.045);
+        box-shadow: none;
+      }
+
+      .swagger-ui .scheme-container {
+        margin: 0 0 16px;
+        padding: 14px;
+      }
+
+      .swagger-ui .opblock-tag {
+        margin: 0 0 10px;
+        border-bottom: 1px solid rgba(242, 140, 40, 0.22);
+        font-size: 1.08rem;
+      }
+
+      .swagger-ui .opblock {
+        overflow: hidden;
+      }
+
+      .swagger-ui .opblock .opblock-summary {
+        border-color: rgba(255, 255, 255, 0.10);
+      }
+
+      .swagger-ui .opblock.opblock-get,
+      .swagger-ui .opblock.opblock-post,
+      .swagger-ui .opblock.opblock-patch,
+      .swagger-ui .opblock.opblock-delete {
+        border-color: rgba(242, 140, 40, 0.28);
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .swagger-ui .opblock.opblock-get .opblock-summary-method,
+      .swagger-ui .opblock.opblock-post .opblock-summary-method,
+      .swagger-ui .opblock.opblock-patch .opblock-summary-method,
+      .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+        background: linear-gradient(145deg, #f28c28, #ffe8b6);
+        color: #1b1208;
+        text-shadow: none;
+      }
+
+      .swagger-ui .opblock .opblock-section-header,
+      .swagger-ui .responses-wrapper,
+      .swagger-ui .opblock-body pre,
+      .swagger-ui .highlight-code,
+      .swagger-ui textarea,
+      .swagger-ui input,
+      .swagger-ui select {
+        background: rgba(4, 8, 11, 0.84) !important;
+        color: #fff !important;
+        border-color: rgba(255, 255, 255, 0.16) !important;
+        box-shadow: none !important;
+      }
+
+      .swagger-ui textarea,
+      .swagger-ui input,
+      .swagger-ui select {
+        border-radius: 8px;
+      }
+
+      .swagger-ui .btn,
+      .swagger-ui button {
+        border-radius: 8px;
+        border-color: rgba(242, 140, 40, 0.32);
+        color: #ffe8b6;
+        font-family: inherit;
+        font-weight: 900;
+      }
+
+      .swagger-ui .btn.authorize,
+      .swagger-ui .btn.execute {
+        border-color: transparent;
+        background: linear-gradient(145deg, #f28c28, #ffe8b6);
+        color: #1b1208;
+      }
+
+      .swagger-ui .btn.cancel,
+      .swagger-ui .btn.try-out__btn {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .swagger-ui .dialog-ux .modal-ux-header,
+      .swagger-ui .dialog-ux .modal-ux-content,
+      .swagger-ui .dialog-ux .modal-ux-header h3,
+      .swagger-ui .auth-container h4,
+      .swagger-ui .auth-container .wrapper,
+      .swagger-ui .auth-container .errors {
+        color: #fff;
+        background: transparent;
+        font-family: inherit;
+      }
+
+      .swagger-ui .model-box,
+      .swagger-ui table tbody tr td,
+      .swagger-ui table tbody tr th {
+        border-color: rgba(255, 255, 255, 0.10);
+        color: rgba(255, 255, 255, 0.84);
+      }
+
+      .swagger-ui section.models {
+        margin: 20px 0 0;
+      }
+
+      .swagger-ui section.models.is-open h4 {
+        border-bottom-color: rgba(242, 140, 40, 0.22);
+      }
+
+      .swagger-ui .loading-container .loading::before {
+        border-color: rgba(242, 140, 40, 0.3);
+        border-top-color: #ffe8b6;
+      }
+
+      @media (max-width: 720px) {
+        .api-docs-meta {
+          grid-template-columns: 1fr;
+        }
+
+        .api-docs-toolbar,
+        .landing-topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .api-docs-toolbar-actions,
+        .landing-user-row {
+          justify-content: flex-start;
+        }
+
+        .api-docs-toolbar-actions > *,
+        .landing-user-row > * {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body class="landing-page api-docs-page">
+    <main class="api-docs-shell">
+      <header class="landing-topbar">
+        <a class="landing-brand landing-brand-link" href="/">
+          <span class="landing-brand-mark" aria-hidden="true"></span>
+          <div>
+            <strong>Corpus VR</strong>
+            <span>Documentação da API</span>
+          </div>
+        </a>
+
+        <div class="landing-user-row">
+          <span id="apiDocsUser" class="api-docs-user">checando conta...</span>
+          <a class="landing-mini-button" href="/account.html">Minha conta</a>
+          <a class="landing-mini-button" href="/">Voltar ao app</a>
+        </div>
+      </header>
+
+      <div class="api-docs-layout">
+        <section class="landing-panel api-docs-hero">
+          <div class="landing-section-head">
+            <span class="landing-kicker">Área Deus</span>
+            <h1>Swagger da API Corpus VR</h1>
+          </div>
+
+          <p class="landing-copy">
+            Esta tela usa o mesmo token salvo no navegador para carregar a especificação OpenAPI e testar as rotas protegidas do backend.
+          </p>
+
+          <div class="api-docs-meta" aria-label="Resumo da documentação">
+            <div>
+              <span>Especificação</span>
+              <strong>OpenAPI 3.0</strong>
+            </div>
+            <div>
+              <span>Autorização</span>
+              <strong>Bearer JWT</strong>
+            </div>
+            <div>
+              <span>Acesso</span>
+              <strong>somente Deus</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-panel api-docs-toolbar" aria-label="Ferramentas da API">
+          <p id="apiDocsStatus" class="api-docs-status" data-type="info">Validando sua sessão...</p>
+          <div class="api-docs-toolbar-actions">
+            <button id="downloadOpenApiButton" class="landing-secondary-button" type="button" hidden>Baixar OpenAPI JSON</button>
+            <button id="reloadDocsButton" class="landing-secondary-button" type="button">Recarregar</button>
+          </div>
+          <div id="apiDocsAccess" class="api-docs-access" role="alert">
+            <span>Acesso bloqueado</span>
+            <strong>Entre com uma conta Deus para abrir o Swagger.</strong>
+          </div>
+        </section>
+
+        <section id="apiDocsPanel" class="landing-panel api-docs-panel" hidden aria-label="Swagger UI">
+          <div id="swagger-ui"></div>
+        </section>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+    <script>
+      const AUTH_TOKEN_KEY = "hb_auth_token";
+      const AUTH_USER_KEY = "hb_auth_user";
+      const statusEl = document.getElementById("apiDocsStatus");
+      const userEl = document.getElementById("apiDocsUser");
+      const accessEl = document.getElementById("apiDocsAccess");
+      const panelEl = document.getElementById("apiDocsPanel");
+      const downloadButton = document.getElementById("downloadOpenApiButton");
+      const reloadButton = document.getElementById("reloadDocsButton");
+      let openApiDocument = null;
+
+      function getStoredToken() {
+        return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+      }
+
+      function getStoredUser() {
+        try {
+          const rawUser = localStorage.getItem(AUTH_USER_KEY);
+          return rawUser ? JSON.parse(rawUser) : null;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function setStatus(message, type = "info") {
+        statusEl.textContent = message;
+        statusEl.dataset.type = type;
+      }
+
+      function setAccessDenied(message) {
+        panelEl.hidden = true;
+        downloadButton.hidden = true;
+        accessEl.classList.add("visible");
+        accessEl.querySelector("strong").textContent = message;
+        setStatus(message, "error");
+      }
+
+      async function fetchJson(url, token) {
+        const response = await fetch(url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          cache: "no-store"
+        });
+        const parsed = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(parsed.error || `Falha ao carregar ${url}.`);
+        }
+        return parsed;
+      }
+
+      async function validateGodSession(token) {
+        if (!token) {
+          throw new Error("Faça login com uma conta Deus para acessar o Swagger.");
+        }
+
+        const session = await fetchJson("/api/auth/me", token);
+        const user = session.user || getStoredUser() || {};
+        userEl.textContent = user.displayName || user.email || "Conta autenticada";
+
+        if (user.role !== "god") {
+          throw new Error("A documentação Swagger é restrita a contas Deus.");
+        }
+
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+        return user;
+      }
+
+      async function loadSwagger() {
+        const token = getStoredToken();
+        accessEl.classList.remove("visible");
+        panelEl.hidden = true;
+        downloadButton.hidden = true;
+        setStatus("Validando sua sessão...", "info");
+
+        let user;
+        try {
+          user = await validateGodSession(token);
+        } catch (error) {
+          userEl.textContent = "sem acesso";
+          setAccessDenied(error.message || "Acesso bloqueado.");
+          return;
+        }
+
+        if (!window.SwaggerUIBundle) {
+          setStatus("Não foi possível carregar o Swagger UI pela CDN. A internet é necessária para renderizar esta tela.", "error");
+          return;
+        }
+
+        try {
+          setStatus("Carregando especificação OpenAPI...", "info");
+          openApiDocument = await fetchJson("/api/docs/openapi.json", token);
+          panelEl.hidden = false;
+          downloadButton.hidden = false;
+          setStatus(`Acesso liberado para ${user.displayName || user.email || "conta Deus"}.`, "success");
+
+          window.SwaggerUIBundle({
+            spec: openApiDocument,
+            dom_id: "#swagger-ui",
+            deepLinking: true,
+            persistAuthorization: true,
+            displayRequestDuration: true,
+            tryItOutEnabled: true,
+            filter: true,
+            docExpansion: "none",
+            requestInterceptor: (request) => {
+              const currentToken = getStoredToken();
+              if (currentToken) request.headers.Authorization = `Bearer ${currentToken}`;
+              return request;
+            },
+            presets: [
+              window.SwaggerUIBundle.presets.apis,
+              window.SwaggerUIStandalonePreset
+            ],
+            layout: "BaseLayout"
+          });
+        } catch (error) {
+          setAccessDenied(error.message || "Não foi possível carregar a documentação da API.");
+        }
+      }
+
+      function downloadOpenApi() {
+        if (!openApiDocument) return;
+        const blob = new Blob([JSON.stringify(openApiDocument, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "corpus-vr-openapi.json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      reloadButton.addEventListener("click", () => loadSwagger());
+      downloadButton.addEventListener("click", downloadOpenApi);
+      window.addEventListener("load", () => loadSwagger());
+    </script>
+  </body>
+</html>

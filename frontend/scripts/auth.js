@@ -130,11 +130,17 @@ function updateAccountPage() {
   const ageEl = document.getElementById("accountAge");
   const nameEl = document.getElementById("accountDisplayName");
   const birthDateEl = document.getElementById("accountBirthDate");
+  const apiDocsPanel = document.getElementById("apiDocsPanel");
 
   if (!loggedInEl && !loggedOutEl) return;
 
   if (loggedInEl) loggedInEl.hidden = !isLoggedIn();
   if (loggedOutEl) loggedOutEl.hidden = isLoggedIn();
+  if (apiDocsPanel) {
+    const canOpenApiDocs = isGod();
+    apiDocsPanel.hidden = !canOpenApiDocs;
+    apiDocsPanel.setAttribute("aria-hidden", String(!canOpenApiDocs));
+  }
 
   if (!isLoggedIn()) {
     if (document.body.classList.contains("account-page")) {
@@ -156,6 +162,7 @@ function updateAuthUI() {
   const logoutButton = document.getElementById("logoutButton");
   const deleteAccountButton = document.getElementById("deleteAccountButton");
   const adminLink = document.getElementById("adminLink");
+  const apiDocsPanel = document.getElementById("apiDocsPanel");
 
   if (overlay) {
     overlay.classList.toggle("hidden", isLoggedIn());
@@ -177,6 +184,12 @@ function updateAuthUI() {
 
   if (adminLink) {
     adminLink.style.display = isAdmin() ? "inline-flex" : "none";
+  }
+
+  if (apiDocsPanel) {
+    const canOpenApiDocs = isGod();
+    apiDocsPanel.hidden = !canOpenApiDocs;
+    apiDocsPanel.setAttribute("aria-hidden", String(!canOpenApiDocs));
   }
 
   if (startHint) {

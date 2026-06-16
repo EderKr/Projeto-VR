@@ -1132,6 +1132,13 @@ async function handleAdminUserRolePatch(req, res, userId) {
   sendJson(res, 200, { user: updated });
 }
 
+
+async function handleOpenApiJson(req, res) {
+  const user = await requireGodUser(req, res);
+  if (!user) return;
+  serveStaticFile(res, path.join(ROOT_DIR, "openapi.json"));
+}
+
 function serveStaticFile(res, filePath) {
   try {
     const data = fs.readFileSync(filePath);
@@ -1234,6 +1241,20 @@ function handleRoomGet(req, res, requestUrl) {
   sendJson(res, 200, buildRoomLinks(req, requestUrl.searchParams.get("room")));
 }
 
+const OPENAPI_JSON_ROUTES = new Set([
+  "/api/docs/openapi.json",
+  "/openapi.json"
+]);
+
+const API_DOCS_ROUTES = new Set([
+  "/api/docs",
+  "/api/docs/",
+  "/swagger",
+  "/swagger/",
+  "/docs",
+  "/docs/"
+]);
+
 const server = http.createServer((req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
 
@@ -1265,12 +1286,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (requestUrl.pathname === "/api/docs/openapi.json" && (req.method === "GET" || req.method === "HEAD")) {
-    serveStaticFile(res, path.join(ROOT_DIR, "openapi.json"));
+  if (OPENAPI_JSON_ROUTES.has(requestUrl.pathname) && (req.method === "GET" || req.method === "HEAD")) {
+    handleOpenApiJson(req, res).catch((error) => sendJson(res, 500, { error: error.message }));
     return;
   }
 
-  if ((requestUrl.pathname === "/api/docs" || requestUrl.pathname === "/api/docs/") && (req.method === "GET" || req.method === "HEAD")) {
+  if (API_DOCS_ROUTES.has(requestUrl.pathname) && (req.method === "GET" || req.method === "HEAD")) {
     serveStaticFile(res, path.join(PUBLIC_DIR, "api-docs.html"));
     return;
   }
