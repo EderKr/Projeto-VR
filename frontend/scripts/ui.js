@@ -334,6 +334,9 @@ window.addEventListener("load", () => {
   if (typeof customModeEnabledEl !== 'undefined' && customModeEnabledEl) {
     vrMenuState.customModeEnabled = customModeEnabledEl.checked;
   }
+  if (typeof customDisableJumpEl !== 'undefined' && customDisableJumpEl && typeof game !== "undefined") {
+    game.jumpDisabled = customDisableJumpEl.checked;
+  }
 
   const openBtn = document.getElementById("pauseMenuDesktopToggle");
   const closeBtn = document.getElementById("pauseMenuDesktopClose");
@@ -381,6 +384,20 @@ const vrMenuState = {
   currentHistoryTab: 'history'
 };
 
+function refreshVRMenuRaycastTargets() {
+  const allClickable = document.querySelectorAll('.clickable');
+  allClickable.forEach((el) => {
+    const inVRMenu = Boolean(el.closest && el.closest('#menuMainScreen, #menuCustomizeScreen, #menuHistoryScreen'));
+    if (!inVRMenu) {
+      el.classList.add('raycastable');
+      return;
+    }
+    const root = el.closest('#menuMainScreen, #menuCustomizeScreen, #menuHistoryScreen');
+    const isActiveMenu = Boolean(vrMenuState.isOpen && root && root.id === vrMenuState.currentMenu);
+    el.classList.toggle('raycastable', isActiveMenu);
+  });
+}
+
 function hideAllVRMenus() {
   const mainScreen = document.getElementById("menuMainScreen");
   const customizeScreen = document.getElementById("menuCustomizeScreen");
@@ -389,6 +406,10 @@ function hideAllVRMenus() {
   if (mainScreen) mainScreen.setAttribute("visible", "false");
   if (customizeScreen) customizeScreen.setAttribute("visible", "false");
   if (historyScreen) historyScreen.setAttribute("visible", "false");
+
+  document
+    .querySelectorAll('#menuMainScreen .clickable, #menuCustomizeScreen .clickable, #menuHistoryScreen .clickable')
+    .forEach((el) => el.classList.remove('raycastable'));
 }
 
 function positionVRMenusInFrontOfPlayer() {
@@ -466,12 +487,14 @@ function setVRMenuOpen(open) {
   if (menuCursor) {
     menuCursor.setAttribute("visible", String(open));
     menuCursor.setAttribute("always-on-top", "order: 10001");
-    menuCursor.setAttribute("material", "shader: flat; color: #FFFFFF; depthTest: false; depthWrite: false; transparent: true; opacity: 1; side: double");
+    menuCursor.setAttribute("color", "#FFFFFF");
+    menuCursor.setAttribute("material", "shader: flat; depthTest: false; depthWrite: false; transparent: true; opacity: 1; side: double");
   }
   if (gazeCursor) {
     gazeCursor.setAttribute("visible", "true");
     gazeCursor.setAttribute("always-on-top", "order: 10000");
-    gazeCursor.setAttribute("material", "shader: flat; color: #FFFFFF; depthTest: false; depthWrite: false; transparent: true; opacity: 1; side: double");
+    gazeCursor.setAttribute("color", "#FFFFFF");
+    gazeCursor.setAttribute("material", "shader: flat; depthTest: false; depthWrite: false; transparent: true; opacity: 1; side: double");
   }
 
   if (open) {
@@ -487,6 +510,7 @@ function setVRMenuOpen(open) {
     }
     hideAllVRMenus();
   }
+  refreshVRMenuRaycastTargets();
 }
 
 function showVRMenu(menuId) {
@@ -499,6 +523,7 @@ function showVRMenu(menuId) {
     targetMenu.setAttribute("visible", "true");
     vrMenuState.currentMenu = menuId;
   }
+  refreshVRMenuRaycastTargets();
 }
 
 function toggleVRPauseMenu() {
@@ -570,6 +595,27 @@ function updateCustomizeMenuDisplay() {
     statusEl.setAttribute("color", statusColor);
   }
 
+  const disableJump = typeof customDisableJumpEl !== 'undefined' && customDisableJumpEl ? Boolean(customDisableJumpEl.checked) : true;
+  if (typeof game !== "undefined") game.jumpDisabled = disableJump;
+  const disableJumpStatusEl = document.getElementById("customDisableJumpStatus");
+  const disableJumpCheckboxTextEl = document.getElementById("customDisableJumpCheckboxText");
+  const disableJumpCheckboxEl = document.getElementById("customDisableJumpCheckbox");
+  if (disableJumpStatusEl) {
+    setCanvasText(disableJumpStatusEl, disableJump ? "ATIVADO" : "DESATIVADO");
+    disableJumpStatusEl.setAttribute("color", disableJump ? "#4ECDC4" : "#FF6B6B");
+  }
+  if (disableJumpCheckboxTextEl) {
+    setCanvasText(disableJumpCheckboxTextEl, disableJump ? "☑" : "☐");
+  }
+  if (disableJumpCheckboxEl) {
+    const disableColor = disableJump ? "#4ECDC4" : "#273242";
+    disableJumpCheckboxEl.setAttribute("color", disableColor);
+    disableJumpCheckboxEl.setAttribute("data-base-color", disableColor);
+  }
+  if (disableJump && customDifficultyEl && Number(customDifficultyEl.value) === 2) {
+    customDifficultyEl.value = "3";
+  }
+
   const livesDisplay = document.getElementById("customLivesDisplay");
   const enemyDisplay = document.getElementById("customEnemyDisplay");
 
@@ -630,9 +676,10 @@ function updateCustomizeMenuDisplay() {
     difficultyBtn1.setAttribute('data-base-color', d1Color);
   }
   if (difficultyBtn2) {
-    const d2Color = selectedDifficulty === 2 ? '#4ECDC4' : '#B8A200';
+    const d2Color = disableJump ? '#3A3A3A' : (selectedDifficulty === 2 ? '#4ECDC4' : '#B8A200');
     difficultyBtn2.setAttribute('color', d2Color);
     difficultyBtn2.setAttribute('data-base-color', d2Color);
+    difficultyBtn2.setAttribute('opacity', disableJump ? '0.55' : '1');
   }
   if (difficultyBtn3) {
     const d3Color = selectedDifficulty === 3 ? '#4ECDC4' : '#6B5BC7';
@@ -666,6 +713,13 @@ function toggleCustomMode() {
 function toggleCustomEnemyInfinite() {
   if (typeof customEnemyHitsInfiniteEl !== 'undefined' && customEnemyHitsInfiniteEl) {
     customEnemyHitsInfiniteEl.checked = !customEnemyHitsInfiniteEl.checked;
+  }
+  updateCustomizeMenuDisplay();
+}
+
+function toggleCustomDisableJump() {
+  if (typeof customDisableJumpEl !== 'undefined' && customDisableJumpEl) {
+    customDisableJumpEl.checked = !customDisableJumpEl.checked;
   }
   updateCustomizeMenuDisplay();
 }
@@ -858,6 +912,13 @@ function selectAITab() {
   if (tabAIBtn) tabAIBtn.setAttribute('data-base-color', '#2C5AA0');
 
   updateAIAssistantDisplay();
+}
+
+if (typeof customDisableJumpEl !== "undefined" && customDisableJumpEl) {
+  customDisableJumpEl.addEventListener("change", () => {
+    if (typeof game !== "undefined") game.jumpDisabled = customDisableJumpEl.checked;
+    if (typeof updateCustomizeMenuDisplay === "function") updateCustomizeMenuDisplay();
+  });
 }
 
 window.animateKeyboardCamera = function (action) {

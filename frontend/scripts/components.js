@@ -1,3 +1,46 @@
+
+AFRAME.registerComponent("sanitize-nan-geometry", {
+  init: function () {
+    this.clean = this.clean.bind(this);
+    this.el.addEventListener("model-loaded", this.clean);
+    this.el.addEventListener("object3dset", this.clean);
+    setTimeout(this.clean, 250);
+    setTimeout(this.clean, 1200);
+  },
+
+  remove: function () {
+    this.el.removeEventListener("model-loaded", this.clean);
+    this.el.removeEventListener("object3dset", this.clean);
+  },
+
+  clean: function () {
+    const root = this.el.getObject3D("mesh") || this.el.object3D;
+    if (!root) return;
+
+    root.traverse((obj) => {
+      const geometry = obj && obj.geometry;
+      const position = geometry && geometry.attributes && geometry.attributes.position;
+      const array = position && position.array;
+      if (!array) return;
+
+      let changed = false;
+      for (let i = 0; i < array.length; i++) {
+        if (!Number.isFinite(array[i])) {
+          array[i] = 0;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        position.needsUpdate = true;
+        geometry.computeBoundingBox();
+        geometry.computeBoundingSphere();
+        console.warn("[Corpus VR] Corrigida geometria com valores inválidos:", obj.name || obj.type || "mesh");
+      }
+    });
+  }
+});
+
 AFRAME.registerComponent("canvas-text", {
   schema: {
     value: { type: "string", default: "" },
@@ -263,32 +306,20 @@ AFRAME.registerComponent("gaze-button", {
     this.direction = new THREE.Vector3();
     this.baseColor = this.el.getAttribute("color") || "#273242";
 
-    // Deixa a própria hitbox do menu visível e com contorno.
-    // Assim o jogador enxerga claramente o que é clicável/selecionável no VR.
+    // Botões do menu VR: a área clicável precisa bater exatamente com o plano visível.
+    // Por isso o próprio plano colorido é o alvo do raycaster; texto e painéis continuam não clicáveis.
     const menuRoot = this.el.closest && this.el.closest("#menuMainScreen, #menuCustomizeScreen, #menuHistoryScreen");
     this.isMenuButton = Boolean(menuRoot);
-    this.buttonFrame = null;
+    this.menuRoot = menuRoot || null;
 
     if (this.isMenuButton) {
-      const width = parseFloat(this.el.getAttribute("width")) || 1;
-      const height = parseFloat(this.el.getAttribute("height")) || 0.4;
-
       this.el.setAttribute(
         "material",
-        "shader: flat; transparent: true; opacity: 0.97; depthTest: false; depthWrite: false; side: double"
+        "shader: flat; transparent: true; opacity: 0.98; depthTest: false; depthWrite: false; side: double"
       );
-
-      this.buttonFrame = document.createElement("a-plane");
-      this.buttonFrame.setAttribute("width", String(width + 0.10));
-      this.buttonFrame.setAttribute("height", String(height + 0.10));
-      this.buttonFrame.setAttribute("position", "0 0 -0.012");
-      this.buttonFrame.setAttribute("color", "#F8D070");
-      this.buttonFrame.setAttribute("opacity", "0.42");
-      this.buttonFrame.setAttribute(
-        "material",
-        "shader: flat; transparent: true; opacity: 0.42; depthTest: false; depthWrite: false; side: double"
-      );
-      this.el.appendChild(this.buttonFrame);
+      this.el.classList.remove("raycastable");
+    } else {
+      this.el.classList.add("raycastable");
     }
 
     this.isVisibleInHierarchy = () => {
@@ -361,6 +392,7 @@ AFRAME.registerComponent("gaze-button", {
           "custom_enemy_inc",
           "custom_enemy_dec",
           "custom_toggle_enemy_infinite",
+          "custom_toggle_disable_jump",
           "custom_set_difficulty_1",
           "custom_set_difficulty_2",
           "custom_set_difficulty_3",
@@ -458,6 +490,8 @@ AFRAME.registerComponent("gaze-button", {
         if (typeof updateCustomizeMenuDisplay === 'function') updateCustomizeMenuDisplay();
       } else if (this.data.action === "custom_toggle_enemy_infinite") {
         if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof toggleCustomEnemyInfinite === 'function') toggleCustomEnemyInfinite();
+      } else if (this.data.action === "custom_toggle_disable_jump") {
+        if (typeof vrMenuState !== 'undefined' && vrMenuState.isOpen && typeof toggleCustomDisableJump === 'function') toggleCustomDisableJump();
       } else if (this.data.action === "custom_enemy_dec") {
         if (typeof customEnemyHitsEl !== 'undefined' && customEnemyHitsEl) {
           customEnemyHitsEl.value = Math.max(1, (parseInt(customEnemyHitsEl.value, 10) || 3) - 1);
@@ -492,22 +526,20 @@ AFRAME.registerComponent("gaze-button", {
 
     this.el.addEventListener("mouseenter", () => {
       this.hasActivated = false;
-      this.el.object3D.scale.set(
-        this.defaultScale.x * 1.06,
-        this.defaultScale.y * 1.06,
-        this.defaultScale.z * 1.06
-      );
 
       if (this.isMenuButton) {
+        // Não aumentar o plano no hover: aumentar cria sensação de hitbox deslocada.
+        // O feedback visual fica em cor/clareza, mantendo o tamanho clicável exatamente igual ao tamanho visto.
         this.baseColor = this.el.getAttribute("color") || this.baseColor;
-        // store the base color on the element so external updates can be respected
         this.el.setAttribute('data-base-color', this.baseColor);
-        this.el.setAttribute("color", "#FFFFFF");
-        if (this.buttonFrame) {
-          this.buttonFrame.setAttribute("color", "#FFFFFF");
-          this.buttonFrame.setAttribute("opacity", "0.72");
-          this.buttonFrame.setAttribute("material", "shader: flat; transparent: true; opacity: 0.72; depthTest: false; depthWrite: false; side: double");
-        }
+        this.el.setAttribute("color", "#5FE0D7");
+        this.el.setAttribute("opacity", "1");
+      } else {
+        this.el.object3D.scale.set(
+          this.defaultScale.x * 1.06,
+          this.defaultScale.y * 1.06,
+          this.defaultScale.z * 1.06
+        );
       }
 
       this.clearHoverTimer();
@@ -519,15 +551,11 @@ AFRAME.registerComponent("gaze-button", {
     this.el.addEventListener("mouseleave", () => {
       this.clearHoverTimer();
       this.hasActivated = false;
-      this.el.object3D.scale.copy(this.defaultScale);
       if (this.isMenuButton) {
         const restoreColor = this.el.getAttribute('data-base-color') || this.baseColor;
         this.el.setAttribute("color", restoreColor);
-        if (this.buttonFrame) {
-          this.buttonFrame.setAttribute("color", "#F8D070");
-          this.buttonFrame.setAttribute("opacity", "0.42");
-          this.buttonFrame.setAttribute("material", "shader: flat; transparent: true; opacity: 0.42; depthTest: false; depthWrite: false; side: double");
-        }
+      } else {
+        this.el.object3D.scale.copy(this.defaultScale);
       }
     });
 
@@ -665,7 +693,7 @@ AFRAME.registerComponent("arena-circle", {
     floor.setAttribute("height", "0.045");
     floor.setAttribute("segments-radial", "96");
     floor.setAttribute("color", "#E6C98B");
-    floor.setAttribute("material", "src: #sandTexture; repeat: 10 10; shader: flat; color: #E8CB91");
+    floor.setAttribute("material", "src: #sandTexture; repeat: 10 10; shader: flat");
     this.el.appendChild(floor);
 
     // Marcações, anéis e rúnicas removidos: arena limpa com areia + props.
@@ -768,6 +796,7 @@ AFRAME.registerComponent("arena-circle", {
 
         const torchModel = document.createElement("a-entity");
         torchModel.setAttribute("gltf-model", "#torchModel");
+        torchModel.setAttribute("sanitize-nan-geometry", "");
         torchModel.setAttribute("scale", "0.92 0.92 0.92");
         torchModel.setAttribute("rotation", "0 0 0");
         torchGroup.appendChild(torchModel);
@@ -791,6 +820,12 @@ AFRAME.registerComponent("head-input", {
     dodgeThreshold: { default: 0.16 },
     duckThreshold: { default: 0.08 },
     jumpThreshold: { default: 0.09 },
+    jumpPreloadThreshold: { default: 0.045 },
+    jumpVelocityThreshold: { default: 0.040 },
+    directJumpThreshold: { default: 0.14 },
+    directJumpVelocityThreshold: { default: 0.075 },
+    jumpPreloadWindowMs: { default: 900 },
+    jumpLandReset: { default: 0.035 },
     attackThreshold: { default: 0.16 },
     rollThreshold: { default: 0.26 },
     pitchDuckThreshold: { default: 0.14 },
@@ -808,6 +843,10 @@ AFRAME.registerComponent("head-input", {
     this.deltaEuler = new THREE.Euler(0, 0, 0, "YXZ");
     this.calibrated = false;
     this.lastActionTime = 0;
+    this.lastHeadY = null;
+    this.lastHeadTime = 0;
+    this.jumpPreloadAt = 0;
+    this.airborne = false;
   },
 
   calibrate: function () {
@@ -816,6 +855,52 @@ AFRAME.registerComponent("head-input", {
     this.restQuatInv.copy(this.restQuat).invert();
     this.calibrated = true;
     this.lastActionTime = performance.now();
+    this.lastHeadY = null;
+    this.lastHeadTime = 0;
+    this.jumpPreloadAt = 0;
+    this.airborne = false;
+  },
+
+  detectPhysicalJump: function (dy, now) {
+    const previousY = this.lastHeadY;
+    const elapsed = this.lastHeadTime ? Math.max(16, now - this.lastHeadTime) : 16;
+    const liftVelocity = previousY == null ? 0 : (this.current.y - previousY) / (elapsed / 16.67);
+
+    this.lastHeadY = this.current.y;
+    this.lastHeadTime = now;
+
+    if (dy <= -this.data.jumpPreloadThreshold) {
+      this.jumpPreloadAt = now;
+      if (this.airborne && dy < this.data.jumpLandReset) {
+        this.airborne = false;
+      }
+      return false;
+    }
+
+    if (this.airborne) {
+      if (Math.abs(dy) < this.data.jumpLandReset) {
+        this.airborne = false;
+      }
+      return false;
+    }
+
+    const hadPreload = this.jumpPreloadAt > 0 && now - this.jumpPreloadAt <= this.data.jumpPreloadWindowMs;
+    const jumpedAfterCrouch = hadPreload
+      && dy >= this.data.jumpThreshold
+      && liftVelocity >= this.data.jumpVelocityThreshold;
+
+    // Pulo VR real: usa a subida física do headset/celular no eixo Y.
+    // Não usa inclinação/pitch da cabeça, então olhar para cima não dispara mais o pulo.
+    const jumpedDirectly = dy >= this.data.directJumpThreshold
+      && liftVelocity >= this.data.directJumpVelocityThreshold;
+
+    if (jumpedAfterCrouch || jumpedDirectly) {
+      this.airborne = true;
+      this.jumpPreloadAt = 0;
+      return true;
+    }
+
+    return false;
   },
 
   tick: function (time, timeDelta) {
@@ -849,7 +934,7 @@ AFRAME.registerComponent("head-input", {
     } else if (roll >= this.data.rollThreshold || dx >= this.data.dodgeThreshold) {
       window.dispatchGameAction("dodgeLeft", "cabeça");
       this.lastActionTime = now;
-    } else if (dy >= this.data.jumpThreshold) {
+    } else if (this.detectPhysicalJump(dy, now)) {
       window.dispatchGameAction("jump", "cabeça");
       this.lastActionTime = now;
     } else if (pitch >= this.data.pitchDuckThreshold || dy <= -this.data.duckThreshold) {
@@ -1204,9 +1289,17 @@ AFRAME.registerComponent("enemy-ai", {
     this.canAttack = false;
     const phase = game.phase;
     const profile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
-    const weights = profile && profile.patternWeights
-      ? profile.patternWeights
+    let weights = profile && profile.patternWeights
+      ? { ...profile.patternWeights }
       : { vulnerable: 0.25, left: 0.25, right: 0.25, high: 0.25 };
+
+    if (typeof isJumpDisabled === "function" && isJumpDisabled()) {
+      weights.low = 0;
+      const total = Object.values(weights).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0);
+      if (total > 0) {
+        for (const key of Object.keys(weights)) weights[key] = Math.max(0, Number(weights[key]) || 0) / total;
+      }
+    }
 
     const pattern = this.choosePattern(weights);
     const style = profile && profile.attackStyle ? profile.attackStyle : "brawler";
@@ -1373,7 +1466,7 @@ AFRAME.registerComponent("enemy-ai", {
   getResponseActionForPattern: function (pattern) {
     if (pattern === "left") return "dodgeRight";
     if (pattern === "right") return "dodgeLeft";
-    if (pattern === "low") return "jump";
+    if (pattern === "low") return (typeof isJumpDisabled === "function" && isJumpDisabled()) ? "duck" : "jump";
     return "duck";
   },
 

@@ -31,6 +31,11 @@
   const AUTO_CALIBRATION_FRAMES = 24;
   const AUTO_RECALIBRATION_FRAMES = 180;
   const MIN_CALIBRATION_QUALITY = 0.82;
+  const JUMP_PRELOAD_DROP = 0.034;
+  const JUMP_LIFT_THRESHOLD = 0.060;
+  const JUMP_VELOCITY_THRESHOLD = 0.030;
+  const JUMP_PRELOAD_WINDOW_MS = 900;
+  const JUMP_LAND_RESET = 0.030;
   const POSE_DELEGATE = "CPU"; // CPU evita warnings WebGL/OpenGL do MediaPipe e é mais estável em PCs modestos.
 
   const POSE_CONNECTIONS = [
@@ -160,6 +165,12 @@
   let rigSegments = {};
   let rigAxisOverrides = loadAxisOverrides();
   let lastRigCacheSignature = "";
+  let jumpTracker = {
+    lastY: null,
+    lastTime: 0,
+    preloadAt: 0,
+    airborne: false
+  };
   const hiddenState = new Map();
 
   function sanitizeRoomCode(value) {
@@ -842,6 +853,7 @@
     calibrationSamples = [];
     autoCalibrated = false;
     neutralFrames = 0;
+    resetJumpTracker();
 
     if (stream) {
       for (const track of stream.getTracks()) track.stop();
@@ -1207,8 +1219,57 @@
     calibrationSamples = [];
     autoCalibrated = true;
     neutralFrames = 0;
+    resetJumpTracker();
     if (!silent) setHint("calibrado automaticamente");
     return true;
+  }
+
+  function resetJumpTracker() {
+    jumpTracker = {
+      lastY: null,
+      lastTime: 0,
+      preloadAt: 0,
+      airborne: false
+    };
+  }
+
+  function detectPhysicalJump(features, duckDelta) {
+    const now = performance.now();
+    const currentY = features.shoulderCenter.y;
+    const previousY = jumpTracker.lastY;
+    const elapsed = jumpTracker.lastTime ? Math.max(16, now - jumpTracker.lastTime) : 16;
+    const liftVelocity = previousY == null ? 0 : (previousY - currentY) / (elapsed / 16.67);
+
+    jumpTracker.lastY = currentY;
+    jumpTracker.lastTime = now;
+
+    if (duckDelta > JUMP_PRELOAD_DROP) {
+      jumpTracker.preloadAt = now;
+      if (jumpTracker.airborne && duckDelta > -JUMP_LAND_RESET) {
+        jumpTracker.airborne = false;
+      }
+      return false;
+    }
+
+    if (jumpTracker.airborne) {
+      if (Math.abs(duckDelta) < JUMP_LAND_RESET) {
+        jumpTracker.airborne = false;
+      }
+      return false;
+    }
+
+    const hadPreload = jumpTracker.preloadAt > 0 && now - jumpTracker.preloadAt <= JUMP_PRELOAD_WINDOW_MS;
+    const liftedEnough = duckDelta < -JUMP_LIFT_THRESHOLD;
+    const movingUpFast = liftVelocity > JUMP_VELOCITY_THRESHOLD;
+    const kneesAreNotCrouched = features.kneeCenterY - features.hipCenter.y >= 0.16;
+
+    if (hadPreload && liftedEnough && movingUpFast && kneesAreNotCrouched) {
+      jumpTracker.airborne = true;
+      jumpTracker.preloadAt = 0;
+      return true;
+    }
+
+    return false;
   }
 
   function updateAutoCalibration(features) {
@@ -1231,6 +1292,7 @@
         calibrationSamples = [];
         autoCalibrated = true;
         neutralFrames = 0;
+        resetJumpTracker();
         setHint("auto calibrado - pode jogar");
         return true;
       }
@@ -1253,6 +1315,7 @@
         baseline.bodyHeight = lerp(baseline.bodyHeight, fresh.bodyHeight, 0.08);
         baseline.stanceWidth = lerp(baseline.stanceWidth, fresh.stanceWidth, 0.08);
         neutralFrames = 0;
+        resetJumpTracker();
       }
     }
 
@@ -1271,7 +1334,7 @@
     const lean = features.shoulderTilt;
     const stanceDelta = features.stanceWidth - baseline.stanceWidth;
 
-    if (duckDelta < -0.074) return "jump";
+    if (!(typeof isJumpDisabled === "function" && isJumpDisabled()) && detectPhysicalJump(features, duckDelta)) return "jump";
     if (duckDelta > 0.074 || features.kneeCenterY - features.hipCenter.y < 0.18) return "duck";
     if (widthDelta > 0.068 || depthDelta < -0.095 || stanceDelta > 0.10) return "attack";
 
@@ -1636,6 +1699,7 @@
       calibrationSamples = [];
       autoCalibrated = false;
       neutralFrames = 0;
+      resetJumpTracker();
       setHint("auto calibragem reiniciada: fique parado de frente");
     });
   }

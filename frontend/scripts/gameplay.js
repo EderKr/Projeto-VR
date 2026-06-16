@@ -152,7 +152,7 @@ function advanceToNextPhaseAfterDeath() {
 
   summarizePhase("concluida");
 
-  game.phase++;
+  game.phase = typeof getNextPlayablePhase === "function" ? getNextPlayablePhase(game.phase) : game.phase + 1;
   game.enemyHits = 0;
   game.enemyHitsNeeded = getEnemyHitsNeeded(getActiveDifficultyPhase());
 
@@ -249,6 +249,7 @@ function startGame() {
   game.enemyHitsNeeded = settings.enemyHitsNeeded;
   game.customMode = settings.customMode;
   game.difficultyPhase = settings.difficultyPhase;
+  game.jumpDisabled = Boolean(settings.jumpDisabled);
   game.actionHistory = [];
 
   setRoundControlsVisibility(true);
@@ -294,6 +295,7 @@ function resetGame() {
   game.misses = 0;
   game.reactionTimes = [];
   game.enemyHits = 0;
+  game.jumpDisabled = customDisableJumpEl ? Boolean(customDisableJumpEl.checked) : true;
   game.difficultyPhase = getSelectedDifficultyPhase();
   game.enemyHitsNeeded = getEnemyHitsNeeded(game.difficultyPhase);
   game.customMode = false;
@@ -318,6 +320,10 @@ function resetGame() {
 
 function dispatchAction(action, source = "unknown") {
   const activeProfile = typeof getEnemyProfile === "function" ? getEnemyProfile(getActiveDifficultyPhase()) : null;
+  if (action === "jump" && typeof isJumpDisabled === "function" && isJumpDisabled()) {
+    setResult("Pulo desativado no menu de personalização.");
+    return;
+  }
   if (action === "duck" && activeProfile && activeProfile.key === "king") {
     setResult("Contra o Rei, use esquiva lateral ou ataque.");
     return;

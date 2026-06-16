@@ -18,6 +18,7 @@ const customLivesInfiniteEl = document.getElementById("customLivesInfinite");
 const customEnemyHitsEl = document.getElementById("customEnemyHits");
 const customEnemyHitsInfiniteEl = document.getElementById("customEnemyHitsInfinite");
 const customDifficultyEl = document.getElementById("customDifficulty");
+const customDisableJumpEl = document.getElementById("customDisableJump");
 const sfxVolumeSelectEl = document.getElementById("sfxVolumeSelect");
 const performanceHistoryListEl = document.getElementById("performanceHistoryList");
 const historyEmptyTextEl = document.getElementById("historyEmptyText");
@@ -78,6 +79,7 @@ const game = {
 
   customMode: false,
   difficultyPhase: 1,
+  jumpDisabled: true,
 
   phaseStartTime: 0,
   phaseStartHits: 0,
@@ -139,22 +141,43 @@ function parsePositiveInt(value, fallback) {
   return parsed;
 }
 
+function isJumpDisabled() {
+  if (game && typeof game.jumpDisabled === "boolean") {
+    return game.jumpDisabled;
+  }
+  return customDisableJumpEl ? Boolean(customDisableJumpEl.checked) : true;
+}
+
+function normalizePlayablePhase(phase) {
+  const parsed = Math.min(4, Math.max(1, parsePositiveInt(phase, 1)));
+  return isJumpDisabled() && parsed === 2 ? 3 : parsed;
+}
+
 function getSelectedDifficultyPhase() {
-  return customDifficultyEl
+  const selected = customDifficultyEl
     ? Math.min(4, Math.max(1, parsePositiveInt(customDifficultyEl.value, 2)))
     : 2;
+  return normalizePlayablePhase(selected);
+}
+
+function getNextPlayablePhase(currentPhase) {
+  let next = Math.min(4, Math.max(1, parsePositiveInt(currentPhase, 1))) + 1;
+  if (isJumpDisabled() && next === 2) next = 3;
+  return next;
 }
 
 function getActiveDifficultyPhase() {
   if (game && game.customMode) {
-    return Math.min(4, Math.max(1, parsePositiveInt(game.difficultyPhase || getSelectedDifficultyPhase(), 2)));
+    return normalizePlayablePhase(game.difficultyPhase || getSelectedDifficultyPhase());
   }
 
-  return Math.min(4, Math.max(1, parsePositiveInt(game.phase || 1, 1)));
+  return normalizePlayablePhase(game.phase || 1);
 }
 
 function getStartSettings() {
   const customModeEnabled = Boolean(customModeEnabledEl && customModeEnabledEl.checked);
+  const jumpDisabled = customDisableJumpEl ? Boolean(customDisableJumpEl.checked) : true;
+  if (game) game.jumpDisabled = jumpDisabled;
   const difficultyPhase = getSelectedDifficultyPhase();
 
   if (!customModeEnabled) {
@@ -165,7 +188,8 @@ function getStartSettings() {
       maxPhases: 4,
       lives: 3,
       enemyHitsNeeded: getEnemyHitsNeeded(firstPhase),
-      difficultyPhase: firstPhase
+      difficultyPhase: firstPhase,
+      jumpDisabled
     };
   }
 
@@ -186,7 +210,8 @@ function getStartSettings() {
     maxPhases: 1,
     lives,
     enemyHitsNeeded,
-    difficultyPhase
+    difficultyPhase,
+    jumpDisabled
   };
 }
 

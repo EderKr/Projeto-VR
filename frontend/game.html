@@ -6,6 +6,7 @@
   <title>Corpus VR</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="/scripts/aframe-safe-geometry.js?v=20260616-safe-geometry-v1"></script>
   <script src="https://unpkg.com/aframe-environment-component/dist/aframe-environment-component.min.js"></script>
   <script src="https://unpkg.com/aframe-extras@7.6.0/dist/aframe-extras.min.js"></script>
   <base href="/">
@@ -19,7 +20,6 @@
     label,
     .login-card,
     .pause-menu-card,
-    .pose-control-panel,
     .game-topbar {
       font-weight: 800;
     }
@@ -40,28 +40,6 @@
 
   <a id="userBadge" class="user-badge" href="/account.html" aria-live="polite" aria-label="Abrir conta"></a>
 
-  <section id="poseControlPanel" class="pose-control-panel" aria-label="Controle corporal">
-    <div class="pose-control-header">
-      <strong>Controle corporal</strong>
-      <span id="poseGameStatus">offline</span>
-    </div>
-    <div class="pose-control-stage">
-      <video id="poseControlVideo" class="pose-control-video" autoplay muted playsinline></video>
-      <canvas id="poseControlCanvas" width="320" height="180"></canvas>
-    </div>
-    <div class="pose-control-actions">
-      <button id="poseGameToggle" type="button">Ativar</button>
-      <button id="poseGameCalibrate" type="button">Calibrar</button>
-      <label class="pose-control-check">
-        <input id="poseGameInvert" type="checkbox" />
-        inverter
-      </label>
-    </div>
-    <div class="pose-control-metrics">
-      <span id="poseGameAction">acao: --</span>
-      <span id="poseGameHint">nao diagnostico</span>
-    </div>
-  </section>
 
   <div id="loginOverlay" class="login-overlay" aria-hidden="false">
     <form id="loginForm" class="login-card">
@@ -151,10 +129,15 @@
           </div>
 
           <div class="row">
+            <label for="customDisableJump">Desativar pulo e anão</label>
+            <input id="customDisableJump" type="checkbox" checked />
+          </div>
+
+          <div class="row">
             <label for="customDifficulty">Dificuldade / personagem</label>
             <select id="customDifficulty">
               <option value="1">Fácil — Rei</option>
-              <option value="2">Intermediário — Anão</option>
+              <option value="2">Intermediário — Anão (usa pulo)</option>
               <option value="3">Avançado — Aventureira</option>
               <option value="4">Difícil — Bruxa</option>
             </select>
@@ -192,7 +175,8 @@
     <a-assets>
       <audio
         id="battleSound"
-        src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3">
+        src="/sounds/sword-swing.mp3"
+        preload="auto">
       </audio>
       <audio id="punch-swing" src="/sounds/punch-swing.mp3"></audio>
       <audio id="punch-hit" src="/sounds/punch-hit.mp3"></audio>
@@ -219,7 +203,7 @@
       <a-asset-item id="readyPlayerFemaleModel" src="/models/ready-player-me-female.glb"></a-asset-item>
       <a-asset-item id="witchModel" src="/models/witch.glb"></a-asset-item>
       <a-asset-item id="torchModel" src="/models/torch.glb"></a-asset-item>
-      <img id="sandTexture" src="/textures/sand-beige-natural.png">
+      <img id="sandTexture" src="/textures/sand-beige-natural.png" crossorigin="anonymous">
     </a-assets>
 
     <a-entity
@@ -251,8 +235,8 @@
           always-on-top="order: 10000"
           fuse="true"
           fuse-timeout="1200"
-          material="shader: flat; color: #FFFFFF; depthTest: false; transparent: true; opacity: 1"
-          raycaster="objects: .clickable; far: 8; interval: 40">
+          material="shader: flat; depthTest: false; transparent: true; opacity: 1"
+          raycaster="objects: .raycastable; far: 8; interval: 25">
         </a-cursor>
 
         <a-ring
@@ -263,7 +247,7 @@
           radius-inner="0.012"
           radius-outer="0.020"
           color="#FFFFFF"
-          material="shader: flat; depthTest: false; depthWrite: false; transparent: true; opacity: 1; color: #FFFFFF; side: double">
+          material="shader: flat; depthTest: false; depthWrite: false; transparent: true; opacity: 1; side: double">
         </a-ring>
 
         <a-entity id="cameraHudRoot" position="0 -0.46 -1.1" scale="0.28 0.28 0.28">
@@ -462,6 +446,10 @@
 
       <a-entity position="1.65 1.56 0.02">
         <a-plane width="2.85" height="0.72" color="#0B1B2B" opacity="0.98" radius="0.10" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
+        <a-plane position="-0.50 0.14 0.035" width="1.55" height="0.25" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: SEM PULO/ANÃO; align: left; fontSize: 65; color: #FFE8B6; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-plane id="customDisableJumpStatus" position="-0.58 -0.17 0.035" width="1.45" height="0.25" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: ATIVADO; align: left; fontSize: 69; color: #4ECDC4; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
+        <a-plane id="customDisableJumpCheckbox" class="clickable" gaze-button="action: custom_toggle_disable_jump; dwellTime: 300" position="0.96 0 0.04" width="0.72" height="0.54" color="#4ECDC4" radius="0.08" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
+        <a-plane id="customDisableJumpCheckboxText" position="0.96 0 0.075" width="0.58" height="0.34" material="transparent: true; opacity: 0; shader: flat; depthTest: false; depthWrite: false; side: double" canvas-text="value: ☑; align: center; fontSize: 118; color: #FFFFFF; padding: 4; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
       </a-entity>
       <a-entity position="-1.65 0.67 0.02">
         <a-plane width="2.85" height="1.08" color="#0B1B2B" opacity="0.98" radius="0.10" material="shader: flat; depthTest: false; depthWrite: false; side: double"></a-plane>
@@ -470,21 +458,21 @@
         <!-- Cadeado de três dígitos para VIDAS -->
         <a-entity id="customLivesLock" position="0 0.18 0.04">
           <a-entity position="-0.36 0 0">
-            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_0; dwellTime: 220" position="0 0.30 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_0; dwellTime: 220" position="0 0.30 0.04" width="0.34" height="0.20" color="#2F8F6B" radius="0.04"></a-plane>
             <a-plane id="customLivesDigit0" position="0 0.18 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 113; color: #FFFFFF; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
-            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_0; dwellTime: 220" position="0 0.06 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_0; dwellTime: 220" position="0 0.06 0.04" width="0.34" height="0.20" color="#A83F4D" radius="0.04"></a-plane>
           </a-entity>
 
           <a-entity position="0 0 0">
-            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_1; dwellTime: 220" position="0 0.30 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_1; dwellTime: 220" position="0 0.30 0.04" width="0.34" height="0.20" color="#2F8F6B" radius="0.04"></a-plane>
             <a-plane id="customLivesDigit1" position="0 0.18 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 113; color: #FFFFFF; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
-            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_1; dwellTime: 220" position="0 0.06 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_1; dwellTime: 220" position="0 0.06 0.04" width="0.34" height="0.20" color="#A83F4D" radius="0.04"></a-plane>
           </a-entity>
 
           <a-entity position="0.36 0 0">
-            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_2; dwellTime: 220" position="0 0.30 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_inc_2; dwellTime: 220" position="0 0.30 0.04" width="0.34" height="0.20" color="#2F8F6B" radius="0.04"></a-plane>
             <a-plane id="customLivesDigit2" position="0 0.18 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 3; align: center; fontSize: 113; color: #FFFFFF; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
-            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_2; dwellTime: 220" position="0 0.06 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_lives_digit_dec_2; dwellTime: 220" position="0 0.06 0.04" width="0.34" height="0.20" color="#A83F4D" radius="0.04"></a-plane>
           </a-entity>
         </a-entity>
 
@@ -500,21 +488,21 @@
         <!-- Cadeado de três dígitos para ATAQUES -->
         <a-entity id="customEnemyLock" position="0 0.18 0.04">
           <a-entity position="-0.36 0 0">
-            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_0; dwellTime: 220" position="0 0.30 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_0; dwellTime: 220" position="0 0.30 0.04" width="0.34" height="0.20" color="#2F8F6B" radius="0.04"></a-plane>
             <a-plane id="customEnemyDigit0" position="0 0.18 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 113; color: #FFFFFF; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
-            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_0; dwellTime: 220" position="0 0.06 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_0; dwellTime: 220" position="0 0.06 0.04" width="0.34" height="0.20" color="#A83F4D" radius="0.04"></a-plane>
           </a-entity>
 
           <a-entity position="0 0 0">
-            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_1; dwellTime: 220" position="0 0.30 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_1; dwellTime: 220" position="0 0.30 0.04" width="0.34" height="0.20" color="#2F8F6B" radius="0.04"></a-plane>
             <a-plane id="customEnemyDigit1" position="0 0.18 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 0; align: center; fontSize: 113; color: #FFFFFF; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
-            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_1; dwellTime: 220" position="0 0.06 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_1; dwellTime: 220" position="0 0.06 0.04" width="0.34" height="0.20" color="#A83F4D" radius="0.04"></a-plane>
           </a-entity>
 
           <a-entity position="0.36 0 0">
-            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_2; dwellTime: 220" position="0 0.30 0.04" width="0.22" height="0.18" color="#2F8F6B" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_inc_2; dwellTime: 220" position="0 0.30 0.04" width="0.34" height="0.20" color="#2F8F6B" radius="0.04"></a-plane>
             <a-plane id="customEnemyDigit2" position="0 0.18 0.04" width="0.20" height="0.24" color="#15293A" opacity="0.98" radius="0.04" material="shader: flat; depthTest: false;" canvas-text="value: 3; align: center; fontSize: 113; color: #FFFFFF; padding: 6; fontFamily: Arial Black, Arial, sans-serif;"></a-plane>
-            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_2; dwellTime: 220" position="0 0.06 0.04" width="0.22" height="0.18" color="#A83F4D" radius="0.04"></a-plane>
+            <a-plane class="clickable" gaze-button="action: custom_enemy_digit_dec_2; dwellTime: 220" position="0 0.06 0.04" width="0.34" height="0.20" color="#A83F4D" radius="0.04"></a-plane>
           </a-entity>
         </a-entity>
 
@@ -622,7 +610,7 @@
           width="2.1"
           height="0.34"
           material="transparent: true; opacity: 0"
-          canvas-text="value: Guia: ataque, esquive, agache e pule com a cabeça. Pulo aparece contra golpes baixos.; align: left; fontSize: 69; color: #FFE8B6; padding: 22; fontFamily: Arial Black, Arial, sans-serif;">
+          canvas-text="value: Guia: ataque, esquive e agache. O pulo pode ser reativado no menu customizar.; align: left; fontSize: 69; color: #FFE8B6; padding: 22; fontFamily: Arial Black, Arial, sans-serif;">
         </a-plane>
 
         <a-plane
@@ -694,7 +682,7 @@
     <a-entity id="enemy" position="0 0 -5.8" enemy-ai sound="src: #battleSound">
       <a-entity id="enemyModelsRoot" position="0 0 0" rotation="0 0 0">
         <a-entity
-          id="enemyModelKing"
+          id="enemyModelKing" sanitize-nan-geometry
           class="enemy-character-model"
           gltf-model="#kingModel"
           position="0 0 0"
@@ -704,7 +692,7 @@
         </a-entity>
 
         <a-entity
-          id="enemyModelDwarf"
+          id="enemyModelDwarf" sanitize-nan-geometry
           class="enemy-character-model"
           gltf-model="#dwarfModel"
           position="0 0 0"
@@ -714,7 +702,7 @@
         </a-entity>
 
         <a-entity
-          id="enemyModelAdventurer"
+          id="enemyModelAdventurer" sanitize-nan-geometry
           class="enemy-character-model"
           gltf-model="#hoodedAdventurerModel"
           position="0 0 0"
@@ -724,7 +712,7 @@
         </a-entity>
 
         <a-entity
-          id="enemyModelWitch"
+          id="enemyModelWitch" sanitize-nan-geometry
           class="enemy-character-model"
           gltf-model="#witchModel"
           position="0 0 0"
@@ -808,7 +796,7 @@
 
     <a-entity id="bodyMirrorAvatar" visible="false" position="0 0 -3.2" scale="1.08 1.08 1.08">
       <a-entity
-        id="bodyMirrorCharacterModel"
+        id="bodyMirrorCharacterModel" sanitize-nan-geometry
         gltf-model="#readyPlayerMaleModel"
         position="0 0 0"
         rotation="0 0 0"
@@ -863,7 +851,7 @@
     <!-- Sun -->
     <a-entity id="sun" position="-6 18 -20">
       <a-light type="point" color="#FFF2B2" intensity="1.0" distance="120"></a-light>
-      <a-sphere radius="1.8" position="0 0 0" color="#FFF2B2" material="shader: flat; color: #FFF2B2; transparent: false"></a-sphere>
+      <a-sphere radius="1.8" position="0 0 0" color="#FFF2B2" material="shader: flat; transparent: false"></a-sphere>
     </a-entity>
 
     <!-- Clouds (spread across sky with varied Y/Z and diagonal movement) -->
@@ -920,10 +908,10 @@
   </a-scene>
 
   <script src="/scripts/auth.js?v=20260616-account-page"></script>
-  <script src="/scripts/state.js?v=20260616-dwarf-sfx"></script>
-  <script src="/scripts/ui.js?v=20260616-dwarf-enemy"></script>
-  <script src="/scripts/gameplay.js?v=20260616-dwarf-sfx"></script>
-  <script src="/scripts/components.js?v=20260616-dwarf-sfx"></script>
-  <script src="/scripts/game-pose-controller.js?v=20260609-corpus-vr-rpm1"></script>
+  <script src="/scripts/state.js?v=20260616-nojump-menu-v1"></script>
+  <script src="/scripts/ui.js?v=20260616-nojump-menu-v1"></script>
+  <script src="/scripts/gameplay.js?v=20260616-nojump-menu-v1"></script>
+  <script src="/scripts/components.js?v=20260616-menu-perfect-hitbox-v1"></script>
+  <script src="/scripts/game-pose-controller.js?v=20260616-clean-ui-v1"></script>
 </body>
 </html>
