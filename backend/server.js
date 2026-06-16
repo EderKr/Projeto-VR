@@ -1125,17 +1125,22 @@ function normalizeClientRole(value) {
 function normalizeExternalOrigin(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
   try {
-    return new URL(raw).origin;
+    return new URL(withProtocol).origin;
   } catch (error) {
     return "";
   }
 }
 
 function getForwardedOrigin(req) {
-  const configuredOrigin = normalizeExternalOrigin(process.env.SERVICE_FQDN_APP_3000)
+  const configuredOrigin = normalizeExternalOrigin(process.env.PUBLIC_URL)
     || normalizeExternalOrigin(process.env.APP_URL)
-    || normalizeExternalOrigin(process.env.PUBLIC_URL);
+    || normalizeExternalOrigin(process.env.SERVICE_URL_APP)
+    || normalizeExternalOrigin(process.env.SERVICE_FQDN_APP)
+    || normalizeExternalOrigin(process.env.SERVICE_URL_APP_3000)
+    || normalizeExternalOrigin(process.env.SERVICE_FQDN_APP_3000)
+    ;
   if (configuredOrigin) return configuredOrigin;
 
   const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0].trim();
@@ -1164,7 +1169,15 @@ function getNetworkHosts(req) {
 function buildRoomLinks(req, room) {
   const roomCode = normalizeRoomCode(room);
   const externalOrigin = getForwardedOrigin(req);
-  const usingForwardedHost = Boolean(req.headers["x-forwarded-host"] || process.env.SERVICE_FQDN_APP_3000 || process.env.APP_URL || process.env.PUBLIC_URL);
+  const usingForwardedHost = Boolean(
+    req.headers["x-forwarded-host"]
+    || process.env.PUBLIC_URL
+    || process.env.APP_URL
+    || process.env.SERVICE_URL_APP
+    || process.env.SERVICE_FQDN_APP
+    || process.env.SERVICE_URL_APP_3000
+    || process.env.SERVICE_FQDN_APP_3000
+  );
   const origins = new Set([externalOrigin]);
 
   if (!usingForwardedHost) {
