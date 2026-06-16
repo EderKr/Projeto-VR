@@ -819,11 +819,11 @@ AFRAME.registerComponent("head-input", {
   schema: {
     dodgeThreshold: { default: 0.16 },
     duckThreshold: { default: 0.08 },
-    jumpThreshold: { default: 0.09 },
-    jumpPreloadThreshold: { default: 0.045 },
-    jumpVelocityThreshold: { default: 0.040 },
-    directJumpThreshold: { default: 0.14 },
-    directJumpVelocityThreshold: { default: 0.075 },
+    jumpThreshold: { default: 0.16 },
+    jumpPreloadThreshold: { default: 0.055 },
+    jumpVelocityThreshold: { default: 0.075 },
+    directJumpThreshold: { default: 0.22 },
+    directJumpVelocityThreshold: { default: 0.105 },
     jumpPreloadWindowMs: { default: 900 },
     jumpLandReset: { default: 0.035 },
     attackThreshold: { default: 0.16 },
@@ -846,6 +846,7 @@ AFRAME.registerComponent("head-input", {
     this.lastHeadY = null;
     this.lastHeadTime = 0;
     this.jumpPreloadAt = 0;
+    this.jumpNeutralAt = 0;
     this.airborne = false;
   },
 
@@ -858,6 +859,7 @@ AFRAME.registerComponent("head-input", {
     this.lastHeadY = null;
     this.lastHeadTime = 0;
     this.jumpPreloadAt = 0;
+    this.jumpNeutralAt = performance.now();
     this.airborne = false;
   },
 
@@ -868,6 +870,10 @@ AFRAME.registerComponent("head-input", {
 
     this.lastHeadY = this.current.y;
     this.lastHeadTime = now;
+
+    if (Math.abs(dy) <= this.data.jumpLandReset) {
+      this.jumpNeutralAt = now;
+    }
 
     if (dy <= -this.data.jumpPreloadThreshold) {
       this.jumpPreloadAt = now;
@@ -885,13 +891,15 @@ AFRAME.registerComponent("head-input", {
     }
 
     const hadPreload = this.jumpPreloadAt > 0 && now - this.jumpPreloadAt <= this.data.jumpPreloadWindowMs;
+    const wasRecentlyNeutral = this.jumpNeutralAt > 0 && now - this.jumpNeutralAt <= 420;
     const jumpedAfterCrouch = hadPreload
       && dy >= this.data.jumpThreshold
       && liftVelocity >= this.data.jumpVelocityThreshold;
 
     // Pulo VR real: usa a subida física do headset/celular no eixo Y.
     // Não usa inclinação/pitch da cabeça, então olhar para cima não dispara mais o pulo.
-    const jumpedDirectly = dy >= this.data.directJumpThreshold
+    const jumpedDirectly = wasRecentlyNeutral
+      && dy >= this.data.directJumpThreshold
       && liftVelocity >= this.data.directJumpVelocityThreshold;
 
     if (jumpedAfterCrouch || jumpedDirectly) {
@@ -934,7 +942,7 @@ AFRAME.registerComponent("head-input", {
     } else if (roll >= this.data.rollThreshold || dx >= this.data.dodgeThreshold) {
       window.dispatchGameAction("dodgeLeft", "cabeça");
       this.lastActionTime = now;
-    } else if (this.detectPhysicalJump(dy, now)) {
+    } else if (!(typeof isJumpDisabled === "function" && isJumpDisabled()) && this.detectPhysicalJump(dy, now)) {
       window.dispatchGameAction("jump", "cabeça");
       this.lastActionTime = now;
     } else if (pitch >= this.data.pitchDuckThreshold || dy <= -this.data.duckThreshold) {

@@ -31,11 +31,13 @@
   const AUTO_CALIBRATION_FRAMES = 24;
   const AUTO_RECALIBRATION_FRAMES = 180;
   const MIN_CALIBRATION_QUALITY = 0.82;
-  const JUMP_PRELOAD_DROP = 0.034;
-  const JUMP_LIFT_THRESHOLD = 0.060;
-  const JUMP_VELOCITY_THRESHOLD = 0.030;
+  const JUMP_PRELOAD_DROP = 0.040;
+  const JUMP_LIFT_THRESHOLD = 0.090;
+  const JUMP_BODY_LIFT_THRESHOLD = 0.075;
+  const JUMP_DIRECT_LIFT_THRESHOLD = 0.130;
+  const JUMP_VELOCITY_THRESHOLD = 0.045;
   const JUMP_PRELOAD_WINDOW_MS = 900;
-  const JUMP_LAND_RESET = 0.030;
+  const JUMP_LAND_RESET = 0.035;
   const POSE_DELEGATE = "CPU"; // CPU evita warnings WebGL/OpenGL do MediaPipe e é mais estável em PCs modestos.
 
   const POSE_CONNECTIONS = [
@@ -167,8 +169,10 @@
   let lastRigCacheSignature = "";
   let jumpTracker = {
     lastY: null,
+    lastBodyY: null,
     lastTime: 0,
     preloadAt: 0,
+    neutralAt: 0,
     airborne: false
   };
   const hiddenState = new Map();
@@ -1193,6 +1197,8 @@
     return {
       centerX: features.bodyCenter.x,
       shoulderY: features.shoulderCenter.y,
+      bodyY: features.bodyCenter.y,
+      hipY: features.hipCenter.y,
       shoulderWidth: features.shoulderWidth,
       noseZ: features.noseZ,
       bodyHeight: features.bodyHeight,
@@ -1202,7 +1208,7 @@
 
   function averageBaseline(samples) {
     if (!samples.length) return null;
-    const keys = ["centerX", "shoulderY", "shoulderWidth", "noseZ", "bodyHeight", "stanceWidth"];
+    const keys = ["centerX", "shoulderY", "bodyY", "hipY", "shoulderWidth", "noseZ", "bodyHeight", "stanceWidth"];
     const output = {};
     for (const key of keys) {
       const values = samples.map((sample) => sample[key]).filter(Number.isFinite);
@@ -1227,8 +1233,10 @@
   function resetJumpTracker() {
     jumpTracker = {
       lastY: null,
+      lastBodyY: null,
       lastTime: 0,
       preloadAt: 0,
+      neutralAt: 0,
       airborne: false
     };
   }
@@ -1236,12 +1244,23 @@
   function detectPhysicalJump(features, duckDelta) {
     const now = performance.now();
     const currentY = features.shoulderCenter.y;
+    const currentBodyY = features.bodyCenter.y;
     const previousY = jumpTracker.lastY;
+    const previousBodyY = jumpTracker.lastBodyY;
     const elapsed = jumpTracker.lastTime ? Math.max(16, now - jumpTracker.lastTime) : 16;
     const liftVelocity = previousY == null ? 0 : (previousY - currentY) / (elapsed / 16.67);
+    const bodyLiftVelocity = previousBodyY == null ? 0 : (previousBodyY - currentBodyY) / (elapsed / 16.67);
 
     jumpTracker.lastY = currentY;
+    jumpTracker.lastBodyY = currentBodyY;
     jumpTracker.lastTime = now;
+
+    const bodyLiftDelta = baseline && Number.isFinite(baseline.bodyY) ? baseline.bodyY - currentBodyY : -duckDelta;
+    const hipLiftDelta = baseline && Number.isFinite(baseline.hipY) ? baseline.hipY - features.hipCenter.y : bodyLiftDelta;
+
+    if (Math.abs(duckDelta) < JUMP_LAND_RESET && Math.abs(bodyLiftDelta) < JUMP_LAND_RESET) {
+      jumpTracker.neutralAt = now;
+    }
 
     if (duckDelta > JUMP_PRELOAD_DROP) {
       jumpTracker.preloadAt = now;
@@ -1259,11 +1278,14 @@
     }
 
     const hadPreload = jumpTracker.preloadAt > 0 && now - jumpTracker.preloadAt <= JUMP_PRELOAD_WINDOW_MS;
+    const wasRecentlyNeutral = jumpTracker.neutralAt > 0 && now - jumpTracker.neutralAt <= 420;
     const liftedEnough = duckDelta < -JUMP_LIFT_THRESHOLD;
-    const movingUpFast = liftVelocity > JUMP_VELOCITY_THRESHOLD;
+    const bodyLiftedEnough = bodyLiftDelta > JUMP_BODY_LIFT_THRESHOLD && hipLiftDelta > JUMP_BODY_LIFT_THRESHOLD * 0.65;
+    const directLiftedEnough = wasRecentlyNeutral && bodyLiftDelta > JUMP_DIRECT_LIFT_THRESHOLD && hipLiftDelta > JUMP_BODY_LIFT_THRESHOLD;
+    const movingUpFast = liftVelocity > JUMP_VELOCITY_THRESHOLD && bodyLiftVelocity > JUMP_VELOCITY_THRESHOLD * 0.75;
     const kneesAreNotCrouched = features.kneeCenterY - features.hipCenter.y >= 0.16;
 
-    if (hadPreload && liftedEnough && movingUpFast && kneesAreNotCrouched) {
+    if (((hadPreload && liftedEnough && bodyLiftedEnough) || directLiftedEnough) && movingUpFast && kneesAreNotCrouched) {
       jumpTracker.airborne = true;
       jumpTracker.preloadAt = 0;
       return true;
@@ -1310,6 +1332,8 @@
       if (fresh) {
         baseline.centerX = lerp(baseline.centerX, fresh.centerX, 0.08);
         baseline.shoulderY = lerp(baseline.shoulderY, fresh.shoulderY, 0.08);
+        baseline.bodyY = lerp(baseline.bodyY, fresh.bodyY, 0.08);
+        baseline.hipY = lerp(baseline.hipY, fresh.hipY, 0.08);
         baseline.shoulderWidth = lerp(baseline.shoulderWidth, fresh.shoulderWidth, 0.08);
         baseline.noseZ = lerp(baseline.noseZ, fresh.noseZ, 0.08);
         baseline.bodyHeight = lerp(baseline.bodyHeight, fresh.bodyHeight, 0.08);
