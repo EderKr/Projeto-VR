@@ -157,6 +157,7 @@ function updateAccountPage() {
 
 function updateAuthUI() {
   const overlay = document.getElementById("loginOverlay");
+  const landingAuthPanel = document.querySelector(".landing-auth-panel");
   const userBadge = document.getElementById("userBadge");
   const startHint = document.getElementById("loginStartHint");
   const logoutButton = document.getElementById("logoutButton");
@@ -167,6 +168,12 @@ function updateAuthUI() {
   if (overlay) {
     overlay.classList.toggle("hidden", isLoggedIn());
     overlay.setAttribute("aria-hidden", String(isLoggedIn()));
+  }
+
+  document.body.classList.toggle("auth-logged-in", isLoggedIn());
+  if (landingAuthPanel) {
+    landingAuthPanel.hidden = isLoggedIn();
+    landingAuthPanel.setAttribute("aria-hidden", String(isLoggedIn()));
   }
 
   if (userBadge) {

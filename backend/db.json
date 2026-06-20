@@ -1,0 +1,29 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "eder.kramer.gmail.com",
+      "display_name": "eder_kr",
+      "email": "eder.kramer@gmail.com",
+      "age": 21,
+      "birth_date": "2004-09-20",
+      "sex": "male",
+      "role": "god",
+      "admin_rank": 2,
+      "gender": "male",
+      "profile_notes": "",
+      "physio_profile": {
+        "doesPhysiotherapy": null,
+        "hasMovementPain": null,
+        "hasMobilityDifficulty": null,
+        "hasBalanceDifficulty": null,
+        "hasRecentInjury": null
+      },
+      "password_hash": "a4b04cc1c42fc3638fdbb00bc450ea2a50dfc2aba02cf5fbeae020d9ed896299",
+      "password_salt": "a3e937cd809236fec789d99e9a2b59eb",
+      "created_at": "2026-06-20T13:16:25.068Z"
+    }
+  ],
+  "performanceHistory": [],
+  "invites": []
+}

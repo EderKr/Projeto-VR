@@ -763,6 +763,18 @@ body.landing-page {
   order: 1;
 }
 
+.landing-page.auth-logged-in:not(.landing-stats-page) .landing-grid {
+  grid-template-columns: minmax(340px, 1fr) minmax(340px, 1fr);
+  grid-template-areas:
+    "launch camera"
+    "instructions instructions";
+  max-width: 980px;
+}
+
+.landing-page.auth-logged-in .landing-auth-panel {
+  display: none;
+}
+
 .landing-launch-panel {
   grid-area: launch;
   order: 2;
@@ -1760,6 +1772,14 @@ body.landing-page {
       "instructions instructions";
   }
 
+  .landing-page.auth-logged-in:not(.landing-stats-page) .landing-grid {
+    grid-template-columns: minmax(340px, 1fr) minmax(340px, 1fr);
+    grid-template-areas:
+      "launch camera"
+      "instructions instructions";
+    max-width: 900px;
+  }
+
   .landing-auth-panel {
     grid-area: auth;
   }
@@ -1865,6 +1885,15 @@ body.landing-page {
       "instructions";
     width: min(100% - 24px, 620px);
     margin-top: 14px;
+  }
+
+  .landing-page.auth-logged-in:not(.landing-stats-page) .landing-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "launch"
+      "camera"
+      "instructions";
+    max-width: 620px;
   }
 
   .landing-auth-panel { grid-area: auth; }
