@@ -271,6 +271,14 @@ function getRegisterPayload() {
     email: getFieldValue("loginEmail"),
     birthDate: getFieldValue("registerBirthDate"),
     sex: getFieldValue("registerSex"),
+    profileNotes: getFieldValue("registerProfileNotes"),
+    physioProfile: {
+      doesPhysiotherapy: getFieldValue("registerDoesPhysiotherapy"),
+      hasMovementPain: getFieldValue("registerHasMovementPain"),
+      hasMobilityDifficulty: getFieldValue("registerHasMobilityDifficulty"),
+      hasBalanceDifficulty: getFieldValue("registerHasBalanceDifficulty"),
+      hasRecentInjury: getFieldValue("registerHasRecentInjury")
+    },
     password: getFieldValue("loginPassword"),
     confirmPassword: getFieldValue("registerConfirmPassword")
   };

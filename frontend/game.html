@@ -11,7 +11,7 @@
   <script src="https://unpkg.com/aframe-extras@7.6.0/dist/aframe-extras.min.js"></script>
   <base href="/">
 
-  <link rel="stylesheet" href="/style.css?v=20260616-account-page" />
+  <link rel="stylesheet" href="/style.css?v=20260620-physio-profile" />
   <style>
     body,
     button,
@@ -39,6 +39,29 @@
   <a id="adminLink" class="logout-button admin-game-link" href="/admin" style="display: none;">Admin</a>
 
   <a id="userBadge" class="user-badge" href="/account.html" aria-live="polite" aria-label="Abrir conta"></a>
+
+  <section class="pose-control-panel" aria-label="Controle corporal por visao computacional">
+    <div class="pose-control-header">
+      <strong>Visao corporal</strong>
+      <span id="poseGameStatus">offline</span>
+    </div>
+    <div class="pose-control-stage">
+      <video id="poseControlVideo" class="pose-control-video" autoplay muted playsinline></video>
+      <canvas id="poseControlCanvas" width="320" height="180"></canvas>
+    </div>
+    <div class="pose-control-actions">
+      <button id="poseGameToggle" type="button">Ativar</button>
+      <button id="poseGameCalibrate" type="button">Recalibrar</button>
+      <label class="pose-control-check" for="poseGameInvert">
+        <input id="poseGameInvert" type="checkbox" />
+        inverter
+      </label>
+    </div>
+    <div class="pose-control-metrics">
+      <span id="poseGameAction">acao: --</span>
+      <span id="poseGameHint">pronto</span>
+    </div>
+  </section>
 
 
   <div id="loginOverlay" class="login-overlay" aria-hidden="false">
@@ -79,6 +102,49 @@
       <div class="register-only" hidden>
         <label for="registerConfirmPassword">Confirmar senha</label>
         <input id="registerConfirmPassword" name="confirmPassword" type="password" minlength="4" autocomplete="new-password" placeholder="repita a senha" data-required="true" />
+      </div>
+
+      <div class="register-only register-profile-optional" hidden>
+        <h3>Fale mais sobre você</h3>
+        <p>Opcional. Essas respostas podem ajudar uma IA de acompanhamento a personalizar indicações no futuro.</p>
+
+        <label for="registerProfileNotes">Fale mais sobre você</label>
+        <textarea id="registerProfileNotes" name="profileNotes" maxlength="1000" rows="4" placeholder="Conte algo sobre seus objetivos, rotina, limitações ou cuidados importantes."></textarea>
+
+        <label for="registerDoesPhysiotherapy">Você faz fisioterapia atualmente?</label>
+        <select id="registerDoesPhysiotherapy" name="doesPhysiotherapy">
+          <option value="">Prefiro não responder</option>
+          <option value="yes">Sim</option>
+          <option value="no">Não</option>
+        </select>
+
+        <label for="registerHasMovementPain">Você sente dor ou desconforto ao se movimentar?</label>
+        <select id="registerHasMovementPain" name="hasMovementPain">
+          <option value="">Prefiro não responder</option>
+          <option value="yes">Sim</option>
+          <option value="no">Não</option>
+        </select>
+
+        <label for="registerHasMobilityDifficulty">Você sente dificuldade para realizar movimentos do dia a dia?</label>
+        <select id="registerHasMobilityDifficulty" name="hasMobilityDifficulty">
+          <option value="">Prefiro não responder</option>
+          <option value="yes">Sim</option>
+          <option value="no">Não</option>
+        </select>
+
+        <label for="registerHasBalanceDifficulty">Você tem dificuldade de equilíbrio ou coordenação corporal?</label>
+        <select id="registerHasBalanceDifficulty" name="hasBalanceDifficulty">
+          <option value="">Prefiro não responder</option>
+          <option value="yes">Sim</option>
+          <option value="no">Não</option>
+        </select>
+
+        <label for="registerHasRecentInjury">Você teve alguma lesão recente que afeta seus movimentos?</label>
+        <select id="registerHasRecentInjury" name="hasRecentInjury">
+          <option value="">Prefiro não responder</option>
+          <option value="yes">Sim</option>
+          <option value="no">Não</option>
+        </select>
       </div>
 
       <div class="login-actions">
@@ -661,7 +727,26 @@
           </a-plane>
         </a-entity>
 
-        <a-entity id="stopButtonGroup" visible="false" position="0 -1.20 0.02">
+        <a-entity position="0 -1.20 0.02">
+          <a-plane
+            class="clickable"
+            gaze-button="action: pose_toggle; dwellTime: 900"
+            width="1.95"
+            height="0.42"
+            color="#7A4DA8"
+            radius="0.06">
+          </a-plane>
+          <a-plane
+            id="poseGameVRStatus"
+            position="0 0 0.01"
+            width="1.72"
+            height="0.18"
+            material="transparent: true; opacity: 0"
+            canvas-text="value: ATIVAR CORPO; align: center; fontSize: 78; color: #FFFFFF; padding: 10; fontFamily: Arial Black, Arial, sans-serif;">
+          </a-plane>
+        </a-entity>
+
+        <a-entity id="stopButtonGroup" visible="false" position="0 -1.70 0.02">
           <a-plane
             class="clickable"
             gaze-button="action: reset; dwellTime: 1200"
@@ -911,7 +996,7 @@
     </a-entity>
   </a-scene>
 
-  <script src="/scripts/auth.js?v=20260616-register-birthdate"></script>
+  <script src="/scripts/auth.js?v=20260620-physio-profile"></script>
   <script src="/scripts/state.js?v=20260616-nojump-menu-v1"></script>
   <script src="/scripts/ui.js?v=20260616-nojump-menu-v1"></script>
   <script src="/scripts/gameplay.js?v=20260616-nojump-menu-v1"></script>

@@ -373,6 +373,14 @@ AFRAME.registerComponent("gaze-button", {
           cam.components["head-input"].calibrate();
           setResult("Cabeça calibrada.", "success");
         }
+      } else if (this.data.action === "pose_toggle") {
+        if (typeof window.togglePoseGameControl === "function") {
+          window.togglePoseGameControl();
+        }
+      } else if (this.data.action === "pose_calibrate") {
+        if (typeof window.calibratePoseGameControl === "function") {
+          window.calibratePoseGameControl();
+        }
       } else if (this.data.action === "reset") {
         resetGame();
 

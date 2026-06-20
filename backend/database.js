@@ -62,6 +62,8 @@ async function ensurePostgresSchema() {
       role text not null default 'user',
       admin_rank integer not null default 2,
       gender text not null default 'male',
+      profile_notes text,
+      physio_profile jsonb not null default '{}'::jsonb,
       password_hash text not null,
       password_salt text not null
     );
@@ -107,6 +109,8 @@ async function ensurePostgresSchema() {
     alter table app_users add column if not exists sex text not null default 'male';
     alter table app_users add column if not exists role text not null default 'user';
     alter table app_users add column if not exists admin_rank integer not null default 2;
+    alter table app_users add column if not exists profile_notes text;
+    alter table app_users add column if not exists physio_profile jsonb not null default '{}'::jsonb;
     alter table performance_history add column if not exists user_id uuid references app_users(id) on delete cascade;
     alter table performance_history add column if not exists player_name text;
 
@@ -259,6 +263,27 @@ function normalizeAdminRank(value) {
   return Number(value) === 1 ? 1 : 2;
 }
 
+function normalizeOptionalBoolean(value) {
+  if (value === true || value === "true" || value === "yes" || value === "sim") return true;
+  if (value === false || value === "false" || value === "no" || value === "nao" || value === "não") return false;
+  return null;
+}
+
+function normalizeProfileNotes(value) {
+  return String(value || "").trim().slice(0, 1000);
+}
+
+function normalizePhysioProfile(profile = {}) {
+  const source = profile && typeof profile === "object" ? profile : {};
+  return {
+    doesPhysiotherapy: normalizeOptionalBoolean(source.doesPhysiotherapy),
+    hasMovementPain: normalizeOptionalBoolean(source.hasMovementPain),
+    hasMobilityDifficulty: normalizeOptionalBoolean(source.hasMobilityDifficulty),
+    hasBalanceDifficulty: normalizeOptionalBoolean(source.hasBalanceDifficulty),
+    hasRecentInjury: normalizeOptionalBoolean(source.hasRecentInjury)
+  };
+}
+
 function migrateLocalDb(db) {
   for (const user of db.users || []) {
     if (!user.email) user.email = user.username;
@@ -268,6 +293,8 @@ function migrateLocalDb(db) {
     if (user.birth_date) user.age = calculateAgeFromBirthDate(user.birth_date);
     if (!user.role) user.role = "user";
     if (!user.admin_rank && !user.adminRank) user.admin_rank = 2;
+    if (user.profileNotes && !user.profile_notes) user.profile_notes = user.profileNotes;
+    if (!user.physio_profile) user.physio_profile = normalizePhysioProfile(user.physioProfile);
   }
 
 }
@@ -295,6 +322,8 @@ function safeUser(row = {}) {
     gender: normalizeGender(row.gender || row.sex),
     role: normalizeRole(row.role),
     adminRank: normalizeAdminRank(row.admin_rank || row.adminRank),
+    profileNotes: normalizeProfileNotes(row.profile_notes || row.profileNotes),
+    physioProfile: normalizePhysioProfile(row.physio_profile || row.physioProfile),
     createdAt: row.created_at || row.createdAt || new Date().toISOString()
   };
 }
@@ -308,6 +337,8 @@ function validateNewUser(profile = {}) {
   const passwordValue = String(profile.password || "");
   const confirmPasswordValue = String(profile.confirmPassword || "");
   const normalizedUsername = normalizeUsername(email.replace("@", ".") || name);
+  const profileNotes = normalizeProfileNotes(profile.profileNotes || profile.profile_notes);
+  const physioProfile = normalizePhysioProfile(profile.physioProfile || profile.physio_profile);
 
   if (name.length < 2) {
     throw new Error("Informe um nome com pelo menos 2 caracteres.");
@@ -333,6 +364,8 @@ function validateNewUser(profile = {}) {
     birthDate,
     sex,
     gender: sex,
+    profileNotes,
+    physioProfile,
     password: passwordValue
   };
 }
@@ -414,7 +447,7 @@ async function getUserById(userId) {
 
   const pool = await ensurePostgresSchema();
   if (pool) {
-    const { rows } = await pool.query("select id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at from app_users where id = $1 limit 1", [id]);
+    const { rows } = await pool.query("select id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, profile_notes, physio_profile, created_at from app_users where id = $1 limit 1", [id]);
     return safeUser(rows[0]);
   }
 
@@ -436,10 +469,10 @@ async function createUser(profile = {}, invite = null) {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(
-      `insert into app_users (username, display_name, email, age, birth_date, sex, role, admin_rank, gender, password_hash, password_salt)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at`,
-      [valid.username, valid.displayName, valid.email, valid.age, valid.birthDate, valid.sex, role, 2, valid.gender, hash, salt]
+      `insert into app_users (username, display_name, email, age, birth_date, sex, role, admin_rank, gender, profile_notes, physio_profile, password_hash, password_salt)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13)
+       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, profile_notes, physio_profile, created_at`,
+      [valid.username, valid.displayName, valid.email, valid.age, valid.birthDate, valid.sex, role, 2, valid.gender, valid.profileNotes, JSON.stringify(valid.physioProfile), hash, salt]
     );
     return safeUser(rows[0]);
   }
@@ -457,6 +490,8 @@ async function createUser(profile = {}, invite = null) {
     role,
     admin_rank: 2,
     gender: valid.gender,
+    profile_notes: valid.profileNotes,
+    physio_profile: valid.physioProfile,
     password_hash: hash,
     password_salt: salt,
     created_at: new Date().toISOString()
@@ -552,7 +587,7 @@ async function updateOwnProfile(userId, profile = {}) {
            birth_date = $3,
            age = $4
        where id = $1
-       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at`,
+       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, profile_notes, physio_profile, created_at`,
       [String(userId), displayName, birthDate, age]
     );
     if (!rows[0]) throw new Error("Usuario nao encontrado.");
@@ -620,7 +655,7 @@ async function updateUserRole(userId, role, adminRank = 2) {
       `update app_users
        set role = $2, admin_rank = $3
        where id = $1
-       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, created_at`,
+       returning id, username, display_name, email, age, birth_date, sex, role, admin_rank, gender, profile_notes, physio_profile, created_at`,
       [String(userId), normalizedRole, normalizedRank]
     );
     if (!rows[0]) throw new Error("Usuario nao encontrado.");
@@ -952,7 +987,7 @@ async function listUsers() {
   const pool = await ensurePostgresSchema();
   if (pool) {
     const { rows } = await pool.query(`
-      select u.id, u.username, u.display_name, u.email, u.age, u.birth_date, u.sex, u.role, u.admin_rank, u.gender, u.created_at,
+      select u.id, u.username, u.display_name, u.email, u.age, u.birth_date, u.sex, u.role, u.admin_rank, u.gender, u.profile_notes, u.physio_profile, u.created_at,
         count(h.id)::int as history_count
       from app_users u
       left join performance_history h on h.user_id = u.id

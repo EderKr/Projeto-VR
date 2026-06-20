@@ -1240,6 +1240,14 @@
             ],
             "default": "male"
           },
+          "profileNotes": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Campo opcional para o usuario contar objetivos, rotina, limitacoes ou cuidados importantes."
+          },
+          "physioProfile": {
+            "$ref": "#/components/schemas/PhysioProfile"
+          },
           "password": {
             "type": "string",
             "minLength": 4,
@@ -1354,9 +1362,42 @@
               2
             ]
           },
+          "profileNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "physioProfile": {
+            "$ref": "#/components/schemas/PhysioProfile"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "PhysioProfile": {
+        "type": "object",
+        "description": "Respostas opcionais para personalizacao futura por IA. Valores nulos indicam que o usuario preferiu nao responder.",
+        "properties": {
+          "doesPhysiotherapy": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasMovementPain": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasMobilityDifficulty": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasBalanceDifficulty": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasRecentInjury": {
+            "type": "boolean",
+            "nullable": true
           }
         }
       },
