@@ -1,6 +1,6 @@
 # Corpus VR
 
-Corpus VR e um projeto WebXR com landing page, login, salas PC/celular, jogo VR, espelho corporal por visao computacional, historico de desempenho e assistente baseado nas estatisticas do usuario.
+Corpus VR é um projeto WebXR com landing page, login, salas PC/celular, jogo VR, espelho corporal por visao computacional, historico de desempenho e assistente baseado nas estatisticas do usuario.
 
 ## Estrutura
 
