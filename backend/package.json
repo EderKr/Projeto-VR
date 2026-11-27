@@ -1,0 +1,23 @@
+{
+  "name": "corpus-local",
+  "version": "1.10.0",
+  "description": "Jogo web 3D com visão computacional e histórico no navegador.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check ../frontend/scripts/state.js && node --check ../frontend/scripts/ui.js && node --check ../frontend/scripts/gameplay.js && node --check ../frontend/scripts/components.js && node --check ../frontend/scripts/aframe-safe-geometry.js && node --check ../frontend/scripts/game-pose-controller.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "aframe",
+    "computer-vision",
+    "game",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18"
+  }
+}
